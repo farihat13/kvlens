@@ -1,0 +1,47 @@
+{
+  "plan": "w_upd_indexed",
+  "question": "Change one indexed property (first name) of a person.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_prop",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "prop": "firstName",
+      "value": "WUpd"
+    }
+  ],
+  "output": "out"
+}

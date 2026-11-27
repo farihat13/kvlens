@@ -1,0 +1,11 @@
+// microbench closure: the whole TagClass subtree under a TagClass, root included (follow
+// isSubclassOf backwards, child -> parent edges read from the parent side, to any depth).
+// Reads: the isSubclassOf _to edge index of every class in the subtree; returns each class's
+// _key only.
+// Evaluator: queries/nhop.py closure -- read_closure(isSubclassOf, in) level by level until no
+// new class; final = the class set, root included, one row per class.
+// mb2 lineage: none (the IC12 tag-hierarchy walk). The depth bound 100 stands for "unbounded":
+// the LDBC TagClass hierarchy is a handful of levels deep.
+FOR c IN 0..100 INBOUND CONCAT("TagClass/", @tagClassId) isSubclassOf
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN c._key

@@ -1,0 +1,97 @@
+# IC10 — Option A rewrite (query-level workaround for missing
+# bound-vertex filter pushdown in Traverse).
+#
+# Background: an IC10 memory blow-up found (the notes are not shipped).
+# The canonical IC10 query (interactive-complex-10.gql) uses
+#   OPTIONAL MATCH (post)-[:HAS_TAG]->(t)<-[:HAS_INTEREST]-(person)
+# where `person` is bound to $personId. Nebula's planner does NOT
+# push the id(person) == $personId filter into the (t)<-[:HAS_INTEREST]
+# Traverse — it expands every interested-person per tag (~330 of them),
+# then post-filters via HashLeftJoin. The intermediate row count
+# explodes to ~190M rows × ~500B = ~95 GiB working set. Trips the
+# memory tracker at 100 GiB.
+#
+# This rewrite pre-computes the person's interest-tag IDs into a small
+# list (~70 tags), then uses `id(t) IN interestTagIds` as a set filter.
+# The (tag)<-[:HAS_INTEREST] reverse-traverse never happens.
+#
+# Preserves the full canonical semantics:
+#   - WHERE id(friend) != $personId   (no self in FoF)
+#   - p IS NULL                       (exclude direct friends of the person)
+#   - birthday window filter          (21st of $month .. 21st of next month)
+#   - common interest scoring         (commonPostCount - uncommonPostCount)
+#
+# Empirical (sf0.3, person 933, $month=3):
+#   Canonical IC10  → 77 GiB peak, 343s, often OOMs at 100 GiB limit
+#   Option A v2     → 1.78 GiB peak,  4.3s, returns 10 rows correctly
+#   ~43× memory reduction, ~80× speedup, semantically equivalent.
+#
+# When Option B (planner rule for bound-vertex filter pushdown) lands,
+# the canonical query should perform comparably and this file can be
+# kept as a benchmark target.
+#
+# nGQL gotchas hit while writing:
+#   1. `Tag` is reserved — backtick it as a label.
+#   2. After OPTIONAL MATCH, can't do `MATCH ... WHERE` — must use
+#      `WITH ..., x WHERE <predicate>` instead.
+
+# For person_933
+# ┌───────────────────────────────┬──────────────────────┬─────────────┬─────────────┐
+# │           Dimension           │    Canonical IC10    │ Option A v2 │ Improvement │
+# ├───────────────────────────────┼──────────────────────┼─────────────┼─────────────┤
+# │ Memory (person_933, $month=3) │               45 GiB │    1.78 GiB │         25× │
+# ├───────────────────────────────┼──────────────────────┼─────────────┼─────────────┤
+# │ Time                          │                 93 s │       4.3 s │         22× │
+# ├───────────────────────────────┼──────────────────────┼─────────────┼─────────────┤
+# │ Score correctness             │ inflated (KNOWN BUG) │     correct │   bug fixed │
+# └───────────────────────────────┴──────────────────────┴─────────────┴─────────────┘
+
+# Same 10 people. Most scores match. The deltas (-2, -1, -1) match exactly the inflation predicted by the query authors'
+# own KNOWN BUG comment — Option A v2's count(DISTINCT post) deduplicates posts that the canonical's collect(post)
+# double-counts.
+
+# So Option A v2 isn't just a memory workaround — it's also a semantic fix for the inflation bug the authors flagged as
+# unfixable in pure nGQL. The trick was using two aggregates (count DISTINCT post, count DISTINCT CASE) that share the
+# same post variable instead of two separate collect() calls that lose the row-identity.
+
+
+MATCH (root:Person)-[:HAS_INTEREST]->(rt:`Tag`)
+WHERE id(root) == $personId
+WITH root, collect(DISTINCT id(rt)) AS interestTagIds
+
+MATCH (root)-[:KNOWS*2..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)
+WITH friend, city, interestTagIds, root WHERE id(friend) != $personId
+WITH DISTINCT friend, city, interestTagIds, root
+
+# -- direct-friend exclusion (matches canonical IC10's `p IS NULL`)
+OPTIONAL MATCH p = (friend)-[:KNOWS]-(root)
+WITH friend, city, interestTagIds, root, p WHERE p IS NULL
+
+# -- birthday window: 21st of $month through 21st of next month
+WITH friend, city, interestTagIds, datetime(friend.Person.birthday/1000) AS bd
+WHERE (bd.month == $month AND bd.day >= 21)
+   OR (bd.month == ($month % 12) + 1 AND bd.day < 22)
+WITH friend, city, interestTagIds
+
+# -- post + tag traversal, with set-filter on interest tags
+OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)
+OPTIONAL MATCH (post)-[:HAS_TAG]->(t:`Tag`)
+WITH friend, city, post, t, interestTagIds
+
+WITH friend, city,
+     count(DISTINCT post) AS postCount,
+     count(DISTINCT CASE WHEN id(t) IN interestTagIds THEN post ELSE NULL END) AS commonPostCount
+
+RETURN
+  id(friend) AS personId,
+  friend.Person.firstName AS personFirstName,
+  friend.Person.lastName AS personLastName,
+  commonPostCount - (postCount - commonPostCount) AS commonInterestScore,
+  friend.Person.gender AS personGender,
+  city.Place.name AS personCityName,
+  # LDBC-spec sort tiebreaker is integer personId ASC. Nebula VIDs are
+  # strings ("person_933"), so a lexicographic ORDER BY personId would
+  # disagree with the spec on ties. Strip the prefix and sort numerically.
+  toInteger(split(tostring(id(friend)), "_")[1]) AS personIdInt
+ORDER BY commonInterestScore DESC, personIdInt ASC
+LIMIT 10;

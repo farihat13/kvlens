@@ -1,0 +1,6 @@
+# microbench hop1_hasmember -- the members of a Forum.
+# Evaluator: queries/hop.py _hop1("hasMember", "out", "Forum", "forum"): read_neighbors ->
+# dedup -> count. Count-final: one row per member, the vid only.
+# mb2 lineage: none.  Form: GO over HAS_MEMBER (out). $param note: see hop1_knows.gql.
+YIELD $forumId AS s
+| GO FROM $-.s OVER HAS_MEMBER YIELD DISTINCT dst(edge) AS id

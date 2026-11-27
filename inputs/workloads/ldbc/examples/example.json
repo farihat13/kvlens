@@ -1,0 +1,9 @@
+{
+ "id": "example",
+ "name": "example",
+ "title": "An example workload: a person's friends with names, and a person's first name, each once",
+ "items": [
+  {"family": "interactive", "query": "example_friends", "frequency": 1, "params": null},
+  {"family": "interactive", "query": "example_first_name", "frequency": 1, "params": null}
+ ]
+}

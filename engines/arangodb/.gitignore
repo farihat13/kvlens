@@ -1,0 +1,29 @@
+# Build output (inside source tree)
+arangodb-3.12.8/build/
+
+# Runtime
+runs/
+backup/*
+!backup/provenance-sf*.txt
+data/*
+!data/conf/
+!data/ldbc/
+data/ldbc/*
+!data/ldbc/ldbc_schema.json
+bin/
+
+# Python venv
+.venv/
+
+# Build logs
+build.log
+build-*.log
+
+
+# Logs
+logs/
+*.log
+
+# Editor
+.idea/
+.vscode/

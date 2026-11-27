@@ -1,0 +1,6 @@
+# w_del_e -- delete one existing KNOWS edge: the out-edge and in-edge keys and its knows_creation_date_idx entry
+#   (real RocksDB deletes), and a raft commit key per partition.
+# Evaluator: workloads/writes/microbench/queries.py w_del_e -- delete_edge(knows, src_vid, dst_vid).
+# mb2 lineage: MB88 (same statement).
+# Anchor: both vids, inlined (a text template), as w_upd_plain.
+DELETE EDGE `KNOWS` "person_$src" -> "person_$dst";

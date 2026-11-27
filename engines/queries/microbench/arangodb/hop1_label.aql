@@ -1,0 +1,11 @@
+// microbench hop1_label: the Posts (not Comments) a person created (T3, type filter on a
+// heterogeneous 1-hop).
+// Reads: the hasCreator _to edge index from the anchor; the type test reads the collection off
+// each message's _id (no message property is read).
+// Evaluator: queries/hop.py hop1_label -- read_neighbors + dedup + read_filter_by_label_probe
+// (free for arango: the type is in the id), count-final (the harness counts the returned keys).
+// mb2 lineage: MB39-40, 139-140, 239-240 (no arango text in mb2).
+FOR m IN 1..1 INBOUND CONCAT("Person/", @personId) hasCreator
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    FILTER IS_SAME_COLLECTION("Post", m._id)
+    RETURN m._key

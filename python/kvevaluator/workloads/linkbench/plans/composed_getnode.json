@@ -1,0 +1,97 @@
+{
+  "plan": "composed_getnode",
+  "question": "Given a node, read the whole record of every node it links to by link type 1.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "ll",
+      "op": "read_neighbors",
+      "srcs": [
+        {
+          "let": "n_vid"
+        }
+      ],
+      "etype": "link1",
+      "dir": "out"
+    },
+    {
+      "name": "nb",
+      "op": "dedup",
+      "items": {
+        "ref": "ll"
+      }
+    },
+    {
+      "name": "nv",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "nb"
+      },
+      "props": [
+        "ntype",
+        "version",
+        "time",
+        "data"
+      ],
+      "label": "Node"
+    },
+    {
+      "name": "srt",
+      "op": "top_k",
+      "rows": {
+        "ref": "nv"
+      },
+      "keys": [
+        [
+          "_vid",
+          "asc"
+        ]
+      ],
+      "k": null
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "srt"
+      },
+      "fields": [
+        "_vid",
+        "ntype",
+        "version",
+        "time",
+        "data"
+      ]
+    }
+  ],
+  "output": "out"
+}

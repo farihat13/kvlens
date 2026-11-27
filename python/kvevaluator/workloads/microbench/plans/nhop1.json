@@ -1,0 +1,113 @@
+{
+  "plan": "nhop1",
+  "question": "Given a person, find the people exactly one knows-step away.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "s0",
+          "op": "dedup",
+          "items": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "f1r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "s0"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1r"
+          }
+        },
+        {
+          "name": "f1",
+          "op": "exclude",
+          "items": {
+            "ref": "f1d"
+          },
+          "remove": {
+            "ref": "s0"
+          }
+        },
+        {
+          "name": "s1",
+          "op": "concat",
+          "a": {
+            "ref": "s0"
+          },
+          "b": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "out",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "41ea1900dc91",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

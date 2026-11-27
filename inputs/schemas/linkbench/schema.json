@@ -1,0 +1,118 @@
+{
+ "name": "canonical",
+ "vertices": [
+  {
+   "label": "Node",
+   "id": 0,
+   "group": "Node",
+   "tag": 7,
+   "props": [
+    {
+     "name": "ntype",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "version",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "time",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "data",
+     "type": "bytes",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "etype": "link1",
+   "id": 0,
+   "reverse": false,
+   "endpoints": [
+    [
+     "Node",
+     "Node"
+    ]
+   ],
+   "props": [
+    {
+     "name": "visibility",
+     "type": "int"
+    },
+    {
+     "name": "version",
+     "type": "int"
+    },
+    {
+     "name": "time",
+     "type": "int"
+    },
+    {
+     "name": "data",
+     "type": "bytes"
+    }
+   ]
+  },
+  {
+   "etype": "link2",
+   "id": 1,
+   "reverse": false,
+   "endpoints": [
+    [
+     "Node",
+     "Node"
+    ]
+   ],
+   "props": [
+    {
+     "name": "visibility",
+     "type": "int"
+    },
+    {
+     "name": "version",
+     "type": "int"
+    },
+    {
+     "name": "time",
+     "type": "int"
+    },
+    {
+     "name": "data",
+     "type": "bytes"
+    }
+   ]
+  }
+ ],
+ "indexes": [
+  {
+   "label": "Node",
+   "prop": "",
+   "kind": "type",
+   "id": 0
+  }
+ ],
+ "type_indexed_labels": [],
+ "type_groups": {},
+ "vid_tags": {
+  "Node": 7
+ },
+ "hash": "8f344c3a4ef75dfad6ea4093ba73d7ecb4d12bf1de825ebff53c8b2365c8f26a",
+ "adj": {
+  "sort": {},
+  "inline": {},
+  "sort_facet": {},
+  "dir": {}
+ },
+ "prop_groups": {}
+}

@@ -1,0 +1,38 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=9.08
+# Q8. Recent replies
+# 
+# Given a start Person with ID $personId, find the most recent Comments that are replies to 
+# Messagesof the start Person. Only consider direct (single-hop) replies, not the transitive (multi-hop) ones.
+# Return the reply Comments, and the Person that created each reply Comment.
+#
+# Sort    comment.creationDate(Desc), comment.id(Asc.)
+# Limit   20
+#
+# Param: $personId : int  (personId)
+
+query Q8($personId: int) {
+  # Anchor person
+  P as var(func: eq(id, $personId)) @filter(type(person))
+
+  # All messages (posts or comments) authored by that person
+  var(func: uid(P)) {
+    M as ~hasCreator @filter(type(post) OR type(comment))
+  }
+
+  # Comments that reply to any of those messages
+  var(func: uid(M)) {
+    C as ~replyOf @filter(type(comment))
+  }
+
+  # Take the 20 most recent comments; tie-break by commentId ASC
+  recent(func: uid(C), orderdesc: creationDate, orderasc: id, first: 20) @normalize {
+    commentId: id
+    commentCreationDate: creationDate
+    commentContent: content
+    hasCreator @filter(type(person)) {
+      personId: id
+      personFirstName: firstName
+      personLastName:  lastName
+    }
+  }
+}

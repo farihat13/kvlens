@@ -1,0 +1,10900 @@
+{
+ "plan": "job20b",
+ "question": "Join Order Benchmark query 20b: join 9 IMDb tables (cast_info, char_name, comp_cast_type, complete_cast, keyword, kind_type, movie_keyword, name, title) on 12 join conditions, keep the rows that pass 8 filters, and return the smallest value of each of its 1 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_scan"
+  },
+  {
+   "requires": [],
+   "plan": "enter_n_by_scan_outputs_early"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_n_by_scan": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s08_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s09_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s08_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s10_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s11_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_ci_all"
+     },
+     "b": {
+      "ref": "s10_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s12_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s13_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_ci_all"
+     },
+     "b": {
+      "ref": "s12_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s14_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_all"
+     },
+     "b": {
+      "ref": "s14_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s16_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_director"
+     }
+    },
+    {
+     "name": "s22_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s24_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s26_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s28_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s29_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s28_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s30_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s31_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_ci_dst_col"
+     }
+    },
+    {
+     "name": "s32_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s31_ci_dst_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s33_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s32_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s34_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s35_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_t_back_col"
+     }
+    },
+    {
+     "name": "s36_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s35_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_cc_col"
+     }
+    },
+    {
+     "name": "s39_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s40_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s39_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s41_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s42_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s36_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s41_cc_ok"
+     }
+    },
+    {
+     "name": "s43_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s42_cc_kept"
+     },
+     "right": {
+      "ref": "s40_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s44_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_cc_back_col"
+     }
+    },
+    {
+     "name": "s46_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s45_cc_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s47_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s48_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mk_dst_col"
+     }
+    },
+    {
+     "name": "s49_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s50_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s49_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s51_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_k_back_col"
+     }
+    },
+    {
+     "name": "s53_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s52_k_back_set"
+     }
+    },
+    {
+     "name": "s54_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s55_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_mk_back_col"
+     }
+    },
+    {
+     "name": "s56_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s55_mk_back_set"
+     }
+    },
+    {
+     "name": "s57_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s56_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s58_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s57_ci_character_col"
+     }
+    },
+    {
+     "name": "s59_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s58_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s60_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s59_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s61_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s62_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_chn_back_col"
+     }
+    },
+    {
+     "name": "s63_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s56_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s62_chn_back_set"
+     }
+    },
+    {
+     "name": "s64_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s63_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s65_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s64_ci_back_col"
+     }
+    },
+    {
+     "name": "s66_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s65_ci_back_set"
+     }
+    },
+    {
+     "name": "s67_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s66_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s68_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s67_n_self_final_col"
+     }
+    },
+    {
+     "name": "s69_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s63_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s68_n_self_final_set"
+     }
+    },
+    {
+     "name": "s70_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s71_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s70_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s72_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s73_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s74_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s53_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s75_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s76_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s77_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s50_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s76_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s78_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s79_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s80_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s81_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_cc_final"
+     }
+    },
+    {
+     "name": "s82_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_chn_final"
+     }
+    },
+    {
+     "name": "s83_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s69_ci_final"
+     }
+    },
+    {
+     "name": "s84_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s77_k_final"
+     }
+    },
+    {
+     "name": "s85_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s74_mk_final"
+     }
+    },
+    {
+     "name": "s86_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s66_n_cut"
+     }
+    },
+    {
+     "name": "s87_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_t_final"
+     }
+    },
+    {
+     "name": "s88_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s89_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s71_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s90_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_base"
+     },
+     "right": {
+      "ref": "s93_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s95_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s96_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s96_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s98_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s99_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s98_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s100_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s97_cc_n_in"
+     },
+     "right": {
+      "ref": "s99_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s101_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s102_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s101_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s103_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s100_chn_n_in"
+     },
+     "right": {
+      "ref": "s102_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s104_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s105_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s104_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s106_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s103_ci_n_in"
+     },
+     "right": {
+      "ref": "s105_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s107_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s108_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s107_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s109_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s106_k_n_in"
+     },
+     "right": {
+      "ref": "s108_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s110_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s111_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s110_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s112_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s109_mk_n_in"
+     },
+     "right": {
+      "ref": "s111_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s113_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s87_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s114_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s113_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s115_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s112_n_n_in"
+     },
+     "right": {
+      "ref": "s114_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s115_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s08_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s09_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s08_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s10_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s11_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_ci_all"
+     },
+     "b": {
+      "ref": "s10_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s12_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s13_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_ci_all"
+     },
+     "b": {
+      "ref": "s12_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s14_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_all"
+     },
+     "b": {
+      "ref": "s14_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s16_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_director"
+     }
+    },
+    {
+     "name": "s22_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s24_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s26_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s28_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s29_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s28_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s30_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s31_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_ci_dst_col"
+     }
+    },
+    {
+     "name": "s32_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s31_ci_dst_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s33_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s32_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s34_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s35_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_t_back_col"
+     }
+    },
+    {
+     "name": "s36_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s35_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_cc_col"
+     }
+    },
+    {
+     "name": "s39_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s40_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s39_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s41_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s42_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s36_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s41_cc_ok"
+     }
+    },
+    {
+     "name": "s43_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s42_cc_kept"
+     },
+     "right": {
+      "ref": "s40_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s44_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_cc_back_col"
+     }
+    },
+    {
+     "name": "s46_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s45_cc_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s47_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s48_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mk_dst_col"
+     }
+    },
+    {
+     "name": "s49_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s50_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s49_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s51_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_k_back_col"
+     }
+    },
+    {
+     "name": "s53_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s52_k_back_set"
+     }
+    },
+    {
+     "name": "s54_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s55_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_mk_back_col"
+     }
+    },
+    {
+     "name": "s56_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s55_mk_back_set"
+     }
+    },
+    {
+     "name": "s57_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s56_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s58_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s57_ci_character_col"
+     }
+    },
+    {
+     "name": "s59_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s58_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s60_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s59_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s61_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s62_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_chn_back_col"
+     }
+    },
+    {
+     "name": "s63_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s56_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s62_chn_back_set"
+     }
+    },
+    {
+     "name": "s64_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s63_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s65_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s64_ci_back_col"
+     }
+    },
+    {
+     "name": "s66_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s65_ci_back_set"
+     }
+    },
+    {
+     "name": "s67_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s66_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s68_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s67_n_self_final_col"
+     }
+    },
+    {
+     "name": "s69_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s63_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s68_n_self_final_set"
+     }
+    },
+    {
+     "name": "s70_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s71_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s70_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s72_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s73_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s74_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s53_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s75_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s76_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s77_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s50_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s76_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s78_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s79_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s80_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s81_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_cc_final"
+     }
+    },
+    {
+     "name": "s82_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_chn_final"
+     }
+    },
+    {
+     "name": "s83_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s69_ci_final"
+     }
+    },
+    {
+     "name": "s84_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s77_k_final"
+     }
+    },
+    {
+     "name": "s85_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s74_mk_final"
+     }
+    },
+    {
+     "name": "s86_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s66_n_cut"
+     }
+    },
+    {
+     "name": "s87_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_t_final"
+     }
+    },
+    {
+     "name": "s88_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s89_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s90_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_base"
+     },
+     "right": {
+      "ref": "s92_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s94_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s95_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s95_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s97_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s98_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s97_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s99_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s96_cc_n_in"
+     },
+     "right": {
+      "ref": "s98_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s100_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s101_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s100_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s102_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s99_chn_n_in"
+     },
+     "right": {
+      "ref": "s101_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s103_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s104_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s103_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s105_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s102_ci_n_in"
+     },
+     "right": {
+      "ref": "s104_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s106_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s107_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s106_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s108_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s105_k_n_in"
+     },
+     "right": {
+      "ref": "s107_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s109_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s110_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s109_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s111_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s108_mk_n_in"
+     },
+     "right": {
+      "ref": "s110_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s112_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s87_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s113_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s112_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s114_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s111_n_n_in"
+     },
+     "right": {
+      "ref": "s113_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s114_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_n_run",
+     "op": "read_vertices_by_label",
+     "label": "Name",
+     "props": [
+      "name"
+     ]
+    },
+    {
+     "name": "s02_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_n_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_n_keep"
+     }
+    },
+    {
+     "name": "s04_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_n_self_col"
+     }
+    },
+    {
+     "name": "s06_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s07_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s08_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s07_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s09_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s10_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s08_ci_all"
+     },
+     "b": {
+      "ref": "s09_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s11_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s12_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_ci_all"
+     },
+     "b": {
+      "ref": "s11_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s13_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s14_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_ci_all"
+     },
+     "b": {
+      "ref": "s13_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s15_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s16_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_ci_all"
+     },
+     "b": {
+      "ref": "s15_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s17_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s18_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s16_ci_all"
+     },
+     "b": {
+      "ref": "s17_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s19_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s20_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s18_ci_all"
+     },
+     "b": {
+      "ref": "s19_ci_cast_director"
+     }
+    },
+    {
+     "name": "s21_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s22_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s20_ci_all"
+     },
+     "b": {
+      "ref": "s21_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s23_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_all"
+     },
+     "b": {
+      "ref": "s23_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s25_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s27_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s26_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s28_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s27_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s29_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_ci_dst_col"
+     }
+    },
+    {
+     "name": "s31_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s30_ci_dst_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s32_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s31_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s33_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s34_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_t_back_col"
+     }
+    },
+    {
+     "name": "s35_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s34_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s36_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s37_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_cc_col"
+     }
+    },
+    {
+     "name": "s38_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s37_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s39_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s38_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s40_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s41_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s35_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s40_cc_ok"
+     }
+    },
+    {
+     "name": "s42_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s41_cc_kept"
+     },
+     "right": {
+      "ref": "s39_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s43_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s44_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_cc_back_col"
+     }
+    },
+    {
+     "name": "s45_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s44_cc_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s46_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s45_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s47_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s46_mk_dst_col"
+     }
+    },
+    {
+     "name": "s48_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s47_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s49_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s48_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s50_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_k_back_col"
+     }
+    },
+    {
+     "name": "s52_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s45_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s51_k_back_set"
+     }
+    },
+    {
+     "name": "s53_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s54_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_mk_back_col"
+     }
+    },
+    {
+     "name": "s55_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s54_mk_back_set"
+     }
+    },
+    {
+     "name": "s56_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s55_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s57_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_ci_character_col"
+     }
+    },
+    {
+     "name": "s58_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s59_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s60_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s61_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_chn_back_col"
+     }
+    },
+    {
+     "name": "s62_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s55_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s61_chn_back_set"
+     }
+    },
+    {
+     "name": "s63_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s62_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s64_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s63_ci_back_col"
+     }
+    },
+    {
+     "name": "s65_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s64_ci_back_set"
+     }
+    },
+    {
+     "name": "s66_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s65_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s67_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s66_n_self_final_col"
+     }
+    },
+    {
+     "name": "s68_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s62_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s67_n_self_final_set"
+     }
+    },
+    {
+     "name": "s69_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s68_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s70_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s69_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s71_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s32_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s70_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s72_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s42_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s70_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s73_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s52_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s70_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s74_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s73_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s75_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s74_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s76_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s49_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s75_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s77_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s68_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s78_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s77_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s79_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s59_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s78_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s80_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_cc_final"
+     }
+    },
+    {
+     "name": "s81_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s79_chn_final"
+     }
+    },
+    {
+     "name": "s82_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s68_ci_final"
+     }
+    },
+    {
+     "name": "s83_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s76_k_final"
+     }
+    },
+    {
+     "name": "s84_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_mk_final"
+     }
+    },
+    {
+     "name": "s85_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s65_n_cut"
+     }
+    },
+    {
+     "name": "s86_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s71_t_final"
+     }
+    },
+    {
+     "name": "s87_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s88_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s70_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s90_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s89_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s90_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_base"
+     },
+     "right": {
+      "ref": "s92_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s94_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s80_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s95_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s95_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s97_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s98_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s97_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s99_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s96_cc_n_in"
+     },
+     "right": {
+      "ref": "s98_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s100_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s101_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s100_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s102_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s99_chn_n_in"
+     },
+     "right": {
+      "ref": "s101_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s103_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s104_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s103_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s105_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s102_ci_n_in"
+     },
+     "right": {
+      "ref": "s104_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s106_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s107_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s106_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s108_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s105_k_n_in"
+     },
+     "right": {
+      "ref": "s107_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s109_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s110_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s109_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s111_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s108_mk_n_in"
+     },
+     "right": {
+      "ref": "s110_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s112_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s113_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s112_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s114_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s111_n_n_in"
+     },
+     "right": {
+      "ref": "s113_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s114_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_index": {
+   "steps": [
+    {
+     "name": "s01_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "superhero"
+    },
+    {
+     "name": "s02_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "sequel"
+    },
+    {
+     "name": "s03_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "second-part"
+    },
+    {
+     "name": "s04_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "marvel-comics"
+    },
+    {
+     "name": "s05_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "based-on-comic"
+    },
+    {
+     "name": "s06_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "tv-special"
+    },
+    {
+     "name": "s07_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "fight"
+    },
+    {
+     "name": "s08_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "violence"
+    },
+    {
+     "name": "s09_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s01_k_ix"
+     },
+     "b": {
+      "ref": "s02_k_ix"
+     }
+    },
+    {
+     "name": "s10_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_k_ix_all"
+     },
+     "b": {
+      "ref": "s03_k_ix"
+     }
+    },
+    {
+     "name": "s11_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_k_ix_all"
+     },
+     "b": {
+      "ref": "s04_k_ix"
+     }
+    },
+    {
+     "name": "s12_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_k_ix_all"
+     },
+     "b": {
+      "ref": "s05_k_ix"
+     }
+    },
+    {
+     "name": "s13_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_k_ix_all"
+     },
+     "b": {
+      "ref": "s06_k_ix"
+     }
+    },
+    {
+     "name": "s14_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_k_ix_all"
+     },
+     "b": {
+      "ref": "s07_k_ix"
+     }
+    },
+    {
+     "name": "s15_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_k_ix_all"
+     },
+     "b": {
+      "ref": "s08_k_ix"
+     }
+    },
+    {
+     "name": "s16_k_ix_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_k_ix_all"
+     }
+    },
+    {
+     "name": "s17_k_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s16_k_ix_set"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s18_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s17_k_rows"
+     }
+    },
+    {
+     "name": "s19_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_k_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_k_self_col"
+     }
+    },
+    {
+     "name": "s21_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s23_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_mk_src_col"
+     }
+    },
+    {
+     "name": "s24_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s23_mk_src_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s25_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s24_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s26_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s27_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_t_back_col"
+     }
+    },
+    {
+     "name": "s28_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s27_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_cc_col"
+     }
+    },
+    {
+     "name": "s31_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s30_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s32_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s31_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s33_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s34_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s33_cc_ok"
+     }
+    },
+    {
+     "name": "s35_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s34_cc_kept"
+     },
+     "right": {
+      "ref": "s32_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s36_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s37_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_cc_back_col"
+     }
+    },
+    {
+     "name": "s38_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s39_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s39_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s41_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s43_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s44_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s42_ci_all"
+     },
+     "b": {
+      "ref": "s43_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s45_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s46_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s44_ci_all"
+     },
+     "b": {
+      "ref": "s45_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s47_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s48_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s46_ci_all"
+     },
+     "b": {
+      "ref": "s47_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s49_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s50_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s48_ci_all"
+     },
+     "b": {
+      "ref": "s49_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s51_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s52_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s50_ci_all"
+     },
+     "b": {
+      "ref": "s51_ci_cast_director"
+     }
+    },
+    {
+     "name": "s53_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s54_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s52_ci_all"
+     },
+     "b": {
+      "ref": "s53_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s55_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s56_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s54_ci_all"
+     },
+     "b": {
+      "ref": "s55_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s57_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s58_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s56_ci_all"
+     },
+     "b": {
+      "ref": "s57_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s59_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s60_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s61_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s62_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_src_col"
+     }
+    },
+    {
+     "name": "s63_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s62_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s64_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s63_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s65_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s64_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s66_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s65_n_back_col"
+     }
+    },
+    {
+     "name": "s67_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s66_n_back_set"
+     }
+    },
+    {
+     "name": "s68_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s67_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s69_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s68_ci_character_col"
+     }
+    },
+    {
+     "name": "s70_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s69_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s71_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s70_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s72_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s71_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s73_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s72_chn_back_col"
+     }
+    },
+    {
+     "name": "s74_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s67_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s73_chn_back_set"
+     }
+    },
+    {
+     "name": "s75_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s76_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_ci_back_col"
+     }
+    },
+    {
+     "name": "s77_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s76_ci_back_set"
+     }
+    },
+    {
+     "name": "s78_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s77_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s79_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_mk_back_col"
+     }
+    },
+    {
+     "name": "s80_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_k_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_mk_back_set"
+     }
+    },
+    {
+     "name": "s81_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s80_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s82_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s81_k_self_final_col"
+     }
+    },
+    {
+     "name": "s83_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s77_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s82_k_self_final_set"
+     }
+    },
+    {
+     "name": "s84_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s83_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s85_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s84_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s86_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s87_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s35_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s88_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s74_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s89_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s88_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s90_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s89_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s91_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s64_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s90_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s92_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s88_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s93_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s92_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s94_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s71_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s93_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s95_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s87_cc_final"
+     }
+    },
+    {
+     "name": "s96_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s94_chn_final"
+     }
+    },
+    {
+     "name": "s97_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s88_ci_final"
+     }
+    },
+    {
+     "name": "s98_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_k_cut"
+     }
+    },
+    {
+     "name": "s99_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s83_mk_final"
+     }
+    },
+    {
+     "name": "s100_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s91_n_final"
+     }
+    },
+    {
+     "name": "s101_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s86_t_final"
+     }
+    },
+    {
+     "name": "s102_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s18_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s103_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s102_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s104_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s85_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s105_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s104_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s106_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s105_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s107_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s106_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s108_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s103_base"
+     },
+     "right": {
+      "ref": "s107_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s109_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s95_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s110_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s109_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s111_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s108_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s110_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s112_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s96_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s113_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s112_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s114_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s111_cc_n_in"
+     },
+     "right": {
+      "ref": "s113_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s115_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s97_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s116_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s115_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s117_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s114_chn_n_in"
+     },
+     "right": {
+      "ref": "s116_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s118_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s98_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s119_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s118_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s120_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s117_ci_n_in"
+     },
+     "right": {
+      "ref": "s119_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s121_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s99_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s122_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s121_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s123_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s120_k_n_in"
+     },
+     "right": {
+      "ref": "s122_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s124_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s100_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s125_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s124_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s126_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s123_mk_n_in"
+     },
+     "right": {
+      "ref": "s125_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s127_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s101_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s128_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s127_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s129_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s126_n_n_in"
+     },
+     "right": {
+      "ref": "s128_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s129_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_index_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "superhero"
+    },
+    {
+     "name": "s02_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "sequel"
+    },
+    {
+     "name": "s03_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "second-part"
+    },
+    {
+     "name": "s04_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "marvel-comics"
+    },
+    {
+     "name": "s05_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "based-on-comic"
+    },
+    {
+     "name": "s06_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "tv-special"
+    },
+    {
+     "name": "s07_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "fight"
+    },
+    {
+     "name": "s08_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "violence"
+    },
+    {
+     "name": "s09_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s01_k_ix"
+     },
+     "b": {
+      "ref": "s02_k_ix"
+     }
+    },
+    {
+     "name": "s10_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_k_ix_all"
+     },
+     "b": {
+      "ref": "s03_k_ix"
+     }
+    },
+    {
+     "name": "s11_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_k_ix_all"
+     },
+     "b": {
+      "ref": "s04_k_ix"
+     }
+    },
+    {
+     "name": "s12_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_k_ix_all"
+     },
+     "b": {
+      "ref": "s05_k_ix"
+     }
+    },
+    {
+     "name": "s13_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_k_ix_all"
+     },
+     "b": {
+      "ref": "s06_k_ix"
+     }
+    },
+    {
+     "name": "s14_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_k_ix_all"
+     },
+     "b": {
+      "ref": "s07_k_ix"
+     }
+    },
+    {
+     "name": "s15_k_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_k_ix_all"
+     },
+     "b": {
+      "ref": "s08_k_ix"
+     }
+    },
+    {
+     "name": "s16_k_ix_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_k_ix_all"
+     }
+    },
+    {
+     "name": "s17_k_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s16_k_ix_set"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s18_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s17_k_rows"
+     }
+    },
+    {
+     "name": "s19_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_k_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_k_self_col"
+     }
+    },
+    {
+     "name": "s21_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s23_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_mk_src_col"
+     }
+    },
+    {
+     "name": "s24_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s23_mk_src_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s25_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s24_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s26_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s27_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_t_back_col"
+     }
+    },
+    {
+     "name": "s28_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s27_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_cc_col"
+     }
+    },
+    {
+     "name": "s31_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s30_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s32_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s31_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s33_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s34_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s33_cc_ok"
+     }
+    },
+    {
+     "name": "s35_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s34_cc_kept"
+     },
+     "right": {
+      "ref": "s32_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s36_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s37_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_cc_back_col"
+     }
+    },
+    {
+     "name": "s38_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s39_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s39_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s41_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s43_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s44_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s42_ci_all"
+     },
+     "b": {
+      "ref": "s43_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s45_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s46_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s44_ci_all"
+     },
+     "b": {
+      "ref": "s45_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s47_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s48_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s46_ci_all"
+     },
+     "b": {
+      "ref": "s47_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s49_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s50_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s48_ci_all"
+     },
+     "b": {
+      "ref": "s49_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s51_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s52_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s50_ci_all"
+     },
+     "b": {
+      "ref": "s51_ci_cast_director"
+     }
+    },
+    {
+     "name": "s53_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s54_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s52_ci_all"
+     },
+     "b": {
+      "ref": "s53_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s55_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s56_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s54_ci_all"
+     },
+     "b": {
+      "ref": "s55_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s57_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s37_cc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s58_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s56_ci_all"
+     },
+     "b": {
+      "ref": "s57_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s59_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s60_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s61_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s62_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_src_col"
+     }
+    },
+    {
+     "name": "s63_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s62_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s64_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s63_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s65_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s64_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s66_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s65_n_back_col"
+     }
+    },
+    {
+     "name": "s67_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s66_n_back_set"
+     }
+    },
+    {
+     "name": "s68_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s67_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s69_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s68_ci_character_col"
+     }
+    },
+    {
+     "name": "s70_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s69_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s71_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s70_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s72_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s71_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s73_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s72_chn_back_col"
+     }
+    },
+    {
+     "name": "s74_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s67_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s73_chn_back_set"
+     }
+    },
+    {
+     "name": "s75_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s76_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_ci_back_col"
+     }
+    },
+    {
+     "name": "s77_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s76_ci_back_set"
+     }
+    },
+    {
+     "name": "s78_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s77_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s79_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_mk_back_col"
+     }
+    },
+    {
+     "name": "s80_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_k_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_mk_back_set"
+     }
+    },
+    {
+     "name": "s81_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s80_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s82_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s81_k_self_final_col"
+     }
+    },
+    {
+     "name": "s83_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s77_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s82_k_self_final_set"
+     }
+    },
+    {
+     "name": "s84_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s83_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s85_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s84_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s86_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s87_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s35_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s88_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s74_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s85_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s89_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s88_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s90_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s89_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s91_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s64_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s90_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s92_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s88_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s93_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s92_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s94_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s71_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s93_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s95_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s87_cc_final"
+     }
+    },
+    {
+     "name": "s96_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s94_chn_final"
+     }
+    },
+    {
+     "name": "s97_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s88_ci_final"
+     }
+    },
+    {
+     "name": "s98_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_k_cut"
+     }
+    },
+    {
+     "name": "s99_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s83_mk_final"
+     }
+    },
+    {
+     "name": "s100_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s91_n_final"
+     }
+    },
+    {
+     "name": "s101_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s86_t_final"
+     }
+    },
+    {
+     "name": "s102_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s18_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s103_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s102_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s104_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s86_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s105_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s104_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s106_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s105_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s107_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s103_base"
+     },
+     "right": {
+      "ref": "s106_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s108_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s95_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s109_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s108_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s110_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s107_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s109_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s111_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s96_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s112_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s111_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s113_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s110_cc_n_in"
+     },
+     "right": {
+      "ref": "s112_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s114_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s97_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s115_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s114_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s116_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s113_chn_n_in"
+     },
+     "right": {
+      "ref": "s115_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s117_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s98_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s118_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s117_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s119_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s116_ci_n_in"
+     },
+     "right": {
+      "ref": "s118_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s120_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s99_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s121_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s120_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s122_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s119_k_n_in"
+     },
+     "right": {
+      "ref": "s121_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s123_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s100_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s124_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s123_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s125_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s122_mk_n_in"
+     },
+     "right": {
+      "ref": "s124_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s126_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s101_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s127_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s126_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s128_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s125_n_n_in"
+     },
+     "right": {
+      "ref": "s127_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s128_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_scan": {
+   "steps": [
+    {
+     "name": "s01_k_scan",
+     "op": "read_vertices_by_label",
+     "label": "Keyword"
+    },
+    {
+     "name": "s02_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_k_scan"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s03_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_k_keep"
+     }
+    },
+    {
+     "name": "s05_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_k_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_src_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_src_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_cc_col"
+     }
+    },
+    {
+     "name": "s17_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s18_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_cc_ok"
+     }
+    },
+    {
+     "name": "s21_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s20_cc_kept"
+     },
+     "right": {
+      "ref": "s18_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s22_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s23_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_cc_back_col"
+     }
+    },
+    {
+     "name": "s24_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s25_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s25_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s27_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s29_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s31_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s33_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s35_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s36_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s34_ci_all"
+     },
+     "b": {
+      "ref": "s35_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s37_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s38_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s36_ci_all"
+     },
+     "b": {
+      "ref": "s37_ci_cast_director"
+     }
+    },
+    {
+     "name": "s39_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_all"
+     },
+     "b": {
+      "ref": "s39_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s41_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s43_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s44_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s42_ci_all"
+     },
+     "b": {
+      "ref": "s43_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s45_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s44_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s46_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s45_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s47_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s48_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_ci_src_col"
+     }
+    },
+    {
+     "name": "s49_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s50_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s49_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s51_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_n_back_col"
+     }
+    },
+    {
+     "name": "s53_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s52_n_back_set"
+     }
+    },
+    {
+     "name": "s54_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s55_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_character_col"
+     }
+    },
+    {
+     "name": "s56_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s55_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s57_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s58_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s57_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s59_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s58_chn_back_col"
+     }
+    },
+    {
+     "name": "s60_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s53_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s59_chn_back_set"
+     }
+    },
+    {
+     "name": "s61_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s62_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_back_col"
+     }
+    },
+    {
+     "name": "s63_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s62_ci_back_set"
+     }
+    },
+    {
+     "name": "s64_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s63_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s65_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s64_mk_back_col"
+     }
+    },
+    {
+     "name": "s66_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s65_mk_back_set"
+     }
+    },
+    {
+     "name": "s67_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s66_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s68_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s67_k_self_final_col"
+     }
+    },
+    {
+     "name": "s69_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s63_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s68_k_self_final_set"
+     }
+    },
+    {
+     "name": "s70_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s71_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s70_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s72_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s73_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s74_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s75_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s76_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s77_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s50_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s76_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s78_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s79_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s80_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s57_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s81_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_cc_final"
+     }
+    },
+    {
+     "name": "s82_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_chn_final"
+     }
+    },
+    {
+     "name": "s83_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s74_ci_final"
+     }
+    },
+    {
+     "name": "s84_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s66_k_cut"
+     }
+    },
+    {
+     "name": "s85_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s69_mk_final"
+     }
+    },
+    {
+     "name": "s86_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s77_n_final"
+     }
+    },
+    {
+     "name": "s87_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_t_final"
+     }
+    },
+    {
+     "name": "s88_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s89_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s71_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s90_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_base"
+     },
+     "right": {
+      "ref": "s93_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s95_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s96_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s96_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s98_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s99_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s98_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s100_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s97_cc_n_in"
+     },
+     "right": {
+      "ref": "s99_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s101_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s102_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s101_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s103_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s100_chn_n_in"
+     },
+     "right": {
+      "ref": "s102_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s104_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s105_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s104_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s106_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s103_ci_n_in"
+     },
+     "right": {
+      "ref": "s105_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s107_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s108_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s107_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s109_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s106_k_n_in"
+     },
+     "right": {
+      "ref": "s108_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s110_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s111_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s110_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s112_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s109_mk_n_in"
+     },
+     "right": {
+      "ref": "s111_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s113_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s87_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s114_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s113_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s115_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s112_n_n_in"
+     },
+     "right": {
+      "ref": "s114_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s115_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_k_scan",
+     "op": "read_vertices_by_label",
+     "label": "Keyword"
+    },
+    {
+     "name": "s02_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_k_scan"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s03_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_k_keep"
+     }
+    },
+    {
+     "name": "s05_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_k_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_src_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_src_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_cc_col"
+     }
+    },
+    {
+     "name": "s17_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s18_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_cc_ok"
+     }
+    },
+    {
+     "name": "s21_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s20_cc_kept"
+     },
+     "right": {
+      "ref": "s18_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s22_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s23_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_cc_back_col"
+     }
+    },
+    {
+     "name": "s24_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s25_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s25_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s27_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s29_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s31_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s33_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s35_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s36_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s34_ci_all"
+     },
+     "b": {
+      "ref": "s35_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s37_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s38_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s36_ci_all"
+     },
+     "b": {
+      "ref": "s37_ci_cast_director"
+     }
+    },
+    {
+     "name": "s39_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_all"
+     },
+     "b": {
+      "ref": "s39_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s41_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s43_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_cc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s44_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s42_ci_all"
+     },
+     "b": {
+      "ref": "s43_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s45_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s44_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s46_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s45_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s47_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s48_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_ci_src_col"
+     }
+    },
+    {
+     "name": "s49_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s50_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s49_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s51_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_n_back_col"
+     }
+    },
+    {
+     "name": "s53_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s52_n_back_set"
+     }
+    },
+    {
+     "name": "s54_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s55_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_character_col"
+     }
+    },
+    {
+     "name": "s56_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s55_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s57_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s58_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s57_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s59_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s58_chn_back_col"
+     }
+    },
+    {
+     "name": "s60_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s53_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s59_chn_back_set"
+     }
+    },
+    {
+     "name": "s61_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s62_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_back_col"
+     }
+    },
+    {
+     "name": "s63_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s62_ci_back_set"
+     }
+    },
+    {
+     "name": "s64_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s63_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s65_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s64_mk_back_col"
+     }
+    },
+    {
+     "name": "s66_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s65_mk_back_set"
+     }
+    },
+    {
+     "name": "s67_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s66_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s68_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s67_k_self_final_col"
+     }
+    },
+    {
+     "name": "s69_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s63_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s68_k_self_final_set"
+     }
+    },
+    {
+     "name": "s70_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s69_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s71_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s70_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s72_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s73_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s74_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s60_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s71_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s75_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s76_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s75_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s77_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s50_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s76_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s78_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s74_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s79_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s78_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s80_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s57_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s79_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s81_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_cc_final"
+     }
+    },
+    {
+     "name": "s82_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s80_chn_final"
+     }
+    },
+    {
+     "name": "s83_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s74_ci_final"
+     }
+    },
+    {
+     "name": "s84_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s66_k_cut"
+     }
+    },
+    {
+     "name": "s85_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s69_mk_final"
+     }
+    },
+    {
+     "name": "s86_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s77_n_final"
+     }
+    },
+    {
+     "name": "s87_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_t_final"
+     }
+    },
+    {
+     "name": "s88_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s89_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s90_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_base"
+     },
+     "right": {
+      "ref": "s92_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s94_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s95_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s95_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s97_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s98_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s97_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s99_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s96_cc_n_in"
+     },
+     "right": {
+      "ref": "s98_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s100_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s101_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s100_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s102_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s99_chn_n_in"
+     },
+     "right": {
+      "ref": "s101_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s103_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s104_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s103_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s105_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s102_ci_n_in"
+     },
+     "right": {
+      "ref": "s104_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s106_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s107_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s106_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s108_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s105_k_n_in"
+     },
+     "right": {
+      "ref": "s107_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s109_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s110_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s109_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s111_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s108_mk_n_in"
+     },
+     "right": {
+      "ref": "s110_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s112_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s87_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s113_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s112_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s114_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s111_n_n_in"
+     },
+     "right": {
+      "ref": "s113_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s114_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_k_run",
+     "op": "read_vertices_by_label",
+     "label": "Keyword",
+     "props": [
+      "keyword"
+     ]
+    },
+    {
+     "name": "s02_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_k_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": [
+           "superhero",
+           "sequel",
+           "second-part",
+           "marvel-comics",
+           "based-on-comic",
+           "tv-special",
+           "fight",
+           "violence"
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_keep"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mk_src_set"
+     },
+     "props": [
+      "kind_id",
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s10_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "gt": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "kind_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "kind_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_t_back_col"
+     }
+    },
+    {
+     "name": "s13_cc_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "complete_cast_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_cc_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_cc_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_cc_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_cc_col"
+     }
+    },
+    {
+     "name": "s16_cc_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_cc_set"
+     },
+     "props": [
+      "status_id",
+      "subject_id"
+     ],
+     "label": "CompleteCast"
+    },
+    {
+     "name": "s17_cc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_cc_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "status_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "status_id"
+           },
+           {
+            "lit": [
+             3,
+             4
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "subject_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "subject_id"
+           },
+           {
+            "lit": [
+             1
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_cc_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_cc_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_cc_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_cc_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_cc_ok"
+     }
+    },
+    {
+     "name": "s20_cc_with",
+     "op": "join",
+     "left": {
+      "ref": "s19_cc_kept"
+     },
+     "right": {
+      "ref": "s17_cc_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s21_cc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_cc_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s22_cc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_cc_back_col"
+     }
+    },
+    {
+     "name": "s23_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s24_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s24_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s26_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s32_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s34_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s36_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_director"
+     }
+    },
+    {
+     "name": "s38_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s39_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s37_ci_all"
+     },
+     "b": {
+      "ref": "s38_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s40_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s41_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s39_ci_all"
+     },
+     "b": {
+      "ref": "s40_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s42_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s22_cc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character"
+     ]
+    },
+    {
+     "name": "s43_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s41_ci_all"
+     },
+     "b": {
+      "ref": "s42_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s44_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s43_ci_all"
+     },
+     "pred": {
+      "notnull": {
+       "get": "character"
+      }
+     }
+    },
+    {
+     "name": "s45_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s44_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s46_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s45_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s47_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s46_ci_src_col"
+     }
+    },
+    {
+     "name": "s48_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s47_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s49_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s48_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s50_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_n_back_col"
+     }
+    },
+    {
+     "name": "s52_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s45_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s51_n_back_set"
+     }
+    },
+    {
+     "name": "s53_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s54_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_ci_character_col"
+     }
+    },
+    {
+     "name": "s55_chn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s54_ci_character_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s56_chn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s55_chn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Sherlock%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Tony%Stark%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "name"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "name"
+             },
+             {
+              "lit": "%Iron%Man%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s57_chn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s56_chn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s58_chn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s57_chn_back_col"
+     }
+    },
+    {
+     "name": "s59_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s52_ci_cut"
+     },
+     "field": "ch",
+     "allowed": {
+      "ref": "s58_chn_back_set"
+     }
+    },
+    {
+     "name": "s60_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s61_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_ci_back_col"
+     }
+    },
+    {
+     "name": "s62_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s61_ci_back_set"
+     }
+    },
+    {
+     "name": "s63_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s62_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s64_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s63_mk_back_col"
+     }
+    },
+    {
+     "name": "s65_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s64_mk_back_set"
+     }
+    },
+    {
+     "name": "s66_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s65_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s67_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s66_k_self_final_col"
+     }
+    },
+    {
+     "name": "s68_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s62_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s67_k_self_final_set"
+     }
+    },
+    {
+     "name": "s69_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s68_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s70_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s69_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s71_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s70_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s72_cc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_cc_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s70_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s73_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s59_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s70_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s74_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s73_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s75_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s74_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s76_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s49_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s75_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s77_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s73_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s78_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s77_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s79_chn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s56_chn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s78_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s80_cc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s72_cc_final"
+     }
+    },
+    {
+     "name": "s81_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s79_chn_final"
+     }
+    },
+    {
+     "name": "s82_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s73_ci_final"
+     }
+    },
+    {
+     "name": "s83_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s65_k_cut"
+     }
+    },
+    {
+     "name": "s84_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s68_mk_final"
+     }
+    },
+    {
+     "name": "s85_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s76_n_final"
+     }
+    },
+    {
+     "name": "s86_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s71_t_final"
+     }
+    },
+    {
+     "name": "s87_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s88_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s70_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s90_complete_downey_ironman_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s89_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s91_complete_downey_ironman_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s90_complete_downey_ironman_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "complete_downey_ironman_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s92_complete_downey_ironman_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_complete_downey_ironman_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_complete_downey_ironman_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_base"
+     },
+     "right": {
+      "ref": "s92_complete_downey_ironman_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "complete_downey_ironman_movie": null
+     }
+    },
+    {
+     "name": "s94_cc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s80_cc_final_n"
+     },
+     "field": "rows_cc"
+    },
+    {
+     "name": "s95_cc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_cc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_cc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_complete_downey_ironman_movie_in"
+     },
+     "right": {
+      "ref": "s95_cc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s97_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s81_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s98_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s97_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s99_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s96_cc_n_in"
+     },
+     "right": {
+      "ref": "s98_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s100_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s82_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s101_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s100_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s102_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s99_chn_n_in"
+     },
+     "right": {
+      "ref": "s101_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s103_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s83_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s104_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s103_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s105_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s102_ci_n_in"
+     },
+     "right": {
+      "ref": "s104_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s106_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s84_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s107_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s106_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s108_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s105_k_n_in"
+     },
+     "right": {
+      "ref": "s107_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s109_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s85_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s110_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s109_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s111_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s108_mk_n_in"
+     },
+     "right": {
+      "ref": "s110_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s112_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s86_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s113_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s112_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s114_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s111_n_n_in"
+     },
+     "right": {
+      "ref": "s113_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s114_t_n_in"
+     },
+     "fields": [
+      "complete_downey_ironman_movie",
+      "rows_cc",
+      "rows_chn",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

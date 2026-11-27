@@ -1,0 +1,36 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS4. Content of a message
+#
+# Given a Message with ID $messageId, retrieve its content and creation date.
+#
+# Params:
+#   $messageId  : string     (e.g., "933")
+# result
+# 1 message.creationDate DateTime R messageCreationDate
+# 2 message.content or message.imageFile (for photos) Text R messageContent
+
+# -- If the message is a POST
+MATCH (m:Post)
+WHERE id(m) == $messageId
+RETURN
+    m.Post.creationDate AS messageCreationDate,
+    CASE
+      WHEN (m.Post.content IS NOT NULL AND m.Post.content != "") THEN m.Post.content
+      ELSE m.Post.imageFile
+    END AS messageContent,
+    # For debugging
+    id(m) AS messageId,
+    "post" AS messageType
+
+UNION ALL
+
+# -- If the message is a COMMENT
+MATCH (m:`Comment`)
+WHERE id(m) == $messageId
+RETURN  
+    m.`Comment`.creationDate AS messageCreationDate,
+    m.`Comment`.content AS messageContent,
+    # For debugging
+    id(m) AS messageId,
+    "comment" AS messageType
+

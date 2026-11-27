@@ -1,0 +1,6 @@
+tagA|dateA|tagB|dateB|maxKnowsLimit|countA|countB|stratum
+Muammar_Gaddafi|1318723200000|Imelda_Marcos|1336435200000|4|18703|16176|max+partner
+Wales|1297728000000|Robert_Fripp|1297814400000|4|48|8539|p99+partner
+Bryan_Adams|1333411200000|Marc_Gicquel|1291248000000|4|13|5629|p90+partner
+County_of_Hainaut|1325635200000|Genghis_Khan|1325635200000|4|3|1929|p50+partner
+Spanish_Protectorate_of_Morocco|1291420800000|Edvard_Munch|1272412800000|4|2|826|p20+partner

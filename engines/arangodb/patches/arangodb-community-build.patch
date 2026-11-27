@@ -1,0 +1,83 @@
+# arangodb-community-build.patch: three fixes that let the community edition of v3.12.8 build (an AuthenticationOptions include, a SmartGraphProvider placeholder, no submodule check without .git). Found missing at the 2026-10-26 patch check: the old repo carried them in its tracked tree.
+diff --git a/arangodb/arangodb-3.12.8/arangod/GeneralServer/AuthenticationOptions.h b/arangodb/arangodb-3.12.8/arangod/GeneralServer/AuthenticationOptions.h
+--- a/arangodb/arangodb-3.12.8/arangod/GeneralServer/AuthenticationOptions.h
++++ b/arangodb/arangodb-3.12.8/arangod/GeneralServer/AuthenticationOptions.h
+@@ -42,10 +42,8 @@
+   std::string jwtSecretFolderProgramOption;
+   bool jwtSecretIsES256 = false;  // true if the active secret uses ES256
+ 
+-#ifdef USE_ENTERPRISE
+-  /// verification only secrets
++  /// verification only secrets (used by enterprise, but referenced unconditionally)
+   std::vector<std::string> jwtPassiveSecrets;
+-#endif
+ };
+ 
+ }  // namespace arangodb
+diff --git a/arangodb/arangodb-3.12.8/arangod/Graph/algorithm-aliases.h b/arangodb/arangodb-3.12.8/arangod/Graph/algorithm-aliases.h
+--- a/arangodb/arangodb-3.12.8/arangod/Graph/algorithm-aliases.h
++++ b/arangodb/arangodb-3.12.8/arangod/Graph/algorithm-aliases.h
+@@ -48,6 +48,15 @@
+ 
+ namespace arangodb::graph {
+ 
++#ifndef USE_ENTERPRISE
++// Stub for community builds: SmartGraphProvider is referenced in template
++// conditionals below but never instantiated without enterprise.
++namespace enterprise {
++template<class Step>
++struct SmartGraphProvider {};
++}  // namespace enterprise
++#endif
++
+ template<class Provider>
+ using TwoSidedEnumeratorWithProvider = TwoSidedEnumerator<
+     Provider,
+diff --git a/arangodb/arangodb-3.12.8/cmake/UpdateModule.cmake b/arangodb/arangodb-3.12.8/cmake/UpdateModule.cmake
+--- a/arangodb/arangodb-3.12.8/cmake/UpdateModule.cmake
++++ b/arangodb/arangodb-3.12.8/cmake/UpdateModule.cmake
+@@ -1,23 +1,28 @@
+ macro(UpdateModule _GIT _SUBMODULE _CWD _SENTINEL)
+-  execute_process(
+-    COMMAND ${_GIT} rev-parse @:./${_SUBMODULE}
+-    WORKING_DIRECTORY ${_CWD}
+-    OUTPUT_VARIABLE _EXPECTED_SUBMODULE_HASH)
+-
+-  execute_process(
+-    COMMAND ${_GIT} rev-parse HEAD
+-    WORKING_DIRECTORY ${_CWD}/${_SUBMODULE}
+-    OUTPUT_VARIABLE _ACTUAL_SUBMODULE_HASH)
++  # Only run submodule checks when .git is present.
++  # When source is committed without .git (e.g., rm -rf .git), the submodule
++  # files are already in place so the checks are unnecessary.
++  if (IS_DIRECTORY ${_CWD}/../.git)
++    execute_process(
++      COMMAND ${_GIT} rev-parse @:./${_SUBMODULE}
++      WORKING_DIRECTORY ${_CWD}
++      OUTPUT_VARIABLE _EXPECTED_SUBMODULE_HASH)
+ 
+-  if (NOT EXISTS ${_CWD}/${_SUBMODULE}/${_SENTINEL} OR
+-      NOT ${_EXPECTED_SUBMODULE_HASH} EQUAL ${_ACTUAL_SUBMODULE_HASH})
+     execute_process(
+-      COMMAND ${_GIT} submodule update --init --force -- ${_SUBMODULE}
+-      RESULT_VARIABLE _INIT_RESULT
+-      WORKING_DIRECTORY ${_CWD})
++      COMMAND ${_GIT} rev-parse HEAD
++      WORKING_DIRECTORY ${_CWD}/${_SUBMODULE}
++      OUTPUT_VARIABLE _ACTUAL_SUBMODULE_HASH)
++
++    if (NOT EXISTS ${_CWD}/${_SUBMODULE}/${_SENTINEL} OR
++        NOT ${_EXPECTED_SUBMODULE_HASH} EQUAL ${_ACTUAL_SUBMODULE_HASH})
++      execute_process(
++        COMMAND ${_GIT} submodule update --init --force -- ${_SUBMODULE}
++        RESULT_VARIABLE _INIT_RESULT
++        WORKING_DIRECTORY ${_CWD})
+ 
+-    if (NOT ${_INIT_RESULT} EQUAL "0")
+-      message(WARNING "FAILED: ${_GIT} submodule update --init -- ${_SUBMODULE}")
++      if (NOT ${_INIT_RESULT} EQUAL "0")
++        message(WARNING "FAILED: ${_GIT} submodule update --init -- ${_SUBMODULE}")
++      endif()
+     endif()
+   endif()
+ endmacro(UpdateModule)

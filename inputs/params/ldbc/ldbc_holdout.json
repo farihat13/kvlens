@@ -1,0 +1,56 @@
+{
+ "frozen_at": "6028dbc82",
+ "freezes": [
+  {
+   "commit": "cd681b3b1",
+   "date": "2026-09-28",
+   "pairs": "every suite pair"
+  },
+  {
+   "commit": "a1e2fd3ce",
+   "date": "2026-09-29",
+   "pairs": "ic10 x3, ic5 nebula/arangodb (new); ic4/ic6 dgraph (query fixed; marked seen)"
+  },
+  {
+   "commit": "cb39f43bb",
+   "date": "2026-09-29",
+   "pairs": "no plan change except ic11/dgraph (the engine store's id index; marked seen); the live check became collation-blind at string ties and measure.py keeps raw counters (neither moves a count)"
+  },
+  {
+   "commit": "70cbcea64",
+   "date": "2026-09-29",
+   "pairs": "no plan change: a merge of unrelated evaluator work (formats, planir, tests) and the visibility fix; re-validated, only ic11/dgraph's sim counts differ from engine-fidelity-20260929 (its id-index fix, freeze #3) and no live count moved"
+  },
+  {
+   "commit": "6028dbc82",
+   "date": "2026-09-29",
+   "pairs": "ic11/dgraph only: our query text answers LDBC's question (no `orderasc: id, first: 20`; each person's own workFrom), re-transcribed from its new capture; already marked seen"
+  }
+ ],
+ "params": [
+  2,
+  8,
+  14,
+  20,
+  26,
+  32
+ ],
+ "seen": [
+  [
+   "ic3",
+   "nebula"
+  ],
+  [
+   "ic4",
+   "dgraph"
+  ],
+  [
+   "ic6",
+   "dgraph"
+  ],
+  [
+   "ic11",
+   "dgraph"
+  ]
+ ]
+}

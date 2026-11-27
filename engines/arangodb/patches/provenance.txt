@@ -1,0 +1,22 @@
+Our patches to ArangoDB v3.12.8 (get.sh pins the commit); build.sh applies them.
+
+arangodb.unified.patch
+  KV instrumentation, with flag names that match NebulaGraph's layer by layer, so "KV_STATS" means the same
+  engine-wrapper counter on both:
+    ARANGO_KV_STATS       hand-maintained counters at RocksDBMethods and TimedRocksDBIterator: get / seek / next / prev
+                          count, found, time_ns (each call timed in ns; an iterator's creation is added to seek time)
+                          and bytes, as flat get_ / seek_ / next_ / prev_ fields at
+                          /_admin/kvstats. Also /_admin/kvtrace, a per-key GET and SEEK trace whose entries name their
+                          object (documents -> "Person", index -> "Person.creationDate"). Needs no runtime flag.
+    ARANGO_KV_HISTOGRAMS  get / seek / next / prev latency histograms under "histograms". Requires ARANGO_KV_STATS.
+    ARANGO_KV_TICKERS     RocksDB's own tickers and histograms (process-global) under "tickers" and
+                          "native_histograms". Needs --rocksdb.enable-statistics true. NebulaGraph has no analog.
+
+arangodb-community-build.patch
+  Lets the community edition build without the enterprise sources (placeholders for enterprise-only symbols).
+
+Three build modes (build.sh):
+  kvstats    ARANGO_KV_STATS                   -> bin/          (the measured binary)
+  histogram  ARANGO_KV_STATS + KV_HISTOGRAMS   -> bin-histogram/
+  tickers    ARANGO_KV_STATS + KV_TICKERS      -> bin-tickers/  (a cross-check; the server needs
+                                                                  --rocksdb.enable-statistics true)

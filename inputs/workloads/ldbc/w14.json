@@ -1,0 +1,42 @@
+{
+ "id": "w14",
+ "name": "hubs_vs_leaves",
+ "title": "Hub writes vs person analytics",
+ "items": [
+  {"family": "writes", "query": "iu6", "frequency": 500, "params": null},
+  {"family": "writes", "query": "iu7", "frequency": 500, "params": null},
+  {"family": "microbench", "query": "nhop2", "frequency": 50, "params": null}
+ ],
+ "expect": "Tag/Place/Forum Split; Person Chunked",
+ "why": "nhop2 reads only knows lists (Chunked: {ch_nhop2} ops per run against {sp_nhop2} for Split); the inserts never touch knows, they append to hub lists (a country's isLocatedIn list, a tag's hasTag list), where Split writes 2 small keys and Condensed / Chunked rewrite the whole list or chunk (an isLocatedIn list part averages {loc_part} under Condensed). No part carries both kinds of traffic, so a mixed layout gets the Chunked read cost and the Split write cost together.",
+ "why_numbers": {
+  "ch_nhop2": [
+   "run",
+   "ops",
+   "nhop2",
+   "knows lists",
+   "props_chunked_adj_chunked"
+  ],
+  "sp_nhop2": [
+   "run",
+   "ops",
+   "nhop2",
+   "knows lists",
+   "props_split_adj_split"
+  ],
+  "loc_part": [
+   "run",
+   "write_bytes",
+   "iu6",
+   "isLocatedIn lists",
+   "props_condensed_adj_condensed"
+  ]
+ },
+ "why_scale_free": {
+  "2": "one new record per direction of the edge (schema)"
+ },
+ "sweep": [
+  "iu6",
+  "iu7"
+ ]
+}

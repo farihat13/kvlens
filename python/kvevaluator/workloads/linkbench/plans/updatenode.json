@@ -1,0 +1,65 @@
+{
+  "plan": "updatenode",
+  "question": "Rewrite the version, time and data of an existing node in one write.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    },
+    "version": {
+      "type": "int"
+    },
+    "time": {
+      "type": "int"
+    },
+    "data": {
+      "type": "bytes"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_prop",
+      "vid": {
+        "let": "n_vid"
+      },
+      "label": "Node",
+      "props": {
+        "version": {
+          "param": "version"
+        },
+        "time": {
+          "param": "time"
+        },
+        "data": {
+          "param": "data"
+        }
+      }
+    }
+  ],
+  "output": "out"
+}

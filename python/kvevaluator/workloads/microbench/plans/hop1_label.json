@@ -1,0 +1,163 @@
+{
+  "plan": "hop1_label",
+  "question": "Given a person, count those of their messages that are posts, testing the type of each message.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "filter_index": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "d"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "po"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "filter_probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "d"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "po"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "filter_index": {
+      "sha": "5f8e7b15f74d",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "filter_index"
+      ]
+    },
+    "filter_probe": {
+      "sha": "da3f9b090f71",
+      "requires": [],
+      "sources": [
+        "filter_probe"
+      ]
+    }
+  }
+}

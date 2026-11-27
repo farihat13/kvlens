@@ -1,0 +1,68 @@
+# -- CREATE SPACE IF NOT EXISTS ldbc(PARTITION_NUM = 20, REPLICA_FACTOR = 1, vid_type = INT64);
+USE ldbc;
+
+# -- Main tags with STRING types for dates (matching test)
+CREATE TAG IF NOT EXISTS `Person`(
+  `firstName` STRING,
+  `lastName` STRING,
+  `gender` STRING,
+  `birthday` INT,
+  `creationDate` INT,
+  `locationIP` STRING,
+  `browserUsed` STRING,
+  `emails` LIST<STRING>,
+  `languages` LIST<STRING>
+);
+
+CREATE TAG IF NOT EXISTS `Post`(
+  `imageFile` STRING,
+  `creationDate` INT,
+  `locationIP` STRING,
+  `browserUsed` STRING,
+  `language` STRING,
+  `content` STRING,
+  `length` INT
+);
+
+CREATE TAG IF NOT EXISTS `Comment`(
+  `creationDate` INT,
+  `locationIP` STRING,
+  `browserUsed` STRING,
+  `content` STRING,
+  `length` INT
+);
+
+CREATE TAG IF NOT EXISTS `Forum`(`title` STRING, `creationDate` INT);
+CREATE TAG IF NOT EXISTS `Organisation`(`type` STRING, `name` STRING, `url` STRING);
+CREATE TAG IF NOT EXISTS `Place`(`name` STRING, `url` STRING, `type` STRING);
+CREATE TAG IF NOT EXISTS `Tag`(`name` STRING, `url` STRING);
+CREATE TAG IF NOT EXISTS `TagClass`(`name` STRING, `url` STRING);
+
+# -- Edges
+CREATE EDGE IF NOT EXISTS `WORK_AT`(`workFrom` INT);
+CREATE EDGE IF NOT EXISTS `STUDY_AT`(`classYear` INT);
+CREATE EDGE IF NOT EXISTS `KNOWS`(`creationDate` INT);
+CREATE EDGE IF NOT EXISTS `HAS_MODERATOR`();
+CREATE EDGE IF NOT EXISTS `CONTAINER_OF`();
+CREATE EDGE IF NOT EXISTS `HAS_TAG`();
+CREATE EDGE IF NOT EXISTS `LIKES`(`creationDate` INT);
+CREATE EDGE IF NOT EXISTS `HAS_INTEREST`();
+CREATE EDGE IF NOT EXISTS `IS_LOCATED_IN`();
+CREATE EDGE IF NOT EXISTS `HAS_MEMBER`(`joinDate` INT);
+CREATE EDGE IF NOT EXISTS `HAS_CREATOR`();
+CREATE EDGE IF NOT EXISTS `REPLY_OF`();
+CREATE EDGE IF NOT EXISTS `IS_PART_OF`();
+CREATE EDGE IF NOT EXISTS `HAS_TYPE`();
+CREATE EDGE IF NOT EXISTS `IS_SUBCLASS_OF`();
+
+# -- Indexes
+CREATE TAG INDEX IF NOT EXISTS `person_first_name_idx` ON `Person`(firstName(20));
+CREATE TAG INDEX IF NOT EXISTS `tagclass_name_idx` ON `TagClass`(name(20));
+CREATE TAG INDEX IF NOT EXISTS `tag_name_idx` ON `Tag`(name(20));
+CREATE TAG INDEX IF NOT EXISTS `post_creation_date_idx` ON `Post`(creationDate);
+CREATE TAG INDEX IF NOT EXISTS `comment_creation_date_idx` ON `Comment`(creationDate); # New
+# CREATE TAG INDEX IF NOT EXISTS `person_name_idx` ON `Person`(firstName(10), lastName(10)); # New
+CREATE TAG INDEX IF NOT EXISTS place_name_idx ON Place(name(20)); # New
+CREATE EDGE INDEX IF NOT EXISTS `likes_creationDate_idx` ON `LIKES`(creationDate);
+CREATE TAG INDEX IF NOT EXISTS `person_creation_date_idx` ON `Person`(creationDate); # New
+CREATE EDGE INDEX IF NOT EXISTS `knows_creation_date_idx` ON `KNOWS`(creationDate); # New

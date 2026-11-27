@@ -1,0 +1,73 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=4
+# Q3: Friends and friends of friends that have been to given countries
+
+# Given a start Person with ID $personId, find Persons that are their friends and friends of friends
+# (excluding the start Person) that have made Posts / Comments in both of the given Countries 
+# (named $countryXName and $countryYName), within [$startDate, $startDate + $durationDays) (closed open interval). 
+# Only Persons that are foreign to these Countries are considered, that is Persons 
+# whose location Country is neither named $countryXName nor $countryYName.
+#
+# Params:
+#   $personId      : string     (personId, e.g., "219902
+#   $countryXName  : string     (e.g., "CountryX")
+#   $countryYName  : string     (e.g., "CountryY")
+#   $startDate     : string     (ISO8601 datetime, e.g., "2010-10-16T12:00:00Z")
+#   $endDate       : string     (ISO8601 datetime, e.g., "2010-11-16T12:00:00Z")
+# Returns:
+# 1 otherPerson.id ID R
+# 2 otherPerson.firstName String R
+# 3 otherPerson.lastName String R
+# 4 xCount 32-bit Integer A Number of Messages from Country named$countryXName created by the Person within the given time
+# 5 yCount 32-bit Integer A Number of Messages from Country named$countryYName created by the Person within the given time
+# 6 count 32-bit Integer A count = xCount + yCount
+# sort 
+# 1 count ↓
+# 2 otherPerson.id ↑
+# limit 20
+
+MATCH (start:Person)-[:KNOWS*1..2]-(other:Person)
+WHERE id(start) == $personId AND id(other) != $personId
+
+WITH DISTINCT other
+
+OPTIONAL MATCH (other)<-[:HAS_CREATOR]-(mx)-[:IS_LOCATED_IN]->(px:Place)
+
+WITH other, 
+     COLLECT(DISTINCT CASE 
+       WHEN px.Place.name == $countryXName 
+            AND coalesce(mx.Post.creationDate, mx.`Comment`.creationDate) >= $startDate
+            AND coalesce(mx.Post.creationDate, mx.`Comment`.creationDate) < ($endDate)
+       THEN mx 
+       ELSE NULL 
+     END) AS mxList
+
+WITH other, size([m IN mxList WHERE m IS NOT NULL]) AS cntX
+
+OPTIONAL MATCH (other)<-[:HAS_CREATOR]-(my)-[:IS_LOCATED_IN]->(py:Place)
+
+WITH other, cntX,
+     COLLECT(DISTINCT CASE 
+       WHEN py.Place.name == $countryYName 
+            AND coalesce(my.Post.creationDate, my.`Comment`.creationDate) >= $startDate
+            AND coalesce(my.Post.creationDate, my.`Comment`.creationDate) < ($endDate)
+       THEN my 
+       ELSE NULL 
+     END) AS myList
+
+WITH other, cntX, size([m IN myList WHERE m IS NOT NULL]) AS cntY
+
+WHERE cntX > 0 AND cntY > 0
+
+MATCH (other)-[:IS_LOCATED_IN]->(loc:Place)
+WHERE loc.Place.name != $countryXName AND loc.Place.name != $countryYName
+
+WITH other, cntX, cntY, cntX + cntY AS total
+RETURN
+  id(other) AS personId,
+  other.Person.firstName AS firstName,
+  other.Person.lastName AS lastName,
+  cntX AS messagesInX,
+  cntY AS messagesInY,
+  total AS `count`
+ORDER BY `count` DESC, personId ASC
+LIMIT 20;

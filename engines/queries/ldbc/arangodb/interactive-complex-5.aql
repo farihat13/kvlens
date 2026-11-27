@@ -1,0 +1,25 @@
+// IC5: New groups
+// Find forums that 1-2 hop friends joined after minDate,
+// count posts those friends authored in each forum
+LET startPerson = CONCAT("Person/", @personId)
+
+FOR friend IN 1..2 ANY startPerson knows
+    FILTER friend._id != startPerson
+    COLLECT f = friend INTO groups
+    FOR forum, membership IN 1..1 INBOUND f hasMember
+        FILTER membership.joinDate > @minDate
+        LET postCount = LENGTH(
+            FOR post IN 1..1 OUTBOUND forum containerOf
+                FOR author IN 1..1 OUTBOUND post hasCreator
+                    FILTER author._id == f._id
+                    RETURN 1
+        )
+        COLLECT fo = forum INTO members = { postCount }
+        LET totalPosts = SUM(members[*].postCount)
+        SORT totalPosts DESC, TO_NUMBER(fo._key) ASC
+        LIMIT 20
+        RETURN {
+            forumTitle: fo.title,
+            postCount: totalPosts,
+            forumId: TO_NUMBER(fo._key)
+        }

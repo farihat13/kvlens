@@ -1,0 +1,25 @@
+# LDBC SNB -- full_index schema: dgraph's every index keyed PER TYPE and its date indexes at FULL
+# (ms) precision in the key -- the index design nebula / dgneb-full / pertype_csr already have.
+# Pick with `--schema full_index`; the C++ store is `dgraph-full_index`.
+#
+# WHY. A labeled CONTROL arm for a layout study (it
+# sets 8 date/range-index queries aside because on them the format gap is index granularity + scope,
+# not layout). Canonical dgraph indexes are predicate-GLOBAL (Tag/TagClass/Place share one `name`
+# index; every dated type shares one day-bucketed `creationDate` index). With every index type-scoped
+# and every date index key_sorted (one ms+vid key per vertex, empty value, stop-at-k walks), the
+# index sub-knobs -- scope AND granularity -- are held equal across all four formats, so what remains
+# of a gap is the vertex / edge / adjacency layout. The faithful (day, global) dgraph stays canonical.
+#
+# COMPOSITION. type_scoped on the value indexes changes only the KEY the posting lives under
+# (`Person.firstName` instead of `firstName`); the postings themselves are unchanged. key_sorted
+# implies type_scoped (compile_schema enforces).
+
+include canonical
+
+index Person.firstName type_scoped
+index Tag.name type_scoped
+index TagClass.name type_scoped
+index Place.name type_scoped
+index Person.creationDate type_scoped key_sorted
+index Post.creationDate type_scoped key_sorted
+index Comment.creationDate type_scoped key_sorted

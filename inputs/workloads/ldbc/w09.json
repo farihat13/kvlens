@@ -1,0 +1,33 @@
+{
+ "id": "w09",
+ "name": "sweep_reads",
+ "title": "Sweep: friends of friends + name scans without an index",
+ "items": [
+  {"family": "microbench", "query": "nhop2", "frequency": 50, "params": null},
+  {"family": "microbench", "query": "entry_eq_scan", "frequency": 10, "params": null}
+ ],
+ "expect": "Chunked",
+ "why": "as in analytics: Chunked serves many friend lists and the unindexed name scan with few SEEKs ({ch_ops} ops against {dg_ops} for Split/Condensed) at the cost of whole-chunk bytes ({ch_bytes} against {dg_bytes}). Both reads want the same thing from their parts, so a mixed layout adds nothing; mixed per direction opens a middle point (knows is stored once per friendship, so a person's in- and out-lists differ).",
+ "why_numbers": {
+  "ch_ops": [
+   "total",
+   "ops",
+   "props_chunked_adj_chunked"
+  ],
+  "dg_ops": [
+   "total",
+   "ops",
+   "props_split_adj_condensed"
+  ],
+  "ch_bytes": [
+   "total",
+   "bytes",
+   "props_chunked_adj_chunked"
+  ],
+  "dg_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_condensed"
+  ]
+ }
+}

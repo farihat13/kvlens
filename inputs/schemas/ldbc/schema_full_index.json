@@ -1,0 +1,645 @@
+{
+ "name": "full_index",
+ "vertices": [
+  {
+   "label": "Person",
+   "id": 0,
+   "group": "Person",
+   "tag": 0,
+   "props": [
+    {
+     "name": "firstName",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "lastName",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "gender",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "birthday",
+     "type": "date",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "creationDate",
+     "type": "date",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "locationIP",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "browserUsed",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "email",
+     "type": "str",
+     "multi": true,
+     "nullable": false
+    },
+    {
+     "name": "language",
+     "type": "str",
+     "multi": true,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Post",
+   "id": 1,
+   "group": "Message",
+   "tag": 1,
+   "props": [
+    {
+     "name": "imageFile",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "creationDate",
+     "type": "date",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "locationIP",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "browserUsed",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "language",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "content",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Comment",
+   "id": 2,
+   "group": "Message",
+   "tag": 1,
+   "props": [
+    {
+     "name": "creationDate",
+     "type": "date",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "locationIP",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "browserUsed",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "content",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "length",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Forum",
+   "id": 3,
+   "group": "Forum",
+   "tag": 2,
+   "props": [
+    {
+     "name": "title",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "creationDate",
+     "type": "date",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Organisation",
+   "id": 4,
+   "group": "Organisation",
+   "tag": 3,
+   "props": [
+    {
+     "name": "type",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "url",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Place",
+   "id": 5,
+   "group": "Place",
+   "tag": 4,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "url",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "type",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "Tag",
+   "id": 6,
+   "group": "Tag",
+   "tag": 5,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "url",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "TagClass",
+   "id": 7,
+   "group": "TagClass",
+   "tag": 6,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "url",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "etype": "containerOf",
+   "id": 0,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Forum",
+     "Post"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "hasCreator",
+   "id": 1,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Post",
+     "Person"
+    ],
+    [
+     "Comment",
+     "Person"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "hasInterest",
+   "id": 2,
+   "reverse": false,
+   "endpoints": [
+    [
+     "Person",
+     "Tag"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "hasMember",
+   "id": 3,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Forum",
+     "Person"
+    ]
+   ],
+   "props": [
+    {
+     "name": "joinDate",
+     "type": "date"
+    }
+   ]
+  },
+  {
+   "etype": "hasModerator",
+   "id": 4,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Forum",
+     "Person"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "hasTag",
+   "id": 5,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Post",
+     "Tag"
+    ],
+    [
+     "Comment",
+     "Tag"
+    ],
+    [
+     "Forum",
+     "Tag"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "hasType",
+   "id": 6,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Tag",
+     "TagClass"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "isLocatedIn",
+   "id": 7,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Person",
+     "Place"
+    ],
+    [
+     "Post",
+     "Place"
+    ],
+    [
+     "Comment",
+     "Place"
+    ],
+    [
+     "Organisation",
+     "Place"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "isPartOf",
+   "id": 8,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Place",
+     "Place"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "isSubclassOf",
+   "id": 9,
+   "reverse": true,
+   "endpoints": [
+    [
+     "TagClass",
+     "TagClass"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "knows",
+   "id": 10,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Person",
+     "Person"
+    ]
+   ],
+   "props": [
+    {
+     "name": "creationDate",
+     "type": "date"
+    }
+   ]
+  },
+  {
+   "etype": "likes",
+   "id": 11,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Person",
+     "Post"
+    ],
+    [
+     "Person",
+     "Comment"
+    ]
+   ],
+   "props": [
+    {
+     "name": "creationDate",
+     "type": "date"
+    }
+   ]
+  },
+  {
+   "etype": "replyOf",
+   "id": 12,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Comment",
+     "Post"
+    ],
+    [
+     "Comment",
+     "Comment"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "studyAt",
+   "id": 13,
+   "reverse": false,
+   "endpoints": [
+    [
+     "Person",
+     "Organisation"
+    ]
+   ],
+   "props": [
+    {
+     "name": "classYear",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "workAt",
+   "id": 14,
+   "reverse": false,
+   "endpoints": [
+    [
+     "Person",
+     "Organisation"
+    ]
+   ],
+   "props": [
+    {
+     "name": "workFrom",
+     "type": "int"
+    }
+   ]
+  }
+ ],
+ "indexes": [
+  {
+   "label": "Person",
+   "prop": "",
+   "kind": "type",
+   "id": 0
+  },
+  {
+   "label": "Person",
+   "prop": "creationDate",
+   "kind": "sorted",
+   "id": 1,
+   "type_scoped": true,
+   "key_sorted": true
+  },
+  {
+   "label": "Person",
+   "prop": "firstName",
+   "kind": "value",
+   "id": 2,
+   "width": 40,
+   "type_scoped": true
+  },
+  {
+   "label": "Post",
+   "prop": "",
+   "kind": "type",
+   "id": 3
+  },
+  {
+   "label": "Post",
+   "prop": "creationDate",
+   "kind": "sorted",
+   "id": 4,
+   "type_scoped": true,
+   "key_sorted": true
+  },
+  {
+   "label": "Comment",
+   "prop": "",
+   "kind": "type",
+   "id": 5
+  },
+  {
+   "label": "Comment",
+   "prop": "creationDate",
+   "kind": "sorted",
+   "id": 6,
+   "type_scoped": true,
+   "key_sorted": true
+  },
+  {
+   "label": "Forum",
+   "prop": "",
+   "kind": "type",
+   "id": 7
+  },
+  {
+   "label": "Organisation",
+   "prop": "",
+   "kind": "type",
+   "id": 8
+  },
+  {
+   "label": "Place",
+   "prop": "",
+   "kind": "type",
+   "id": 9
+  },
+  {
+   "label": "Place",
+   "prop": "name",
+   "kind": "value",
+   "id": 10,
+   "width": 96,
+   "type_scoped": true
+  },
+  {
+   "label": "Tag",
+   "prop": "",
+   "kind": "type",
+   "id": 11
+  },
+  {
+   "label": "Tag",
+   "prop": "name",
+   "kind": "value",
+   "id": 12,
+   "width": 96,
+   "type_scoped": true
+  },
+  {
+   "label": "TagClass",
+   "prop": "",
+   "kind": "type",
+   "id": 13
+  },
+  {
+   "label": "TagClass",
+   "prop": "name",
+   "kind": "value",
+   "id": 14,
+   "width": 32,
+   "type_scoped": true
+  }
+ ],
+ "type_indexed_labels": [
+  "Comment",
+  "Forum",
+  "Organisation",
+  "Person",
+  "Place",
+  "Post",
+  "Tag",
+  "TagClass"
+ ],
+ "type_groups": {
+  "Message": [
+   "Post",
+   "Comment"
+  ]
+ },
+ "vid_tags": {
+  "Person": 0,
+  "Message": 1,
+  "Forum": 2,
+  "Organisation": 3,
+  "Place": 4,
+  "Tag": 5,
+  "TagClass": 6
+ },
+ "hash": "ac0d6ae1559d2197ab79eb0590e0efd58666923cfd833b226fb3f293bac116bc",
+ "adj": {
+  "sort": {},
+  "inline": {},
+  "sort_facet": {},
+  "dir": {}
+ },
+ "prop_groups": {}
+}

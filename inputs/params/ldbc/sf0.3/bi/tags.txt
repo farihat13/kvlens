@@ -1,0 +1,6 @@
+tag5|messages5|tag7|messages7|tag8|messages8|startDate|endDate|stratum
+Paul_Is_Live|11|Ooh_Aah..._Just_a_Little_Bit|11|The_Formation_of_Damnation|11|1316804014768|1325444014768|p25
+Bedrock_Anthem|21|Tilt_Ya_Head_Back|21|Everybody_Have_Fun_Tonight|21|1316804014768|1325444014768|p50
+Mario_Vargas_Llosa|44|Marc-Kevin_Goellner|44|Ella_Fitzgerald_Sings_the_Harold_Arlen_Songbook|43|1316804014768|1325444014768|p75
+Meryl_Streep|386|Joan_Baez|386|Luciano_Pavarotti|386|1316804014768|1325444014768|p95
+Augustine_of_Hippo|6216|Muammar_Gaddafi|3933|Adolf_Hitler|3105|1334815342861|1343455342861|max

@@ -1,0 +1,53 @@
+// IC12: Expert search
+// Find direct friends who replied to posts tagged with tags in given tagClass
+// (or its subclasses), count replies and collect tag names
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+// Find the base tag class and all descendant classes
+LET baseClass = FIRST(FOR tc IN TagClass FILTER tc.name == @tagClassName RETURN tc)
+LET allClasses = APPEND(
+    [baseClass._id],
+    (FOR sub IN 1..100 INBOUND baseClass isSubclassOf RETURN sub._id)
+)
+
+// Tags in those classes
+LET relevantTags = (
+    FOR tag IN Tag
+        FOR tc IN 1..1 OUTBOUND tag hasType
+            FILTER tc._id IN allClasses
+            RETURN DISTINCT tag
+)
+LET relevantTagIds = relevantTags[*]._id
+
+// Direct friends
+FOR friend IN 1..1 ANY person knows
+    // Find comments by this friend that reply to posts with relevant tags
+    LET replyInfo = (
+        FOR comment IN 1..1 INBOUND friend hasCreator
+            FILTER IS_SAME_COLLECTION("Comment", comment)
+            FOR post IN 1..1 OUTBOUND comment replyOf
+                FILTER IS_SAME_COLLECTION("Post", post)
+                FOR tag IN 1..1 OUTBOUND post hasTag
+                    FILTER tag._id IN relevantTagIds
+                    RETURN { commentId: comment._id, tagName: tag.name }
+    )
+    LET replyCount = LENGTH(
+        FOR r IN replyInfo
+            COLLECT c = r.commentId INTO g
+            RETURN c
+    )
+    FILTER replyCount > 0
+    LET tagNames = (
+        FOR r IN replyInfo
+            COLLECT t = r.tagName INTO g
+            RETURN t
+    )
+    SORT replyCount DESC, TO_NUMBER(friend._key) ASC
+    LIMIT 20
+    RETURN {
+        personId: TO_NUMBER(friend._key),
+        personFirstName: friend.firstName,
+        personLastName: friend.lastName,
+        tagNames: tagNames,
+        replyCount: replyCount
+    }

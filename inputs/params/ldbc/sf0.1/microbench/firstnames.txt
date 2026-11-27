@@ -1,0 +1,4 @@
+firstName|freq|stratum
+Sofiane|1|p50
+Sergio|5|p90
+John|39|max

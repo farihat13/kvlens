@@ -1,0 +1,84 @@
+{
+  "plan": "knows",
+  "question": "Given a person, list the names of the people they know.",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "friends"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Person"
+        }
+      ],
+      "output": "names"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "01f7d148d028",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+firstName|freq|stratum
+Alois|3|p50
+Daniel|17|p90
+John|254|max

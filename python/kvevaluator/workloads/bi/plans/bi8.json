@@ -1,0 +1,2055 @@
+{
+  "plan": "bi8",
+  "question": "Given a tag and a date range, find the 100 people with the highest score from their interest in the tag, their tagged messages and their friends' scores.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tag": {
+      "type": "str"
+    },
+    "startDate": {
+      "type": "int"
+    },
+    "endDate": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "hand+probe~14838c": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "persons_all",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons_all"
+          },
+          "etype": "hasInterest",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "inter_rows",
+          "op": "filter_in",
+          "rows": {
+            "ref": "interests"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "inter0",
+          "op": "pluck",
+          "rows": {
+            "ref": "inter_rows"
+          },
+          "field": "src"
+        },
+        {
+          "name": "interested",
+          "op": "dedup",
+          "items": {
+            "ref": "inter0"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "msg_d_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_posts"
+          },
+          "b": {
+            "ref": "msg_d_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_w",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d"
+          },
+          "pred": {
+            "and": [
+              {
+                "gt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "msg_wv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msg_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "authors",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msg_wv"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "per_author",
+          "op": "group_count",
+          "items": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "per_author_n",
+          "op": "rename",
+          "rows": {
+            "ref": "per_author"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_msgs"
+          }
+        },
+        {
+          "name": "union",
+          "op": "concat",
+          "a": {
+            "ref": "interested"
+          },
+          "b": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "persons",
+          "op": "dedup",
+          "items": {
+            "ref": "union"
+          }
+        },
+        {
+          "name": "rows",
+          "op": "annotate",
+          "items": {
+            "ref": "persons"
+          },
+          "field": "_k",
+          "value": 1
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "rows"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "interested"
+          },
+          "into": "_interested"
+        },
+        {
+          "name": "with_msgs",
+          "op": "left_join",
+          "left": {
+            "ref": "flagged"
+          },
+          "right": {
+            "ref": "per_author_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_msgs": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "with_msgs"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "if": [
+                  {
+                    "field": "_interested"
+                  },
+                  {
+                    "lit": 100
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "field": "_msgs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "fscore",
+          "op": "left_join",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "scored"
+          },
+          "left_on": "dst",
+          "right_on": "_vid",
+          "default": {
+            "score": 0
+          }
+        },
+        {
+          "name": "fsum",
+          "op": "group_sum",
+          "rows": {
+            "ref": "fscore"
+          },
+          "by": "src",
+          "field": "score"
+        },
+        {
+          "name": "fsum_n",
+          "op": "rename",
+          "rows": {
+            "ref": "fsum"
+          },
+          "names": {
+            "item": "_vid",
+            "sum": "friendsScore"
+          }
+        },
+        {
+          "name": "with_f",
+          "op": "left_join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "fsum_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "friendsScore": 0
+          }
+        },
+        {
+          "name": "totaled",
+          "op": "derive",
+          "rows": {
+            "ref": "with_f"
+          },
+          "into": "_total",
+          "fn": {
+            "add": [
+              {
+                "field": "score"
+              },
+              {
+                "field": "friendsScore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "totaled"
+          },
+          "keys": [
+            [
+              "_total",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "score",
+            "friendsScore"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~76db68": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "persons_all",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons_all"
+          },
+          "etype": "hasInterest",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "inter_rows",
+          "op": "filter_in",
+          "rows": {
+            "ref": "interests"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "inter0",
+          "op": "pluck",
+          "rows": {
+            "ref": "inter_rows"
+          },
+          "field": "src"
+        },
+        {
+          "name": "interested",
+          "op": "dedup",
+          "items": {
+            "ref": "inter0"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "msg_d_v_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_v_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_v_posts"
+          },
+          "b": {
+            "ref": "msg_d_v_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_w",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d"
+          },
+          "pred": {
+            "and": [
+              {
+                "gt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "msg_wv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msg_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "authors",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msg_wv"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "per_author",
+          "op": "group_count",
+          "items": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "per_author_n",
+          "op": "rename",
+          "rows": {
+            "ref": "per_author"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_msgs"
+          }
+        },
+        {
+          "name": "union",
+          "op": "concat",
+          "a": {
+            "ref": "interested"
+          },
+          "b": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "persons",
+          "op": "dedup",
+          "items": {
+            "ref": "union"
+          }
+        },
+        {
+          "name": "rows",
+          "op": "annotate",
+          "items": {
+            "ref": "persons"
+          },
+          "field": "_k",
+          "value": 1
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "rows"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "interested"
+          },
+          "into": "_interested"
+        },
+        {
+          "name": "with_msgs",
+          "op": "left_join",
+          "left": {
+            "ref": "flagged"
+          },
+          "right": {
+            "ref": "per_author_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_msgs": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "with_msgs"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "if": [
+                  {
+                    "field": "_interested"
+                  },
+                  {
+                    "lit": 100
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "field": "_msgs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "fscore",
+          "op": "left_join",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "scored"
+          },
+          "left_on": "dst",
+          "right_on": "_vid",
+          "default": {
+            "score": 0
+          }
+        },
+        {
+          "name": "fsum",
+          "op": "group_sum",
+          "rows": {
+            "ref": "fscore"
+          },
+          "by": "src",
+          "field": "score"
+        },
+        {
+          "name": "fsum_n",
+          "op": "rename",
+          "rows": {
+            "ref": "fsum"
+          },
+          "names": {
+            "item": "_vid",
+            "sum": "friendsScore"
+          }
+        },
+        {
+          "name": "with_f",
+          "op": "left_join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "fsum_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "friendsScore": 0
+          }
+        },
+        {
+          "name": "totaled",
+          "op": "derive",
+          "rows": {
+            "ref": "with_f"
+          },
+          "into": "_total",
+          "fn": {
+            "add": [
+              {
+                "field": "score"
+              },
+              {
+                "field": "friendsScore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "totaled"
+          },
+          "keys": [
+            [
+              "_total",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "score",
+            "friendsScore"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~2c33f2": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "persons_all",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons_all"
+          },
+          "etype": "hasInterest",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "inter_rows",
+          "op": "filter_in",
+          "rows": {
+            "ref": "interests"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "inter0",
+          "op": "pluck",
+          "rows": {
+            "ref": "inter_rows"
+          },
+          "field": "src"
+        },
+        {
+          "name": "interested",
+          "op": "dedup",
+          "items": {
+            "ref": "inter0"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "msg_d_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_posts"
+          },
+          "b": {
+            "ref": "msg_d_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_w",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d"
+          },
+          "pred": {
+            "and": [
+              {
+                "gt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "msg_wv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msg_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "authors",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msg_wv"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "per_author",
+          "op": "group_count",
+          "items": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "per_author_n",
+          "op": "rename",
+          "rows": {
+            "ref": "per_author"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_msgs"
+          }
+        },
+        {
+          "name": "union",
+          "op": "concat",
+          "a": {
+            "ref": "interested"
+          },
+          "b": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "persons",
+          "op": "dedup",
+          "items": {
+            "ref": "union"
+          }
+        },
+        {
+          "name": "rows",
+          "op": "annotate",
+          "items": {
+            "ref": "persons"
+          },
+          "field": "_k",
+          "value": 1
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "rows"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "interested"
+          },
+          "into": "_interested"
+        },
+        {
+          "name": "with_msgs",
+          "op": "left_join",
+          "left": {
+            "ref": "flagged"
+          },
+          "right": {
+            "ref": "per_author_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_msgs": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "with_msgs"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "if": [
+                  {
+                    "field": "_interested"
+                  },
+                  {
+                    "lit": 100
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "field": "_msgs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "fscore",
+          "op": "left_join",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "scored"
+          },
+          "left_on": "dst",
+          "right_on": "_vid",
+          "default": {
+            "score": 0
+          }
+        },
+        {
+          "name": "fsum",
+          "op": "group_sum",
+          "rows": {
+            "ref": "fscore"
+          },
+          "by": "src",
+          "field": "score"
+        },
+        {
+          "name": "fsum_n",
+          "op": "rename",
+          "rows": {
+            "ref": "fsum"
+          },
+          "names": {
+            "item": "_vid",
+            "sum": "friendsScore"
+          }
+        },
+        {
+          "name": "with_f",
+          "op": "left_join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "fsum_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "friendsScore": 0
+          }
+        },
+        {
+          "name": "totaled",
+          "op": "derive",
+          "rows": {
+            "ref": "with_f"
+          },
+          "into": "_total",
+          "fn": {
+            "add": [
+              {
+                "field": "score"
+              },
+              {
+                "field": "friendsScore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "totaled"
+          },
+          "keys": [
+            [
+              "_total",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "score",
+            "friendsScore"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~5023db": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "persons_all",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons_all"
+          },
+          "etype": "hasInterest",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "inter_rows",
+          "op": "filter_in",
+          "rows": {
+            "ref": "interests"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "inter0",
+          "op": "pluck",
+          "rows": {
+            "ref": "inter_rows"
+          },
+          "field": "src"
+        },
+        {
+          "name": "interested",
+          "op": "dedup",
+          "items": {
+            "ref": "inter0"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "msg_d_v_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_v_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_v_posts"
+          },
+          "b": {
+            "ref": "msg_d_v_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_w",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d"
+          },
+          "pred": {
+            "and": [
+              {
+                "gt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "msg_wv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msg_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "authors",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msg_wv"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "per_author",
+          "op": "group_count",
+          "items": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "per_author_n",
+          "op": "rename",
+          "rows": {
+            "ref": "per_author"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_msgs"
+          }
+        },
+        {
+          "name": "union",
+          "op": "concat",
+          "a": {
+            "ref": "interested"
+          },
+          "b": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "persons",
+          "op": "dedup",
+          "items": {
+            "ref": "union"
+          }
+        },
+        {
+          "name": "rows",
+          "op": "annotate",
+          "items": {
+            "ref": "persons"
+          },
+          "field": "_k",
+          "value": 1
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "rows"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "interested"
+          },
+          "into": "_interested"
+        },
+        {
+          "name": "with_msgs",
+          "op": "left_join",
+          "left": {
+            "ref": "flagged"
+          },
+          "right": {
+            "ref": "per_author_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_msgs": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "with_msgs"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "if": [
+                  {
+                    "field": "_interested"
+                  },
+                  {
+                    "lit": 100
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "field": "_msgs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "fscore",
+          "op": "left_join",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "scored"
+          },
+          "left_on": "dst",
+          "right_on": "_vid",
+          "default": {
+            "score": 0
+          }
+        },
+        {
+          "name": "fsum",
+          "op": "group_sum",
+          "rows": {
+            "ref": "fscore"
+          },
+          "by": "src",
+          "field": "score"
+        },
+        {
+          "name": "fsum_n",
+          "op": "rename",
+          "rows": {
+            "ref": "fsum"
+          },
+          "names": {
+            "item": "_vid",
+            "sum": "friendsScore"
+          }
+        },
+        {
+          "name": "with_f",
+          "op": "left_join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "fsum_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "friendsScore": 0
+          }
+        },
+        {
+          "name": "totaled",
+          "op": "derive",
+          "rows": {
+            "ref": "with_f"
+          },
+          "into": "_total",
+          "fn": {
+            "add": [
+              {
+                "field": "score"
+              },
+              {
+                "field": "friendsScore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "totaled"
+          },
+          "keys": [
+            [
+              "_total",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "score",
+            "friendsScore"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~828f07": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "persons_all",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons_all"
+          },
+          "etype": "hasInterest",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "inter_rows",
+          "op": "filter_in",
+          "rows": {
+            "ref": "interests"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "inter0",
+          "op": "pluck",
+          "rows": {
+            "ref": "inter_rows"
+          },
+          "field": "src"
+        },
+        {
+          "name": "interested",
+          "op": "dedup",
+          "items": {
+            "ref": "inter0"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "msg_d_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msgs"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_d",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d_all"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "msg_w",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d"
+          },
+          "pred": {
+            "and": [
+              {
+                "gt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "msg_wv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msg_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "authors",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msg_wv"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "per_author",
+          "op": "group_count",
+          "items": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "per_author_n",
+          "op": "rename",
+          "rows": {
+            "ref": "per_author"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_msgs"
+          }
+        },
+        {
+          "name": "union",
+          "op": "concat",
+          "a": {
+            "ref": "interested"
+          },
+          "b": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "persons",
+          "op": "dedup",
+          "items": {
+            "ref": "union"
+          }
+        },
+        {
+          "name": "rows",
+          "op": "annotate",
+          "items": {
+            "ref": "persons"
+          },
+          "field": "_k",
+          "value": 1
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "rows"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "interested"
+          },
+          "into": "_interested"
+        },
+        {
+          "name": "with_msgs",
+          "op": "left_join",
+          "left": {
+            "ref": "flagged"
+          },
+          "right": {
+            "ref": "per_author_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_msgs": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "with_msgs"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "if": [
+                  {
+                    "field": "_interested"
+                  },
+                  {
+                    "lit": 100
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "field": "_msgs"
+              }
+            ]
+          }
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "persons"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "fscore",
+          "op": "left_join",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "scored"
+          },
+          "left_on": "dst",
+          "right_on": "_vid",
+          "default": {
+            "score": 0
+          }
+        },
+        {
+          "name": "fsum",
+          "op": "group_sum",
+          "rows": {
+            "ref": "fscore"
+          },
+          "by": "src",
+          "field": "score"
+        },
+        {
+          "name": "fsum_n",
+          "op": "rename",
+          "rows": {
+            "ref": "fsum"
+          },
+          "names": {
+            "item": "_vid",
+            "sum": "friendsScore"
+          }
+        },
+        {
+          "name": "with_f",
+          "op": "left_join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "fsum_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "friendsScore": 0
+          }
+        },
+        {
+          "name": "totaled",
+          "op": "derive",
+          "rows": {
+            "ref": "with_f"
+          },
+          "into": "_total",
+          "fn": {
+            "add": [
+              {
+                "field": "score"
+              },
+              {
+                "field": "friendsScore"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "totaled"
+          },
+          "keys": [
+            [
+              "_total",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "score",
+            "friendsScore"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand+probe~14838c": {
+      "sha": "14838c5dc046",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand+probe~76db68": {
+      "sha": "76db68711097",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~2c33f2": {
+      "sha": "2c33f29e741e",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~5023db": {
+      "sha": "5023dbbd1476",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~828f07": {
+      "sha": "828f077a618c",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

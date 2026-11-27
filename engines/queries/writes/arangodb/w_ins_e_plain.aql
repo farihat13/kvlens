@@ -1,0 +1,7 @@
+// w_ins_e_plain -- insert a knows edge carrying no property, between two persons that are not adjacent.
+// Writes: the edge document (primary index), its two edge-index entries (_from, _to) and a null entry in the
+//   knows.creationDate persistent index (non-sparse).
+// Evaluator: workloads/writes/microbench/queries.py w_ins_e_plain -- insert_edge(knows, src_vid, dst_vid, {}).
+// mb2 lineage: MB85 (same statement; its keys were inlined).
+// Anchor: the two Person _keys, bound variables, as w_upd_plain.
+INSERT { _from: CONCAT("Person/", @src), _to: CONCAT("Person/", @dst) } INTO knows

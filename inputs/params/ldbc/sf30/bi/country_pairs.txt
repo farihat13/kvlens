@@ -1,0 +1,6 @@
+country1|country2|friendships|stratum
+India|China|82243|max-correlated
+Brazil|Algeria|1370|p90
+Mauritania|Chile|58|p50
+Bulgaria|Mongolia|5|p10
+Angola|Azerbaijan|1|min-anticorrelated

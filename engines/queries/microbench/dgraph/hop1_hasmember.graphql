@@ -1,0 +1,16 @@
+# hop1_hasmember -- the members of a forum, via hasMember (T1), counted.
+# Reads: the anchor forum's hasMember posting; `uid` is free.
+# Evaluator: queries/hop.py _hop1("hasMember", "out", "Forum", "forum") -> dedup -> count row.
+#   Count-final, so one item per member.
+# mb2 lineage: none (new shape).
+# Anchor: Dgraph has no external-key addressing, so the forum is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types, so type(forum) is what names THE forum.
+# answer-path: result.members
+query q($forumId: string) {
+  result(func: eq(id, $forumId)) @filter(type(forum)) {
+    members: hasMember {
+      uid
+    }
+  }
+}

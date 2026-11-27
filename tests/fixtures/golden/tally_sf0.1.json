@@ -1,0 +1,476 @@
+{
+ "records_key": {
+  "content_sha256": "1e8125b0755ca8f59955da1444181c63da9a1fc9af0f9948ee4d6ebe8f12be5c",
+  "cpp": {
+   "binary_dirty": false,
+   "binary_git_sha": "8728573a452052a71c043707fd5b6104e9173cc7",
+   "files": {
+    "cli/commands.h": "1077dbddadd90cfec0fc164104b770882c256659",
+    "cli/records.cc": "c6cc5fb697ec42a8b3a4a5906497c4dad1b58535",
+    "ingest/ldbc_csv.cc": "b830713122828f9045ceb03da9009f1c936ced14",
+    "ingest/ldbc_csv.h": "af5cae2e252aad9a3f481c828ed72350ae701217",
+    "schema/schema.cc": "e7b5623a4439ccb146f720b180ccc5edb1bb3e48",
+    "schema/schema.h": "1105ed0fe21c45886d0b345c59de3b29ffc2534d",
+    "util/base64.cc": "9d47e17e548321aa6a3afd1fe9db3e8a090ea70f",
+    "util/base64.h": "38e84d0c86ba77e43288ee7831ee5328fdb04e37",
+    "util/sha256.cc": "7ee53c7153fd05c4592b57e3381d24a30fcb6f83",
+    "util/sha256.h": "f767881646999eeb9c76f965ec3a9a18990d3947",
+    "util/vid.cc": "5122ea01e9e7b3c6048096d22c8b32c8a48f0023",
+    "util/vid.h": "d514528178e5f3a69f61d12562b741580b32a73c",
+    "value/value.cc": "43c43692591da466c72cd61063c49601a31ec330",
+    "value/value.h": "54783c46a70e75db5aaff1b18fe247c9daf8908c"
+   }
+  },
+  "dataset": "ldbc",
+  "python": {
+   "02d7f61d31bc2707e37ddf732ee5591846886c0a45ef6500a32f546bdff45729": [
+    "python/kvevaluator/measure/records_dump.py"
+   ],
+   "2268f7b1141b7b2d1150f27aadabd12bfb0a8dc6691ab2105343649d5eae31b2": [
+    "python/kvevaluator/datasets/ldbc/loader.py"
+   ],
+   "350effd0e7a096b146eb6a61ccac35055dd8e5bbce8b13274cca7bab5a5fdae8": [
+    "inputs/schemas/ldbc/schema.json"
+   ],
+   "35da8e83748feedd052ae4da1879f8a11759b67be0ba31b8db6a3c0c874c4037": [
+    "python/kvevaluator/schema/schema_txt.py"
+   ],
+   "40b439dd61fff88bbfcf7b24fdd42a197d12c619a6ca6c53274b1421aaf6db26": [
+    "python/kvevaluator/datasets/ldbc/schema.py"
+   ],
+   "447aae02a749adedf8f27c906292e3c79419959865d00cfd52d76a42bf33251b": [
+    "python/kvevaluator/jsonbytes.py"
+   ],
+   "53674c4ce1f170739f6ae3c09fc085c9e8b025a6651c039f8c74928b3662091c": [
+    "python/kvevaluator/schema/schemadef.py"
+   ],
+   "606d56f19c010b9dfa57ecadfebfb41fa8ae1d24ac97a6dec77a2a179fdc16d9": [
+    "python/kvevaluator/paths.py"
+   ],
+   "6995be742e11071d5770a59b29ed4a880cfa3099b88276ba246762de46f32f83": [
+    "python/kvevaluator/datasets/__init__.py"
+   ],
+   "7872cc424c8ae60dbb1126b6c79a49da1bcaf3510e736194a1ccbb253dfc85dc": [
+    "python/kvevaluator/schema/vids.py"
+   ],
+   "865c5261e1014fddf9587c8dda8a562c3bc7d2ffc53de0d17e1f9bc60f0a9947": [
+    "python/kvevaluator/schema/graph.py"
+   ],
+   "c822914110395fcdcc2d813ae000ec3f18595d58b42b026256094b433f17b471": [
+    "python/kvevaluator/schema/schema.py"
+   ],
+   "d981cf18e314a312d1f0727bb7cbd5fb9c98fd18caabda74df440a85d908a87b": [
+    "python/kvevaluator/schema/__init__.py"
+   ],
+   "e1058a8e982c259a0208331570931030c98ef46328ef8c0e10868d9d0f00ffee": [
+    "python/kvevaluator/__init__.py"
+   ],
+   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": [
+    "python/kvevaluator/datasets/ldbc/__init__.py"
+   ],
+   "fdcbf532ba20c20fc4a297f7434dc185ebc8e15c77f45e0cb9eda729fdb925b8": [
+    "python/kvevaluator/measure/__init__.py"
+   ]
+  },
+  "raw": {
+   ".updateStream.properties.crc": [
+    12,
+    1692386171000000000
+   ],
+   ".updateStream_0_0_forum.csv.crc": [
+    214660,
+    1692386171000000000
+   ],
+   ".updateStream_0_0_person.csv.crc": [
+    436,
+    1692386167000000000
+   ],
+   "dynamic/.comment_0_0.csv.crc": [
+    103280,
+    1692386166000000000
+   ],
+   "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+    30900,
+    1692386166000000000
+   ],
+   "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+    27040,
+    1692386166000000000
+   ],
+   "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+    18748,
+    1692386166000000000
+   ],
+   "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+    15688,
+    1692386166000000000
+   ],
+   "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+    15184,
+    1692386166000000000
+   ],
+   "dynamic/.forum_0_0.csv.crc": [
+    5584,
+    1692386166000000000
+   ],
+   "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+    27628,
+    1692386166000000000
+   ],
+   "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+    39332,
+    1692386166000000000
+   ],
+   "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+    2856,
+    1692386166000000000
+   ],
+   "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+    6560,
+    1692386166000000000
+   ],
+   "dynamic/.person_0_0.csv.crc": [
+    1016,
+    1692386154000000000
+   ],
+   "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+    1152,
+    1692386154000000000
+   ],
+   "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+    5296,
+    1692386154000000000
+   ],
+   "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+    232,
+    1692386154000000000
+   ],
+   "dynamic/.person_knows_person_0_0.csv.crc": [
+    4640,
+    1692386154000000000
+   ],
+   "dynamic/.person_likes_comment_0_0.csv.crc": [
+    20068,
+    1692386166000000000
+   ],
+   "dynamic/.person_likes_post_0_0.csv.crc": [
+    15160,
+    1692386166000000000
+   ],
+   "dynamic/.person_speaks_language_0_0.csv.crc": [
+    464,
+    1692386154000000000
+   ],
+   "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+    240,
+    1692386154000000000
+   ],
+   "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+    616,
+    1692386154000000000
+   ],
+   "dynamic/.post_0_0.csv.crc": [
+    93788,
+    1692386166000000000
+   ],
+   "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+    28072,
+    1692386166000000000
+   ],
+   "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+    7128,
+    1692386166000000000
+   ],
+   "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+    16852,
+    1692386166000000000
+   ],
+   "dynamic/comment_0_0.csv": [
+    13218305,
+    1692386166000000000
+   ],
+   "dynamic/comment_hasCreator_person_0_0.csv": [
+    3953993,
+    1692386166000000000
+   ],
+   "dynamic/comment_hasTag_tag_0_0.csv": [
+    3459591,
+    1692386166000000000
+   ],
+   "dynamic/comment_isLocatedIn_place_0_0.csv": [
+    2398376,
+    1692386166000000000
+   ],
+   "dynamic/comment_replyOf_comment_0_0.csv": [
+    2006899,
+    1692386166000000000
+   ],
+   "dynamic/comment_replyOf_post_0_0.csv": [
+    1942023,
+    1692386166000000000
+   ],
+   "dynamic/forum_0_0.csv": [
+    713464,
+    1692386166000000000
+   ],
+   "dynamic/forum_containerOf_post_0_0.csv": [
+    3535256,
+    1692386166000000000
+   ],
+   "dynamic/forum_hasMember_person_0_0.csv": [
+    5033179,
+    1692386166000000000
+   ],
+   "dynamic/forum_hasModerator_person_0_0.csv": [
+    364464,
+    1692386166000000000
+   ],
+   "dynamic/forum_hasTag_tag_0_0.csv": [
+    838260,
+    1692386166000000000
+   ],
+   "dynamic/person_0_0.csv": [
+    128884,
+    1692386154000000000
+   ],
+   "dynamic/person_email_emailaddress_0_0.csv": [
+    146096,
+    1692386154000000000
+   ],
+   "dynamic/person_hasInterest_tag_0_0.csv": [
+    676851,
+    1692386154000000000
+   ],
+   "dynamic/person_isLocatedIn_place_0_0.csv": [
+    28404,
+    1692386154000000000
+   ],
+   "dynamic/person_knows_person_0_0.csv": [
+    592535,
+    1692386154000000000
+   ],
+   "dynamic/person_likes_comment_0_0.csv": [
+    2567488,
+    1692386166000000000
+   ],
+   "dynamic/person_likes_post_0_0.csv": [
+    1939177,
+    1692386166000000000
+   ],
+   "dynamic/person_speaks_language_0_0.csv": [
+    58282,
+    1692386154000000000
+   ],
+   "dynamic/person_studyAt_organisation_0_0.csv": [
+    29287,
+    1692386154000000000
+   ],
+   "dynamic/person_workAt_organisation_0_0.csv": [
+    77429,
+    1692386154000000000
+   ],
+   "dynamic/post_0_0.csv": [
+    12003836,
+    1692386166000000000
+   ],
+   "dynamic/post_hasCreator_person_0_0.csv": [
+    3591800,
+    1692386166000000000
+   ],
+   "dynamic/post_hasTag_tag_0_0.csv": [
+    911075,
+    1692386166000000000
+   ],
+   "dynamic/post_isLocatedIn_place_0_0.csv": [
+    2155859,
+    1692386166000000000
+   ],
+   "params.ini": [
+    674,
+    1692386072000000000
+   ],
+   "static/.organisation_0_0.csv.crc": [
+    6416,
+    1692386171000000000
+   ],
+   "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+    564,
+    1692386171000000000
+   ],
+   "static/.place_0_0.csv.crc": [
+    648,
+    1692386171000000000
+   ],
+   "static/.place_isPartOf_place_0_0.csv.crc": [
+    92,
+    1692386171000000000
+   ],
+   "static/.tag_0_0.csv.crc": [
+    8652,
+    1692386171000000000
+   ],
+   "static/.tag_hasType_tagclass_0_0.csv.crc": [
+    1160,
+    1692386171000000000
+   ],
+   "static/.tagclass_0_0.csv.crc": [
+    40,
+    1692386171000000000
+   ],
+   "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+    16,
+    1692386171000000000
+   ],
+   "static/organisation_0_0.csv": [
+    819926,
+    1692386171000000000
+   ],
+   "static/organisation_isLocatedIn_place_0_0.csv": [
+    70928,
+    1692386171000000000
+   ],
+   "static/place_0_0.csv": [
+    81884,
+    1692386171000000000
+   ],
+   "static/place_isPartOf_place_0_0.csv": [
+    10458,
+    1692386171000000000
+   ],
+   "static/tag_0_0.csv": [
+    1106348,
+    1692386171000000000
+   ],
+   "static/tag_hasType_tagclass_0_0.csv": [
+    147267,
+    1692386171000000000
+   ],
+   "static/tagclass_0_0.csv": [
+    3874,
+    1692386171000000000
+   ],
+   "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+    545,
+    1692386171000000000
+   ],
+   "updateStream.properties": [
+    253,
+    1692386171000000000
+   ],
+   "updateStream_0_0_forum.csv": [
+    27475286,
+    1692386171000000000
+   ],
+   "updateStream_0_0_person.csv": [
+    54446,
+    1692386167000000000
+   ]
+  },
+  "schema": "544df52c2a6779cad30c9e7642e0665caacff5ff395a9e661c5629335ed5e7bb",
+  "sf": "0.1",
+  "variant": null,
+  "version": 3
+ },
+ "sf": "0.1",
+ "tallies": {
+  "chunked": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 35,
+    "groups": 47,
+    "locality": 300
+   },
+   "sha256": "66152cb799fbbcba75aa025729260a183c253beb43d291a0b8e3d5d0154d783c",
+   "totals": {
+    "key_bytes": 6904507,
+    "keys": 330044,
+    "value_bytes": 43975162
+   }
+  },
+  "chunked_c16k": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 35,
+    "groups": 47,
+    "locality": 300
+   },
+   "sha256": "32bd76088d8a686344398f81e19168f854921cc2663f8e1578e41b3afff83b47",
+   "totals": {
+    "key_bytes": 6932538,
+    "keys": 332724,
+    "value_bytes": 43659897
+   }
+  },
+  "chunked_c1k": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 35,
+    "groups": 47,
+    "locality": 300
+   },
+   "sha256": "2f8f4d1fdd2a0ca89575c74c7d3ba3cd6d5e89731dde1e5237478fca24ef6697",
+   "totals": {
+    "key_bytes": 7439289,
+    "keys": 381290,
+    "value_bytes": 43574731
+   }
+  },
+  "chunked_c256k": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 35,
+    "groups": 47,
+    "locality": 300
+   },
+   "sha256": "360a24971c6d2e2b4b7d328aeebb9466a629d94c38fed1535d9d518c03a9f435",
+   "totals": {
+    "key_bytes": 6897433,
+    "keys": 329368,
+    "value_bytes": 44334669
+   }
+  },
+  "chunked_c4k": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 35,
+    "groups": 47,
+    "locality": 300
+   },
+   "sha256": "393b390d8638bb60e6e722600da4deb38839d978e3c8d5937710baa479f598c0",
+   "totals": {
+    "key_bytes": 7040766,
+    "keys": 343083,
+    "value_bytes": 43452696
+   }
+  },
+  "condensed": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 0,
+    "groups": 47,
+    "locality": 0
+   },
+   "sha256": "9bef155969dad10cf0350be9720d050fa3e6813079a29023b12b637c7ce1e193",
+   "totals": {
+    "key_bytes": 22155035,
+    "keys": 1746192,
+    "value_bytes": 41458881
+   }
+  },
+  "split": {
+   "records_lines": 1805553,
+   "rows": {
+    "chunks": 0,
+    "groups": 47,
+    "locality": 0
+   },
+   "sha256": "458eaa2a96701ba8b693bfaa4e73417a21ad4aaca25e98a6b0c9d6961b28750e",
+   "totals": {
+    "key_bytes": 79358118,
+    "keys": 4796013,
+    "value_bytes": 28325776
+   }
+  }
+ },
+ "tally_version": 2
+}

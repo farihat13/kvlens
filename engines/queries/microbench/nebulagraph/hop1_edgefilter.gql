@@ -1,0 +1,12 @@
+# microbench hop1_edgefilter -- a Person's knows edges (both directions) created before
+# 2011-01-01 (an edge-property filter).
+# Evaluator: queries/hop.py hop1_edgefilter: read_neighbors(edge_props=[creationDate]) ->
+# filter creationDate < DATE_CUTOFF -> count. The count is over EDGE rows (no dedup), so no
+# DISTINCT here. One row per kept edge, the far-end vid only.
+# DATE_CUTOFF = 1293840000000 is a fixed constant of the shape (_shared.py), not a param.
+# mb2 lineage: MB35-36, 27-28 (out direction, MATCH).
+# Form: GO BIDIRECT with an edge-property WHERE; the property rides in the edge value.
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS BIDIRECT
+  WHERE KNOWS.creationDate < 1293840000000
+  YIELD id($$) AS id

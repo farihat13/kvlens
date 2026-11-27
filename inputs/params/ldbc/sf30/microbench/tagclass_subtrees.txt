@@ -1,0 +1,6 @@
+tagClassId|subtree|stratum
+57|1|p10
+233|1|p50
+123|5|p90
+239|60|p99
+0|71|max

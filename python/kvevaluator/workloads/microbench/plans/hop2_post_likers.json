@@ -1,0 +1,195 @@
+{
+  "plan": "hop2_post_likers",
+  "question": "Given a person, count the distinct people who liked their posts.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "md"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "lk",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "po"
+          },
+          "etype": "likes",
+          "dir": "in"
+        },
+        {
+          "name": "ld",
+          "op": "dedup",
+          "items": {
+            "ref": "lk"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "ld"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "md"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "lk",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "po"
+          },
+          "etype": "likes",
+          "dir": "in"
+        },
+        {
+          "name": "ld",
+          "op": "dedup",
+          "items": {
+            "ref": "lk"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "ld"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "54b5ffa05397",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand+probe": {
+      "sha": "3ceb7214ded3",
+      "requires": [],
+      "sources": [
+        "hand+probe"
+      ]
+    }
+  }
+}

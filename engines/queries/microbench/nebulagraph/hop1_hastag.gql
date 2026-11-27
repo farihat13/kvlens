@@ -1,0 +1,7 @@
+# microbench hop1_hastag -- everything tagged with a Tag: its messages AND its Forums
+# (HAS_TAG comes from Post, Comment and Forum, in the evaluator's hasTag as here).
+# Evaluator: queries/hop.py _hop1("hasTag", "in", "Tag", "tag"): read_neighbors -> dedup ->
+# count. Count-final: one row per tagged vertex, the vid only.
+# mb2 lineage: none.  Form: GO REVERSELY over HAS_TAG. $param note: see hop1_knows.gql.
+YIELD $tagId AS s
+| GO FROM $-.s OVER HAS_TAG REVERSELY YIELD DISTINCT src(edge) AS id

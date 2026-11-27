@@ -1,0 +1,98 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=13.08
+# Q12. Expert search
+# 
+# Person with ID $personId, find the Comments that this Person’s friends made in reply
+# to Posts, considering only those Comments that are direct (single-hop) replies to Posts, not the
+# transitive (multi-hop) ones. 
+# Only consider Posts with a Tag in a given TagClass with name $tagClassName or in a descendent of 
+# that TagClass. Count the number of these reply Comments, and collect the Tags that were attached 
+# to the Posts they replied to, but only collect Tags with the givenTagClass or with a descendant 
+# of that TagClass. Return Persons with at least one reply, the reply count, and the collection of Tags.
+#
+# Sort.   replyCount(desc),  friendId(asc)
+# Limit.  20
+#
+# Note:
+# Approximation: since tagclasses can be nested, we unroll a few levels of the hierarchy to find descendant tag classes.
+#
+# Params: $personId:int (personId), $tagClassName:string (tagClassName)
+
+query Q12($personId: int, $tagClassName: string) {
+
+  ##### 1) Build the tag set 'T' (type = tagClassName or its subclasses, or tag.name = tagClassName)
+
+  # Base tag class
+  BaseTC as var(func: eq(name, $tagClassName)) @filter(type(tagclass))
+
+  # # Descendant tag classes (unroll a few levels; add more if your hierarchy is deeper)
+  # _tc1(func: uid(BaseTC)) { tc1 as ~isSubclassOf @filter(type(tagclass)) }
+  # _tc2(func: uid(tc1))    { tc2 as ~isSubclassOf @filter(type(tagclass)) }
+  # _tc3(func: uid(tc2))    { tc3 as ~isSubclassOf @filter(type(tagclass)) }
+
+  # # All relevant tag classes = base ∪ descendants
+  # TCAll as var(func: uid(BaseTC, tc1, tc2, tc3))
+
+  # # Tags whose hasType ∈ TCAll
+  # TagsByType as var(func: has(hasType))
+  #   @filter(type(tag) AND uid_in(hasType, uid(TCAll)))
+
+  # # Also include a tag whose *name* equals $tagClassName (as Cypher does)
+  # TagByName as var(func: eq(name, $tagClassName)) @filter(type(tag))
+
+  # # Union
+  # T as var(func: uid(TagsByType, TagByName))
+
+  # Recurse over subclass edges to any depth, collect UIDs into `tc`
+  var(func: uid(BaseTC)) @recurse(loop: false) {
+    tc as ~isSubclassOf  # walk from child to parent-class edge's reverse to get descendants
+  }
+
+  # All relevant tag classes = base ∪ descendants collected in `tc`
+  TCAll as var(func: uid(BaseTC, tc))
+
+  # Tags whose hasType ∈ TCAll
+  T as var(func: has(hasType)) @filter(type(tag) AND uid_in(hasType, uid(TCAll)))
+
+
+  ##### 2) Posts carrying any tag in T
+  var(func: uid(T)) {
+    P0 as ~hasTag @filter(type(post))
+  }
+
+  ##### 3) Target person and their DIRECT friends (KNOWS 1 hop, undirected)
+  P as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { a as knows  b as ~knows }
+  F as var(func: uid(a, b)) @filter(type(person) AND NOT uid(P))
+
+
+  ##### 4) Per-friend reply count to posts tagged with T
+  # (Do counts in a dedicated block to avoid "same reverse edge used twice" restrictions.)
+  var(func: uid(F)) @filter(type(person)) {
+    rc as count(~hasCreator @filter(
+      type(comment) AND uid_in(replyOf, uid(P0))
+    ))
+  }
+
+  ##### 5) Composite order key to preserve (replyCount DESC, personId ASC) with one server-side sort
+  var(func: uid(F)) {
+    idv as id
+    ord as math( rc + ( (1e15 - idv) / 1e15 ) )
+  }
+
+  ##### 6) Final projection (top 20).  'tagNames' will include duplicates—dedup in glue.
+  friends(func: uid(F), orderdesc: val(ord), first: 20) @filter(gt(val(rc), 0)) @normalize {
+    friendId: id
+    friendFirstName: firstName
+    friendLastName:  lastName
+    replyCount: val(rc)
+
+    # Gather tag names from the posts this friend replied to (filter to T).
+    ~hasCreator @filter(type(comment) AND uid_in(replyOf, uid(P0))) {
+      replyOf @filter(type(post)) {
+        hasTag @filter(uid(T)) {
+          tagNames: name
+        }
+      }
+    }
+  }
+}

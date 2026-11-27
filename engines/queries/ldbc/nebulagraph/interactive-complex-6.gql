@@ -1,0 +1,34 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=7.08
+# Q6. Tag co-occurrence 
+#
+# Given a start Person with ID $personId and a Tag with name $tagName, find the other Tags that
+# occur together with this Tag on Posts that were created by start Person’s friends and friends of
+# friends (excluding start Person). Return top 10 Tags, and the count of Posts that were created by
+# these Persons, which contain both this Tag and the given Tag.
+#
+# Params:
+#   $personId : int
+#   $tagName  : string   (name of the tag, e.g., "GraphQL")
+# result
+# 1 otherTag.name Long String R
+# 2 postCount 32-bit Integer A Number of Posts that were created by friends and friends of friends, which have the Tag otherTag
+# sort 
+# 1 postCount ↓
+# 2 otherTag.name ↑
+
+MATCH (person:Person)-[:KNOWS*1..2]-(friend:Person)
+WHERE id(person) == $personId AND not(person == friend)
+
+WITH DISTINCT friend
+
+MATCH (friend)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(knownTag:`Tag`)
+WHERE knownTag.`Tag`.name == $tagName
+
+MATCH (post)-[:HAS_TAG]->(otherTag:`Tag`)
+WHERE otherTag != knownTag
+
+RETURN
+    otherTag.`Tag`.name AS tagName,
+    COUNT(DISTINCT post) AS postCount
+ORDER BY postCount DESC, tagName ASC
+LIMIT 10;

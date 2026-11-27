@@ -1,0 +1,21 @@
+# microbench nhop2p -- the Persons at knows-distance exactly 2 from a Person (both directions):
+# the new BFS frontier after 2 hops, with a global visited set.
+# Then id, firstName, lastName of each frontier Person.
+# Evaluator: queries/nhop.py _nhop(2, props=True): per hop read_neighbors(knows, both) -> dedup -> exclude
+# everything seen -> the depth-2 frontier. Then read_vertex_props([id, firstName, lastName]). One row per frontier Person.
+# mb2 lineage: MB42 (MATCH 2-hop out, 4 props).
+# Form: one GO per hop from the current frontier; MINUS drops every vertex already
+# seen and UNION grows the seen set -- the evaluator's walk, hop for hop. The set steps run in
+# graphd memory (no storage read); id($$) is the far end of each edge (free). The anchor enters
+# through a YIELD because GO does not take a $param as the start vid in this Nebula.
+# Replaces a GET SUBGRAPH form, which also keeps a visited set but expands one layer more and reads
+# every tag of each vertex (nhop1 at p3: 128/512/5807 vs this form's 2/0/63).
+# The final FETCH PROP ON Person is GetVertices: 1 row read per frontier Person.
+$v0 = YIELD $personId AS id;
+$h1 = GO FROM $v0.id OVER KNOWS BIDIRECT YIELD DISTINCT id($$) AS id;
+$f1 = YIELD $h1.id AS id MINUS YIELD $v0.id AS id;
+$v1 = YIELD $v0.id AS id UNION YIELD $f1.id AS id;
+$h2 = GO FROM $f1.id OVER KNOWS BIDIRECT YIELD DISTINCT id($$) AS id;
+$f2 = YIELD $h2.id AS id MINUS YIELD $v1.id AS id;
+FETCH PROP ON Person $f2.id
+  YIELD id(vertex) AS id, Person.firstName AS firstName, Person.lastName AS lastName;

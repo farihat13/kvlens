@@ -1,0 +1,93 @@
+{
+  "plan": "fof",
+  "question": "Given a person, list the names of their friends of friends (two knows-steps away).",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "f2"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Person"
+        }
+      ],
+      "output": "names"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "27bc36c5103e",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

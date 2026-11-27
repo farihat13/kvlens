@@ -1,0 +1,321 @@
+{
+  "plan": "nhop2p",
+  "question": "Given a person, find the people exactly two knows-steps away and read their id, first name and last name.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "s0",
+          "op": "dedup",
+          "items": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "f1r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "s0"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1r"
+          }
+        },
+        {
+          "name": "f1",
+          "op": "exclude",
+          "items": {
+            "ref": "f1d"
+          },
+          "remove": {
+            "ref": "s0"
+          }
+        },
+        {
+          "name": "s1",
+          "op": "concat",
+          "a": {
+            "ref": "s0"
+          },
+          "b": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f2d",
+          "op": "dedup",
+          "items": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "exclude",
+          "items": {
+            "ref": "f2d"
+          },
+          "remove": {
+            "ref": "s1"
+          }
+        },
+        {
+          "name": "s2",
+          "op": "concat",
+          "a": {
+            "ref": "s1"
+          },
+          "b": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "f2"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "nhop2p_from_person_run(hand)": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "s0",
+          "op": "dedup",
+          "items": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "f1r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "s0"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1r"
+          }
+        },
+        {
+          "name": "f1",
+          "op": "exclude",
+          "items": {
+            "ref": "f1d"
+          },
+          "remove": {
+            "ref": "s0"
+          }
+        },
+        {
+          "name": "s1",
+          "op": "concat",
+          "a": {
+            "ref": "s0"
+          },
+          "b": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f2d",
+          "op": "dedup",
+          "items": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "exclude",
+          "items": {
+            "ref": "f2d"
+          },
+          "remove": {
+            "ref": "s1"
+          }
+        },
+        {
+          "name": "s2",
+          "op": "concat",
+          "a": {
+            "ref": "s1"
+          },
+          "b": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "keep": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "17006b0f0414",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    },
+    "nhop2p_from_person_run(hand)": {
+      "sha": "33bd704e8edb",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "nhop2p_from_person_run(hand)"
+      ]
+    }
+  }
+}

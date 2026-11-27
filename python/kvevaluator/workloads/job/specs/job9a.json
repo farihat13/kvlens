@@ -1,0 +1,173 @@
+{
+ "query": "job9a",
+ "aliases": {
+  "an": "aka_name",
+  "chn": "char_name",
+  "ci": "cast_info",
+  "cn": "company_name",
+  "mc": "movie_companies",
+  "n": "name",
+  "rt": "role_type",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "ci",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "company_id",
+   "cn",
+   "id"
+  ],
+  [
+   "ci",
+   "role_id",
+   "rt",
+   "id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "chn",
+   "id",
+   "ci",
+   "person_role_id"
+  ],
+  [
+   "an",
+   "person_id",
+   "n",
+   "id"
+  ],
+  [
+   "an",
+   "person_id",
+   "ci",
+   "person_id"
+  ]
+ ],
+ "predicates": {
+  "an": [],
+  "chn": [],
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(voice)",
+     "(voice: Japanese version)",
+     "(voice) (uncredited)",
+     "(voice: English version)"
+    ]
+   ]
+  ],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "mc": [
+   [
+    "null",
+    "mc",
+    "note",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "mc",
+      "note",
+      "%(USA)%",
+      false
+     ],
+     [
+      "like",
+      "mc",
+      "note",
+      "%(worldwide)%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "n": [
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "f"
+   ],
+   [
+    "like",
+    "n",
+    "name",
+    "%Ang%",
+    false
+   ]
+  ],
+  "rt": [
+   [
+    "cmp",
+    "=",
+    "rt",
+    "role",
+    "actress"
+   ]
+  ],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    2005,
+    2015
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "alternative_name",
+   "an",
+   "name"
+  ],
+  [
+   "character_name",
+   "chn",
+   "name"
+  ],
+  [
+   "movie",
+   "t",
+   "title"
+  ]
+ ]
+}

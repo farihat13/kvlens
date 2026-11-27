@@ -1,0 +1,27 @@
+{
+  "name": "linkbench",
+  "order": 4,
+  "title": "LinkBench's request types",
+  "dataset": "linkbench",
+  "kind": "read",
+  "pick_params": "in-sample",
+  "params_module": "kvevaluator.datasets.linkbench.params",
+  "plan_dirs": [
+    "linkbench/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ],
+  "single_plans": true,
+  "queries": [
+    "getnode",
+    "getlinklist_link1",
+    "getlinklist_link2",
+    "countlink_link1",
+    "countlink_link2",
+    "getlink_link1",
+    "getlink_link2"
+  ]
+}

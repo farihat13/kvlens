@@ -1,0 +1,7040 @@
+{
+  "plan": "ic10",
+  "question": "Given a person and a month, recommend the 10 friends of friends born from the 21st of that month to the 22nd of the next, ranked by how many of their posts match the person's interests.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "month": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "filter_index+fetch_deferred": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cposts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "post_flag",
+          "op": "flag_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "my_tags"
+          },
+          "into": "_c"
+        },
+        {
+          "name": "post_common",
+          "op": "group_top",
+          "rows": {
+            "ref": "post_flag"
+          },
+          "by": "src",
+          "keys": [
+            [
+              "_c",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "post_common"
+          },
+          "field": "src"
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_index+fetch_inline": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cposts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "post_flag",
+          "op": "flag_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "my_tags"
+          },
+          "into": "_c"
+        },
+        {
+          "name": "post_common",
+          "op": "group_top",
+          "rows": {
+            "ref": "post_flag"
+          },
+          "by": "src",
+          "keys": [
+            [
+              "_c",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "post_common"
+          },
+          "field": "src"
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_probe+fetch_deferred": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cposts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "post_flag",
+          "op": "flag_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "my_tags"
+          },
+          "into": "_c"
+        },
+        {
+          "name": "post_common",
+          "op": "group_top",
+          "rows": {
+            "ref": "post_flag"
+          },
+          "by": "src",
+          "keys": [
+            [
+              "_c",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "post_common"
+          },
+          "field": "src"
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_probe+fetch_inline": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cposts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "post_flag",
+          "op": "flag_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "my_tags"
+          },
+          "into": "_c"
+        },
+        {
+          "name": "post_common",
+          "op": "group_top",
+          "rows": {
+            "ref": "post_flag"
+          },
+          "by": "src",
+          "keys": [
+            [
+              "_c",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "post_common"
+          },
+          "field": "src"
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_deferred)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "keep": {
+            "ref": "fof"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_inline)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "keep": {
+            "ref": "fof"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_deferred)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "keep": {
+            "ref": "fof"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_inline)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "keep": {
+            "ref": "fof"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_interest_lists(filter_index+fetch_deferred)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_interest_lists(filter_index+fetch_inline)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_interest_lists(filter_probe+fetch_deferred)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic10_interest_lists(filter_probe+fetch_inline)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "friends"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen",
+          "op": "concat",
+          "a": {
+            "ref": "friends"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "fof",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen"
+          }
+        },
+        {
+          "name": "fof_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fof"
+          },
+          "props": [
+            "birthday",
+            "id",
+            "firstName",
+            "lastName",
+            "gender"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "fof_props"
+          },
+          "pred": {
+            "or": [
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "param": "month"
+                      }
+                    ]
+                  },
+                  {
+                    "ge": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 21
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "and": [
+                  {
+                    "eq": [
+                      {
+                        "month_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "if": [
+                          {
+                            "eq": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 12
+                              }
+                            ]
+                          },
+                          {
+                            "lit": 1
+                          },
+                          {
+                            "add": [
+                              {
+                                "param": "month"
+                              },
+                              {
+                                "lit": 1
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "lt": [
+                      {
+                        "day_of": {
+                          "field": "birthday"
+                        }
+                      },
+                      {
+                        "lit": 22
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "interests",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasInterest",
+          "dir": "out"
+        },
+        {
+          "name": "my_tags",
+          "op": "dedup",
+          "items": {
+            "ref": "interests"
+          }
+        },
+        {
+          "name": "cmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cand_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cposts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "cmsg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "cmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cmsgs"
+          },
+          "names": {
+            "src": "cand",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "cand_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cmsg_r"
+          },
+          "field": "_post",
+          "allowed": {
+            "ref": "cposts"
+          }
+        },
+        {
+          "name": "tag_posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_posts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "common_v",
+          "op": "intersect",
+          "items": {
+            "ref": "cposts"
+          },
+          "other": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "common_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "common_v"
+          },
+          "field": "_c",
+          "value": true
+        },
+        {
+          "name": "post_common",
+          "op": "rename",
+          "rows": {
+            "ref": "common_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "tagless",
+          "op": "exclude",
+          "items": {
+            "ref": "cposts"
+          },
+          "remove": {
+            "ref": "common_v"
+          }
+        },
+        {
+          "name": "tagless_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "tagless"
+          },
+          "field": "_c",
+          "value": false
+        },
+        {
+          "name": "tagless_r",
+          "op": "rename",
+          "rows": {
+            "ref": "tagless_ann"
+          },
+          "names": {
+            "_vid": "src"
+          }
+        },
+        {
+          "name": "all_posts",
+          "op": "concat",
+          "a": {
+            "ref": "post_common"
+          },
+          "b": {
+            "ref": "tagless_r"
+          }
+        },
+        {
+          "name": "post_score",
+          "op": "derive",
+          "rows": {
+            "ref": "all_posts"
+          },
+          "into": "_pt",
+          "fn": {
+            "if": [
+              {
+                "field": "_c"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": -1
+              }
+            ]
+          }
+        },
+        {
+          "name": "post_scr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_score"
+          },
+          "names": {
+            "src": "_post2"
+          }
+        },
+        {
+          "name": "cand_post_sc",
+          "op": "join",
+          "left": {
+            "ref": "cand_posts"
+          },
+          "right": {
+            "ref": "post_scr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "score",
+          "op": "group_sum",
+          "rows": {
+            "ref": "cand_post_sc"
+          },
+          "by": "cand",
+          "field": "_pt"
+        },
+        {
+          "name": "scored_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "score"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_cand",
+          "op": "exclude",
+          "items": {
+            "ref": "cand_v"
+          },
+          "remove": {
+            "ref": "scored_v"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_cand"
+          },
+          "field": "sum",
+          "value": 0
+        },
+        {
+          "name": "zero_r",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "all_scores",
+          "op": "concat",
+          "a": {
+            "ref": "score"
+          },
+          "b": {
+            "ref": "zero_r"
+          }
+        },
+        {
+          "name": "scored",
+          "op": "rename",
+          "rows": {
+            "ref": "all_scores"
+          },
+          "names": {
+            "sum": "commonInterestScore"
+          }
+        },
+        {
+          "name": "cand_r",
+          "op": "rename",
+          "rows": {
+            "ref": "cand"
+          },
+          "names": {
+            "_vid": "_cand2"
+          }
+        },
+        {
+          "name": "scored_cand",
+          "op": "join",
+          "left": {
+            "ref": "scored"
+          },
+          "right": {
+            "ref": "cand_r"
+          },
+          "left_on": "item",
+          "right_on": "_cand2"
+        },
+        {
+          "name": "scored_named",
+          "op": "rename",
+          "rows": {
+            "ref": "scored_cand"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored_named"
+          },
+          "keys": [
+            [
+              "commonInterestScore",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "item"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withcity"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commonInterestScore",
+            "gender",
+            "cityName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "filter_index+fetch_deferred": {
+      "sha": "d26e370f2314",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "measure_only": true,
+      "reason": "replaced by the interest-lists body (2026-10-10); kept measurable",
+      "sources": [
+        "filter_index+fetch_deferred",
+        "ic10_per_post_tags(filter_index+fetch_deferred)"
+      ]
+    },
+    "filter_index+fetch_inline": {
+      "sha": "a9842a57d881",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "measure_only": true,
+      "reason": "replaced by the interest-lists body (2026-10-10); kept measurable",
+      "sources": [
+        "filter_index+fetch_inline",
+        "ic10_per_post_tags(filter_index+fetch_inline)"
+      ]
+    },
+    "filter_probe+fetch_deferred": {
+      "sha": "64a0eb962fe1",
+      "requires": [],
+      "measure_only": true,
+      "reason": "replaced by the interest-lists body (2026-10-10); kept measurable",
+      "sources": [
+        "filter_probe+fetch_deferred",
+        "ic10_per_post_tags(filter_probe+fetch_deferred)"
+      ]
+    },
+    "filter_probe+fetch_inline": {
+      "sha": "24d1a85cdaee",
+      "requires": [],
+      "sources": [
+        "filter_probe+fetch_inline",
+        "ic10_per_post_tags(filter_probe+fetch_inline)"
+      ]
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_deferred)": {
+      "sha": "e845a0e52bc6",
+      "requires": [
+        "label_rows_one_run",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_deferred)"
+      ]
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_inline)": {
+      "sha": "cfcebce7c341",
+      "requires": [
+        "label_rows_one_run",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_inline)"
+      ]
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_deferred)": {
+      "sha": "ed485793caf5",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_deferred)"
+      ]
+    },
+    "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_inline)": {
+      "sha": "17d23d6b80d5",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_inline)"
+      ]
+    },
+    "ic10_interest_lists(filter_index+fetch_deferred)": {
+      "sha": "acbb6f99fd2b",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "ic10_interest_lists(filter_index+fetch_deferred)"
+      ]
+    },
+    "ic10_interest_lists(filter_index+fetch_inline)": {
+      "sha": "9a22db31ce8f",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "ic10_interest_lists(filter_index+fetch_inline)"
+      ]
+    },
+    "ic10_interest_lists(filter_probe+fetch_deferred)": {
+      "sha": "fa8facde3d9c",
+      "requires": [],
+      "sources": [
+        "ic10_interest_lists(filter_probe+fetch_deferred)"
+      ]
+    },
+    "ic10_interest_lists(filter_probe+fetch_inline)": {
+      "sha": "21c7c8074d03",
+      "requires": [],
+      "sources": [
+        "ic10_interest_lists(filter_probe+fetch_inline)"
+      ]
+    }
+  }
+}

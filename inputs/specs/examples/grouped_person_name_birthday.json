@@ -1,0 +1,12 @@
+{
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "groups": {
+      "Person": [["firstName", "lastName", "birthday"],
+                 ["gender", "creationDate", "locationIP", "browserUsed", "email", "language"]]
+    }
+  },
+  "adjacency": {"group": "item"},
+  "index": {"group": "item", "term": "exact"}
+}

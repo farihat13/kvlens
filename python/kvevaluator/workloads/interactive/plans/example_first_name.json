@@ -1,0 +1,80 @@
+{
+  "plan": "example_first_name",
+  "question": "Given a person, read their first name.",
+  "params_like": "ic1",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "example_first_name": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "a"
+          },
+          "props": [
+            "firstName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "pr"
+          },
+          "fields": [
+            "firstName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "example_first_name": {
+      "sha": "edc7c09c378b",
+      "requires": [],
+      "sources": [
+        "example_first_name"
+      ]
+    }
+  }
+}

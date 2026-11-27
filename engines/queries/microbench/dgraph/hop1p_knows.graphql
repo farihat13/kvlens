@@ -1,0 +1,23 @@
+# hop1p_knows -- a person's friends (both directions) with id, firstName, lastName (T1+T2).
+# Reads: the anchor's knows and ~knows postings, then 3 props per distinct friend.
+# Evaluator: queries/hop.py hop1p_knows -> read id/firstName/lastName -> sort by id in RAM ->
+#   one row per friend.
+# Not ordered here: the evaluator's sort is an in-memory ordering of the same set; Dgraph's
+#   orderasc: id would walk the shared `id` int index (see entry_eq).
+# mb2 lineage: MB22 / MB26 (props of neighbors).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  var(func: eq(id, $personId)) @filter(type(person)) {
+    f as knows
+    r as ~knows
+  }
+  result(func: uid(f, r)) {
+    id
+    firstName
+    lastName
+  }
+}

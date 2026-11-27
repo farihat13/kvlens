@@ -1,0 +1,21 @@
+# hop1_edgefilter -- a person's knows edges (both directions) created before 2011-01-01 (T5), counted.
+# Reads: the anchor's knows and ~knows postings; the edge's creationDate is a facet stored in
+#   the posting, so the filter reads nothing extra.
+# Evaluator: queries/hop.py hop1_edgefilter -> read_neighbors(edge_props=[creationDate]) ->
+#   filter < DATE_CUTOFF (2011-01-01T00:00:00Z) -> count row. Count-final.
+# (The evaluator lets an edge with no date pass; every LDBC knows edge has one.)
+# mb2 lineage: MB35-36, 27-28.
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  var(func: eq(id, $personId)) @filter(type(person)) {
+    f as knows @facets(lt(creationDate, "2011-01-01T00:00:00Z"))
+    r as ~knows @facets(lt(creationDate, "2011-01-01T00:00:00Z"))
+  }
+  result(func: uid(f, r)) {
+    uid
+  }
+}

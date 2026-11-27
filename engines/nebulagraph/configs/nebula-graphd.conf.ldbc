@@ -1,0 +1,99 @@
+########## basics ##########
+--daemonize=true
+--pid_file=pids/nebula-graphd.pid
+--enable_optimizer=true
+--heartbeat_interval_secs=10
+--local_config=true
+--default_charset=utf8
+--default_collate=utf8_bin
+
+########## logging ##########
+--log_dir=logs
+--minloglevel=0
+--v=0
+--logbufsecs=0
+--redirect_stdout=true
+--stdout_log_file=graphd-stdout.log
+--stderr_log_file=graphd-stderr.log
+--stderrthreshold=3
+--timestamp_in_logfile_name=true
+
+########## query ##########
+--accept_partial_success=false
+--max_allowed_query_size=16777216
+
+########## networking ##########
+--meta_server_addrs=127.0.0.1:9559
+--local_ip=127.0.0.1
+--listen_netdev=any
+--port=9669
+--reuse_port=true
+--listen_backlog=2048
+--client_idle_timeout_secs=28800
+--session_idle_timeout_secs=28800
+--num_accept_threads=4
+# Use 32 IO threads (half of cores) for high concurrency
+--num_netio_threads=32
+--num_max_connections=10000
+# Use 48 worker threads (3/4 of cores) for query execution
+--num_worker_threads=48
+--ws_ip=0.0.0.0
+--ws_http_port=19669
+# Increase storage client timeout for complex queries
+--storage_client_timeout_ms=120000
+--slow_query_threshold_us=1000000
+--ws_meta_http_port=19559
+
+########## authentication ##########
+--enable_authorize=false
+--auth_type=password
+
+########## memory ##########
+# Use 75% of memory as high watermark (188GB * 0.75 = 141GB available)
+--system_memory_high_watermark_ratio=0.75
+
+########## metrics ##########
+--enable_space_level_metrics=false
+
+########## experimental feature ##########
+--enable_experimental_feature=false
+--enable_data_balance=true
+
+########## session ##########
+--max_sessions_per_ip_per_user=1000
+
+########## memory tracker ##########
+--memory_tracker_limit_ratio=0.75
+--memory_tracker_untracked_reserved_memory_mb=2048
+--memory_tracker_detail_log=false
+--memory_tracker_detail_log_interval_ms=60000
+--memory_purge_enabled=true
+--memory_purge_interval_seconds=10
+
+########## performance optimization ##########
+# Enable multi-job execution for parallel query processing
+--max_job_size=8
+--min_batch_size=8192
+# --optimize_appendvertices (Nebula graphd default: false; we pin true)
+#
+# By default, a MATCH pattern's terminal AppendVertices step probes *every*
+# tag in the space for each landed vertex to verify existence — even if
+# RETURN doesn't need those tags. For LDBC (9 tags) this is the
+# "heterogeneous-tag probe tax": ~(N_tags - 1) extra per-tag RocksDB GETs
+# per landed vertex, per MATCH pattern.
+#
+# Setting true skips probes for tags not required by the projection after
+# PrunePropertiesVisitor runs. This cuts per-MATCH-endpoint KV work
+# significantly and is the regime every MB KV-op number in this suite
+# assumes. Flipping this back to false would inflate every Nebula MATCH
+# MB's GET count — results would not be comparable.
+#
+# Source: nebulagraph/nebula/src/graph/service/GraphFlags.cpp:90
+--optimize_appendvertices=true
+--path_batch_size=100000
+# Engine effect N4 (graphd-side) — see nebula.unified.patch.
+# Loosens PushTopNDownIndexScanRule transform() to skip non-property
+# YIELDs (e.g. id(vertex)) instead of bailing. Also converts a
+# Status::Error() fall-through to noTransform (avoids killing the
+# query on pattern miss). Default false. Set true to enable the fix.
+--fix_n4_topn_pushdown=true

@@ -1,0 +1,39 @@
+{
+ "id": "w01",
+ "name": "feed_reader",
+ "title": "Feed reader: single-vertex reads",
+ "items": [
+  {"family": "microbench", "query": "point7", "frequency": 100, "params": null},
+  {"family": "microbench", "query": "hop1_knows", "frequency": 50, "params": null},
+  {"family": "microbench", "query": "point_post", "frequency": 50, "params": null}
+ ],
+ "expect": "Condensed props + Split/Condensed adjacency (Condensed/Split or All-Condensed); Chunked pays a chunk per read",
+ "why": "each query reads one vertex or one friend list. Condensed properties read a vertex in one GET, where Split pays one GET per property (7 for a Person). A friend list costs 2 SEEKs in Condensed (one per direction) and Split adds one NEXT per friend (the anchors average ~{friends} friends). Chunked reads a whole 64 KB chunk to get one vertex: about the same ops, {chunk_x} the bytes.",
+ "why_numbers": {
+  "friends": [
+   "run",
+   "N",
+   "hop1_knows",
+   "knows lists",
+   "props_split_adj_split"
+  ],
+  "chunk_x": [
+   "ratio",
+   [
+    "total",
+    "bytes",
+    "props_chunked_adj_chunked"
+   ],
+   [
+    "total",
+    "bytes",
+    "props_condensed_adj_condensed"
+   ]
+  ]
+ },
+ "why_scale_free": {
+  "7": "a Person declares 7 properties (schema)",
+  "2": "knows is declared in both directions (schema): one list each",
+  "64": "the grid's chunk target, 65,536 B (grid/*.json)"
+ }
+}

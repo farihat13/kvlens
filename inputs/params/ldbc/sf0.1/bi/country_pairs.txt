@@ -1,0 +1,6 @@
+country1|country2|friendships|stratum
+India|China|322|max-correlated
+Czech_Republic|Greece|12|p90
+Azerbaijan|Belarus|3|p50
+Papua_New_Guinea|Moldova|1|p10
+India|Bosnia_and_Herzegovina|1|min-anticorrelated

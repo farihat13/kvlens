@@ -1,0 +1,888 @@
+[
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "Ann",
+   "lastName": "Li",
+   "gender": "female",
+   "birthday": 1,
+   "creationDate": 2,
+   "locationIP": "1.2.3.4",
+   "browserUsed": "Firefox",
+   "email": [
+    "a@x",
+    "b@y"
+   ],
+   "language": [
+    "en"
+   ]
+  },
+  "timestamp": 0,
+  "hex": "000000000000000000000300000003000000020000000500000006000000000000000100000000000000020000000b00000007000000120000000700000019000000090000002200000004416e6e4c6966656d616c65312e322e332e3446697265666f780203614078036240790102656e"
+ },
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "Zoë",
+   "lastName": "Ærø",
+   "gender": "male",
+   "birthday": -86400000,
+   "creationDate": 1354060800000,
+   "locationIP": "",
+   "browserUsed": "IE",
+   "email": [],
+   "language": [
+    "zh",
+    "en"
+   ]
+  },
+  "timestamp": 0,
+  "hex": "000000000000000000000400000004000000050000000900000004fffffffffad9a4000000013b445020000000000d000000000000000d000000020000000f0000000100000010000000075a6fc3abc38672c3b86d616c6549450002027a6802656e"
+ },
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "N",
+   "gender": "x",
+   "birthday": 0,
+   "creationDate": 3,
+   "locationIP": "9",
+   "browserUsed": "B"
+  },
+  "timestamp": 0,
+  "hex": "0082010000000000000001000000010000000100000000000000000000000000000003000000020000000100000003000000014e783942"
+ },
+ {
+  "kind": "vertex",
+  "label": "Post",
+  "cols": [
+   [
+    "imageFile",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "language",
+    "str",
+    false
+   ],
+   [
+    "content",
+    "str",
+    false
+   ],
+   [
+    "length",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "imageFile": "photo1.jpg",
+   "creationDate": 10,
+   "locationIP": "a",
+   "browserUsed": "b",
+   "length": 0
+  },
+  "timestamp": 0,
+  "hex": "0030000000000000000a000000000000000a0000000a000000010000000b00000001000000000000000070686f746f312e6a70676162"
+ },
+ {
+  "kind": "vertex",
+  "label": "Post",
+  "cols": [
+   [
+    "imageFile",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "language",
+    "str",
+    false
+   ],
+   [
+    "content",
+    "str",
+    false
+   ],
+   [
+    "length",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 11,
+   "locationIP": "a",
+   "browserUsed": "b",
+   "language": "uz",
+   "content": "About Ärger, a short post",
+   "length": 25
+  },
+  "timestamp": 0,
+  "hex": "0001000000000000000b000000000000000100000001000000010000000200000002000000040000001a00000000000000196162757a41626f757420c384726765722c20612073686f727420706f7374"
+ },
+ {
+  "kind": "vertex",
+  "label": "Tag",
+  "cols": [
+   [
+    "name",
+    "str",
+    false
+   ],
+   [
+    "url",
+    "str",
+    false
+   ]
+  ],
+  "props": {
+   "name": "t"
+  },
+  "timestamp": 0,
+  "hex": "0002000000000000000174"
+ },
+ {
+  "kind": "vertex",
+  "label": "Forum",
+  "cols": [
+   [
+    "title",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "title": "f",
+   "creationDate": 5
+  },
+  "timestamp": 0,
+  "hex": "00000000000000000001000000000000000566"
+ },
+ {
+  "kind": "edge",
+  "etype": "knows",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 123
+  },
+  "timestamp": 0,
+  "hex": "0000000000000000007b"
+ },
+ {
+  "kind": "edge",
+  "etype": "knows",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {},
+  "timestamp": 0,
+  "hex": "0001"
+ },
+ {
+  "kind": "edge",
+  "etype": "hasCreator",
+  "cols": [],
+  "props": {},
+  "timestamp": 0,
+  "hex": "00"
+ },
+ {
+  "kind": "edge",
+  "etype": "studyAt",
+  "cols": [
+   [
+    "classYear",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "classYear": 2010
+  },
+  "timestamp": 0,
+  "hex": "000000000000000007da"
+ },
+ {
+  "kind": "edge",
+  "etype": "workAt",
+  "cols": [
+   [
+    "workFrom",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "workFrom": 1999
+  },
+  "timestamp": 0,
+  "hex": "000000000000000007cf"
+ },
+ {
+  "kind": "edge",
+  "etype": "hasMember",
+  "cols": [
+   [
+    "joinDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "joinDate": 42
+  },
+  "timestamp": 0,
+  "hex": "0000000000000000002a"
+ },
+ {
+  "kind": "edge",
+  "etype": "likes",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 7
+  },
+  "timestamp": 0,
+  "hex": "00000000000000000007"
+ },
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "Ann",
+   "lastName": "Li",
+   "gender": "female",
+   "birthday": 1,
+   "creationDate": 2,
+   "locationIP": "1.2.3.4",
+   "browserUsed": "Firefox",
+   "email": [
+    "a@x",
+    "b@y"
+   ],
+   "language": [
+    "en"
+   ]
+  },
+  "timestamp": 8,
+  "hex": "000000000000000000000300000003000000020000000500000006000000000000000100000000000000020000000b00000007000000120000000700000019000000090000002200000004416e6e4c6966656d616c65312e322e332e3446697265666f780203614078036240790102656e0000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "Zoë",
+   "lastName": "Ærø",
+   "gender": "male",
+   "birthday": -86400000,
+   "creationDate": 1354060800000,
+   "locationIP": "",
+   "browserUsed": "IE",
+   "email": [],
+   "language": [
+    "zh",
+    "en"
+   ]
+  },
+  "timestamp": 8,
+  "hex": "000000000000000000000400000004000000050000000900000004fffffffffad9a4000000013b445020000000000d000000000000000d000000020000000f0000000100000010000000075a6fc3abc38672c3b86d616c6549450002027a6802656e0000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "props": {
+   "firstName": "N",
+   "gender": "x",
+   "birthday": 0,
+   "creationDate": 3,
+   "locationIP": "9",
+   "browserUsed": "B"
+  },
+  "timestamp": 8,
+  "hex": "0082010000000000000001000000010000000100000000000000000000000000000003000000020000000100000003000000014e7839420000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Post",
+  "cols": [
+   [
+    "imageFile",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "language",
+    "str",
+    false
+   ],
+   [
+    "content",
+    "str",
+    false
+   ],
+   [
+    "length",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "imageFile": "photo1.jpg",
+   "creationDate": 10,
+   "locationIP": "a",
+   "browserUsed": "b",
+   "length": 0
+  },
+  "timestamp": 8,
+  "hex": "0030000000000000000a000000000000000a0000000a000000010000000b00000001000000000000000070686f746f312e6a706761620000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Post",
+  "cols": [
+   [
+    "imageFile",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "language",
+    "str",
+    false
+   ],
+   [
+    "content",
+    "str",
+    false
+   ],
+   [
+    "length",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 11,
+   "locationIP": "a",
+   "browserUsed": "b",
+   "language": "uz",
+   "content": "About Ärger, a short post",
+   "length": 25
+  },
+  "timestamp": 8,
+  "hex": "0001000000000000000b000000000000000100000001000000010000000200000002000000040000001a00000000000000196162757a41626f757420c384726765722c20612073686f727420706f73740000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Tag",
+  "cols": [
+   [
+    "name",
+    "str",
+    false
+   ],
+   [
+    "url",
+    "str",
+    false
+   ]
+  ],
+  "props": {
+   "name": "t"
+  },
+  "timestamp": 8,
+  "hex": "00020000000000000001740000000000000000"
+ },
+ {
+  "kind": "vertex",
+  "label": "Forum",
+  "cols": [
+   [
+    "title",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "title": "f",
+   "creationDate": 5
+  },
+  "timestamp": 8,
+  "hex": "000000000000000000010000000000000005660000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "knows",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 123
+  },
+  "timestamp": 8,
+  "hex": "0000000000000000007b0000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "knows",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {},
+  "timestamp": 8,
+  "hex": "00010000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "hasCreator",
+  "cols": [],
+  "props": {},
+  "timestamp": 8,
+  "hex": "000000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "studyAt",
+  "cols": [
+   [
+    "classYear",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "classYear": 2010
+  },
+  "timestamp": 8,
+  "hex": "000000000000000007da0000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "workAt",
+  "cols": [
+   [
+    "workFrom",
+    "int",
+    false
+   ]
+  ],
+  "props": {
+   "workFrom": 1999
+  },
+  "timestamp": 8,
+  "hex": "000000000000000007cf0000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "hasMember",
+  "cols": [
+   [
+    "joinDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "joinDate": 42
+  },
+  "timestamp": 8,
+  "hex": "0000000000000000002a0000000000000000"
+ },
+ {
+  "kind": "edge",
+  "etype": "likes",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "props": {
+   "creationDate": 7
+  },
+  "timestamp": 8,
+  "hex": "000000000000000000070000000000000000"
+ }
+]

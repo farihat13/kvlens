@@ -1,0 +1,80 @@
+{
+  "plan": "is4",
+  "question": "Given a message, read its creation date and content.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "msg_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "is4": {
+      "steps": [
+        {
+          "name": "msg",
+          "op": "read_anchor_props",
+          "cands": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "props": [
+            "creationDate",
+            "content",
+            "imageFile"
+          ],
+          "labels": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "msg"
+          },
+          "fields": [
+            "creationDate",
+            "content",
+            "imageFile"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "is4": {
+      "sha": "90e60eb57322",
+      "requires": [],
+      "sources": [
+        "is4"
+      ]
+    }
+  }
+}

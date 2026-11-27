@@ -1,0 +1,78 @@
+{
+  "plan": "iu2",
+  "question": "Add a like from a person to a post.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "post": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "post_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "post"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "post"
+            }
+          ]
+        },
+        {
+          "param": "post"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_edge",
+      "etype": "likes",
+      "src": {
+        "let": "me_vid"
+      },
+      "dst": {
+        "let": "post_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Post"
+    }
+  ],
+  "output": "out"
+}

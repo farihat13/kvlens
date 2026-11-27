@@ -1,0 +1,43 @@
+# nhop6 -- the NEW frontier after exactly 6 undirected knows hops (BFS, global visited set).
+# Reads: knows and ~knows postings of each frontier vertex at depths 0..5; `uid` is free.
+# Evaluator: queries/nhop.py _nhop(6) -- per hop: read_neighbors(both) -> dedup -> exclude
+#   everything seen -> the final is the depth-6 frontier, one row per person.
+# Written as the IC1-style unroll: h<i> = neighbors of h<i-1> NOT in any earlier level, so
+#   each vertex is expanded once (the evaluator's global visited set). The NOT uid() filters
+#   are in-memory set ops.
+# mb2 lineage: MB41-44, 53-54 (raw multi-path there; deduplicated per level here).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  h0 as var(func: eq(id, $personId)) @filter(type(person)) {
+    f1 as knows
+    r1 as ~knows
+  }
+  h1 as var(func: uid(f1, r1)) @filter(NOT uid(h0)) {
+    f2 as knows
+    r2 as ~knows
+  }
+  h2 as var(func: uid(f2, r2)) @filter(NOT uid(h0, h1)) {
+    f3 as knows
+    r3 as ~knows
+  }
+  h3 as var(func: uid(f3, r3)) @filter(NOT uid(h0, h1, h2)) {
+    f4 as knows
+    r4 as ~knows
+  }
+  h4 as var(func: uid(f4, r4)) @filter(NOT uid(h0, h1, h2, h3)) {
+    f5 as knows
+    r5 as ~knows
+  }
+  h5 as var(func: uid(f5, r5)) @filter(NOT uid(h0, h1, h2, h3, h4)) {
+    f6 as knows
+    r6 as ~knows
+  }
+  h6 as var(func: uid(f6, r6)) @filter(NOT uid(h0, h1, h2, h3, h4, h5))
+  result(func: uid(h6)) {
+    uid
+  }
+}

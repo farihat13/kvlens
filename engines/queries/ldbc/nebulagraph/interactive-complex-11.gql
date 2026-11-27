@@ -1,0 +1,37 @@
+# Q11. Job referral
+#
+# Given a start Person with ID $personId, find that Person’s friends and friends of friends (excluding
+# start Person) who started working in some Company in a given Country with name $countryName,
+# before a given date ($workFromYear).
+#
+# Params:
+#   $personId   : int
+#   $countryName : string   # countryName
+#   $workFromYear  : int      # workFromYear (strictly less than)
+# Returns:
+# 1 otherPerson.id ID R
+# 2 otherPerson.firstName String R
+# 3 otherPerson.lastName String R
+# 4 company.name String R
+# 5 workAt.workFrom 32-bit Integer R
+# sort
+# 1 workAt.workFrom ↑
+# 2 otherPerson.id ↑
+# 3 company.name ↓
+# limit 10
+
+MATCH (person:Person)-[:KNOWS*1..2]-(friend:Person)
+WHERE id(person) == $personId AND id(friend) != $personId
+WITH DISTINCT friend
+MATCH (friend)-[workAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(place:Place)
+WHERE place.Place.name == $countryName
+  AND workAt.workFrom < $workFromYear
+RETURN
+  id(friend) AS friendId,
+  friend.Person.firstName AS friendFirstName,
+  friend.Person.lastName AS friendLastName,
+  company.Organisation.name AS organizationName,
+  workAt.workFrom AS organizationWorkFromYear,
+  toInteger(split(tostring(id(friend)), "_")[1]) AS friendIdInt
+ORDER BY organizationWorkFromYear ASC, friendIdInt ASC, organizationName DESC
+LIMIT 10;

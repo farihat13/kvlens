@@ -1,0 +1,6 @@
+# the fetched engine sources (get.sh); each is its own git checkout
+dgraph/dgraph-25.0.0/
+dgraph/badger/
+nebulagraph/nebula/
+nebulagraph/rocksdb/
+arangodb/arangodb-3.12.8/

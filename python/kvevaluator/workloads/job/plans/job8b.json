@@ -1,0 +1,7385 @@
+{
+ "plan": "job8b",
+ "question": "Join Order Benchmark query 8b: join 7 IMDb tables (aka_name, cast_info, company_name, movie_companies, name, role_type, title) on 8 join conditions, keep the rows that pass 10 filters, and return the smallest value of each of its 2 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_scan"
+  },
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_cn_by_index"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_t_by_scan": {
+   "steps": [
+    {
+     "name": "s01_t_scan",
+     "op": "read_vertices_by_label",
+     "label": "Title"
+    },
+    {
+     "name": "s02_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_t_scan"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s03_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_t_keep"
+     }
+    },
+    {
+     "name": "s05_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_t_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s09_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s08_mc_company_production"
+     }
+    },
+    {
+     "name": "s10_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s12_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_mc_dst_col"
+     }
+    },
+    {
+     "name": "s13_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s12_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s14_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s13_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s15_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s16_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_cn_back_col"
+     }
+    },
+    {
+     "name": "s17_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s16_cn_back_set"
+     }
+    },
+    {
+     "name": "s18_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s19_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_mc_back_col"
+     }
+    },
+    {
+     "name": "s20_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s19_mc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s21_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s20_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s22_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s23_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_ci_src_col"
+     }
+    },
+    {
+     "name": "s24_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s23_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s25_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s24_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s26_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s27_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_n_back_col"
+     }
+    },
+    {
+     "name": "s28_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s27_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_an_col"
+     }
+    },
+    {
+     "name": "s31_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s32_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_an_back_col"
+     }
+    },
+    {
+     "name": "s33_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s32_an_back_set"
+     }
+    },
+    {
+     "name": "s34_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s35_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_ci_back_col"
+     }
+    },
+    {
+     "name": "s36_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s35_ci_back_set"
+     }
+    },
+    {
+     "name": "s37_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s38_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_t_self_final_col"
+     }
+    },
+    {
+     "name": "s39_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_t_self_final_set"
+     }
+    },
+    {
+     "name": "s40_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s42_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_t_self_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s45_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s46_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s45_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s48_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_an_final"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_cn_final"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_n_final"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_t_cut"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s36_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s65_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s67_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s68_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s67_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s69_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s68_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s70_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s71_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s69_an_n_in"
+     },
+     "right": {
+      "ref": "s71_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s73_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s74_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_ci_n_in"
+     },
+     "right": {
+      "ref": "s74_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s76_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s77_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_cn_n_in"
+     },
+     "right": {
+      "ref": "s77_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s80_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_mc_n_in"
+     },
+     "right": {
+      "ref": "s80_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s83_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_n_n_in"
+     },
+     "right": {
+      "ref": "s83_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s84_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_t_run",
+     "op": "read_vertices_by_label",
+     "label": "Title",
+     "props": [
+      "production_year",
+      "title"
+     ]
+    },
+    {
+     "name": "s02_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_t_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_t_keep"
+     }
+    },
+    {
+     "name": "s04_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_t_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_t_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_t_self_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s10_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_dst_col"
+     }
+    },
+    {
+     "name": "s12_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s11_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s13_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s12_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s15_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_cn_back_col"
+     }
+    },
+    {
+     "name": "s16_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s15_cn_back_set"
+     }
+    },
+    {
+     "name": "s17_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s16_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s18_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_mc_back_col"
+     }
+    },
+    {
+     "name": "s19_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s18_mc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s20_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s19_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s21_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s22_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_ci_src_col"
+     }
+    },
+    {
+     "name": "s23_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s22_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s24_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s23_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s25_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s26_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_n_back_col"
+     }
+    },
+    {
+     "name": "s27_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s26_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s27_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s29_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_an_col"
+     }
+    },
+    {
+     "name": "s30_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s27_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s31_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_an_back_col"
+     }
+    },
+    {
+     "name": "s32_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s31_an_back_set"
+     }
+    },
+    {
+     "name": "s33_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_ci_back_col"
+     }
+    },
+    {
+     "name": "s35_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s34_ci_back_set"
+     }
+    },
+    {
+     "name": "s36_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s37_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_t_self_final_col"
+     }
+    },
+    {
+     "name": "s38_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s16_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_t_self_final_set"
+     }
+    },
+    {
+     "name": "s39_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s40_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s41_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s40_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s42_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s32_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_t_self_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s45_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s27_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s41_cn_final"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_n_final"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_t_cut"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s62_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s35_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s62_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s64_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s66_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s67_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s65_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s67_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s69_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s70_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_an_n_in"
+     },
+     "right": {
+      "ref": "s70_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s72_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s73_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s72_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s74_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_ci_n_in"
+     },
+     "right": {
+      "ref": "s73_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s75_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s76_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s74_cn_n_in"
+     },
+     "right": {
+      "ref": "s76_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s78_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s79_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_mc_n_in"
+     },
+     "right": {
+      "ref": "s79_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s82_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_n_n_in"
+     },
+     "right": {
+      "ref": "s82_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s83_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_index": {
+   "steps": [
+    {
+     "name": "s01_cn_ix",
+     "op": "read_index_eq",
+     "label": "Company",
+     "prop": "country_code",
+     "value": "[jp]"
+    },
+    {
+     "name": "s02_cn_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_cn_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_rows"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s10_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_src_col"
+     }
+    },
+    {
+     "name": "s12_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s11_mc_src_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s13_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s12_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s15_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_t_back_col"
+     }
+    },
+    {
+     "name": "s16_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s17_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s19_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_ci_src_col"
+     }
+    },
+    {
+     "name": "s20_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s19_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s21_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s20_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s22_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s23_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_n_back_col"
+     }
+    },
+    {
+     "name": "s24_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s26_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_an_col"
+     }
+    },
+    {
+     "name": "s27_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s28_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_an_back_col"
+     }
+    },
+    {
+     "name": "s29_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s28_an_back_set"
+     }
+    },
+    {
+     "name": "s30_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s31_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_ci_back_col"
+     }
+    },
+    {
+     "name": "s32_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s31_ci_back_set"
+     }
+    },
+    {
+     "name": "s33_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_mc_back_col"
+     }
+    },
+    {
+     "name": "s35_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s34_mc_back_set"
+     }
+    },
+    {
+     "name": "s36_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s37_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s38_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s32_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s39_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s40_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s41_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s40_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s42_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s40_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s45_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_cn_cut"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_n_final"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s41_t_final"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s62_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s41_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s62_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s64_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s66_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s67_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s65_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s67_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s69_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s70_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_an_n_in"
+     },
+     "right": {
+      "ref": "s70_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s72_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s73_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s72_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s74_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_ci_n_in"
+     },
+     "right": {
+      "ref": "s73_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s75_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s76_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s74_cn_n_in"
+     },
+     "right": {
+      "ref": "s76_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s78_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s79_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_mc_n_in"
+     },
+     "right": {
+      "ref": "s79_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s82_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_n_n_in"
+     },
+     "right": {
+      "ref": "s82_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s83_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_scan": {
+   "steps": [
+    {
+     "name": "s01_cn_scan",
+     "op": "read_vertices_by_label",
+     "label": "Company"
+    },
+    {
+     "name": "s02_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_cn_scan"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s03_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_cn_keep"
+     }
+    },
+    {
+     "name": "s05_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_cn_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s09_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s08_mc_company_production"
+     }
+    },
+    {
+     "name": "s10_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s12_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_mc_src_col"
+     }
+    },
+    {
+     "name": "s13_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s12_mc_src_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s14_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s13_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s15_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s16_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_t_back_col"
+     }
+    },
+    {
+     "name": "s17_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s18_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s20_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_ci_src_col"
+     }
+    },
+    {
+     "name": "s21_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s20_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s22_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s21_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s23_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s24_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_n_back_col"
+     }
+    },
+    {
+     "name": "s25_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s24_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s27_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_an_col"
+     }
+    },
+    {
+     "name": "s28_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s29_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_an_back_col"
+     }
+    },
+    {
+     "name": "s30_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s29_an_back_set"
+     }
+    },
+    {
+     "name": "s31_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s32_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_ci_back_col"
+     }
+    },
+    {
+     "name": "s33_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s32_ci_back_set"
+     }
+    },
+    {
+     "name": "s34_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s35_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_mc_back_col"
+     }
+    },
+    {
+     "name": "s36_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s35_mc_back_set"
+     }
+    },
+    {
+     "name": "s37_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s38_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s39_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s40_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s42_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s41_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s45_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s46_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s45_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s48_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_an_final"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_cn_cut"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_n_final"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_t_final"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s42_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s65_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s67_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s68_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s67_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s69_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s68_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s70_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s71_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s69_an_n_in"
+     },
+     "right": {
+      "ref": "s71_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s73_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s74_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_ci_n_in"
+     },
+     "right": {
+      "ref": "s74_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s76_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s77_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_cn_n_in"
+     },
+     "right": {
+      "ref": "s77_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s80_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_mc_n_in"
+     },
+     "right": {
+      "ref": "s80_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s83_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_n_n_in"
+     },
+     "right": {
+      "ref": "s83_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s84_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_cn_run",
+     "op": "read_vertices_by_label",
+     "label": "Company",
+     "props": [
+      "country_code"
+     ]
+    },
+    {
+     "name": "s02_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_cn_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_keep"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s10_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_src_col"
+     }
+    },
+    {
+     "name": "s12_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s11_mc_src_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s13_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s12_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s15_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_t_back_col"
+     }
+    },
+    {
+     "name": "s16_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s17_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s19_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_ci_src_col"
+     }
+    },
+    {
+     "name": "s20_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s19_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s21_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s20_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s22_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s23_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_n_back_col"
+     }
+    },
+    {
+     "name": "s24_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s23_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s26_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_an_col"
+     }
+    },
+    {
+     "name": "s27_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s28_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_an_back_col"
+     }
+    },
+    {
+     "name": "s29_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s28_an_back_set"
+     }
+    },
+    {
+     "name": "s30_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s31_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_ci_back_col"
+     }
+    },
+    {
+     "name": "s32_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s31_ci_back_set"
+     }
+    },
+    {
+     "name": "s33_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_mc_back_col"
+     }
+    },
+    {
+     "name": "s35_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s34_mc_back_set"
+     }
+    },
+    {
+     "name": "s36_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s37_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s38_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s32_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s39_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s40_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s41_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s40_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s42_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s40_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s45_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s44_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_cn_cut"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_n_final"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s41_t_final"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s62_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s41_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s62_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s64_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s66_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s67_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s65_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s67_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s69_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s70_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_an_n_in"
+     },
+     "right": {
+      "ref": "s70_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s72_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s73_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s72_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s74_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_ci_n_in"
+     },
+     "right": {
+      "ref": "s73_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s75_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s76_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s74_cn_n_in"
+     },
+     "right": {
+      "ref": "s76_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s78_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s79_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_mc_n_in"
+     },
+     "right": {
+      "ref": "s79_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s82_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_n_n_in"
+     },
+     "right": {
+      "ref": "s82_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s83_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_scan": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s07_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_ci_dst_col"
+     }
+    },
+    {
+     "name": "s11_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s10_ci_dst_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s12_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s11_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s13_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s12_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s14_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s13_t_back_col"
+     }
+    },
+    {
+     "name": "s15_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s14_t_back_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s16_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s14_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s17_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s16_mc_company_production"
+     }
+    },
+    {
+     "name": "s18_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s20_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_mc_dst_col"
+     }
+    },
+    {
+     "name": "s21_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s20_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s22_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s21_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s23_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s24_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_cn_back_col"
+     }
+    },
+    {
+     "name": "s25_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s24_cn_back_set"
+     }
+    },
+    {
+     "name": "s26_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s27_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_mc_back_col"
+     }
+    },
+    {
+     "name": "s28_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s27_mc_back_set"
+     }
+    },
+    {
+     "name": "s29_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s30_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_ci_back_col"
+     }
+    },
+    {
+     "name": "s31_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s30_ci_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s33_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_an_col"
+     }
+    },
+    {
+     "name": "s34_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s35_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_an_back_col"
+     }
+    },
+    {
+     "name": "s36_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s35_an_back_set"
+     }
+    },
+    {
+     "name": "s37_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s38_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_n_self_final_col"
+     }
+    },
+    {
+     "name": "s39_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_n_self_final_set"
+     }
+    },
+    {
+     "name": "s40_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s42_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s12_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s43_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s41_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s44_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s45_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s46_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s31_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_n_self_final_set"
+     }
+    },
+    {
+     "name": "s48_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_an_final"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_cn_final"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_n_cut"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_t_final"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s42_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s65_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s67_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s68_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s67_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s69_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s68_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s70_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s71_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s69_an_n_in"
+     },
+     "right": {
+      "ref": "s71_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s73_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s74_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_ci_n_in"
+     },
+     "right": {
+      "ref": "s74_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s76_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s77_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_cn_n_in"
+     },
+     "right": {
+      "ref": "s77_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s80_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_mc_n_in"
+     },
+     "right": {
+      "ref": "s80_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s83_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_n_n_in"
+     },
+     "right": {
+      "ref": "s83_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s84_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_n_run",
+     "op": "read_vertices_by_label",
+     "label": "Name",
+     "props": [
+      "name"
+     ]
+    },
+    {
+     "name": "s02_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_n_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%Yo%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "name"
+            },
+            {
+             "lit": "%Yu%"
+            }
+           ]
+          }
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_n_keep"
+     }
+    },
+    {
+     "name": "s04_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_n_self_col"
+     }
+    },
+    {
+     "name": "s06_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s07_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s06_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "note"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "note"
+         },
+         {
+          "lit": "(voice: English version)"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s08_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_ci_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_ci_dst_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_ci_dst_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "production_year"
+          }
+         },
+         {
+          "ge": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2006
+           }
+          ]
+         },
+         {
+          "le": [
+           {
+            "get": "production_year"
+           },
+           {
+            "lit": 2007
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "One Piece%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "title"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "title"
+             },
+             {
+              "lit": "Dragon Ball Z%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s15_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s16_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s15_mc_company_production"
+     }
+    },
+    {
+     "name": "s17_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_mc_all"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(Japan)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "not": {
+           "like": [
+            {
+             "get": "note"
+            },
+            {
+             "lit": "%(USA)%"
+            }
+           ]
+          }
+         }
+        ]
+       },
+       {
+        "or": [
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2006)%"
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "and": [
+           {
+            "notnull": {
+             "get": "note"
+            }
+           },
+           {
+            "like": [
+             {
+              "get": "note"
+             },
+             {
+              "lit": "%(2007)%"
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s19_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_mc_dst_col"
+     }
+    },
+    {
+     "name": "s20_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s19_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s21_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s20_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[jp]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s22_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s23_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_cn_back_col"
+     }
+    },
+    {
+     "name": "s24_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_mc_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s23_cn_back_set"
+     }
+    },
+    {
+     "name": "s25_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s26_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_mc_back_col"
+     }
+    },
+    {
+     "name": "s27_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_ci_keep"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s26_mc_back_set"
+     }
+    },
+    {
+     "name": "s28_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s27_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s29_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_ci_back_col"
+     }
+    },
+    {
+     "name": "s30_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s29_ci_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s32_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_an_col"
+     }
+    },
+    {
+     "name": "s33_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_an_back_col"
+     }
+    },
+    {
+     "name": "s35_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s34_an_back_set"
+     }
+    },
+    {
+     "name": "s36_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s37_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_n_self_final_col"
+     }
+    },
+    {
+     "name": "s38_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s27_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_n_self_final_set"
+     }
+    },
+    {
+     "name": "s39_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s40_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s41_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s40_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s42_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s40_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s43_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s45_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s44_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_n_self_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_cn_final"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_n_cut"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s41_t_final"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_acress_pseudonym_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_acress_pseudonym_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_acress_pseudonym_some"
+     },
+     "by": [],
+     "aggs": {
+      "acress_pseudonym": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_acress_pseudonym_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_acress_pseudonym_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_acress_pseudonym_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_acress_pseudonym_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "acress_pseudonym": null
+     }
+    },
+    {
+     "name": "s62_japanese_anime_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s41_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s63_japanese_anime_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s62_japanese_anime_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "japanese_anime_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s64_japanese_anime_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_japanese_anime_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_japanese_anime_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_acress_pseudonym_in"
+     },
+     "right": {
+      "ref": "s64_japanese_anime_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "japanese_anime_movie": null
+     }
+    },
+    {
+     "name": "s66_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s67_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s65_japanese_anime_movie_in"
+     },
+     "right": {
+      "ref": "s67_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s69_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s70_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_an_n_in"
+     },
+     "right": {
+      "ref": "s70_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s72_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s73_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s72_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s74_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_ci_n_in"
+     },
+     "right": {
+      "ref": "s73_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s75_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s76_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s74_cn_n_in"
+     },
+     "right": {
+      "ref": "s76_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s78_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s79_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_mc_n_in"
+     },
+     "right": {
+      "ref": "s79_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s82_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_n_n_in"
+     },
+     "right": {
+      "ref": "s82_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s83_t_n_in"
+     },
+     "fields": [
+      "acress_pseudonym",
+      "japanese_anime_movie",
+      "rows_an",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

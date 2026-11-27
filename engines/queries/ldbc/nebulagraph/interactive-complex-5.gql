@@ -1,0 +1,40 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=6.08
+# Q5. New groups
+#
+# Given a start Person with ID $personId, denote their friends and friends of friends (excluding the
+# start Person) as otherPerson.
+# Find Forums that any Person otherPerson became a member of after a given date ($minDate). For
+# each of those Forums, count the number of Posts that were created by the Person otherPerson.
+#
+# Params:
+#   $personId : int
+#   $minDate : int
+# Returns:
+# 1 forum.title Long String R
+# 2 postCount 32-bit Integer A Number of Posts made in forum that were created by the Person otherPerson
+# sort 
+# 1 postCount ↓
+# 2 forum.id ↑
+# limit 20
+
+MATCH (person:Person)-[:KNOWS*1..2]-(friend:Person)<-[membership:HAS_MEMBER]-(forum:Forum)
+WHERE id(person) == $personId 
+  AND membership.joinDate > $minDate
+  AND id(friend) != $personId
+
+# Don't deduplicate yet - we need to track which friends joined after minDate
+WITH friend, forum
+
+# Count posts by THIS friend in THIS forum
+OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)
+
+# Now aggregate per forum, summing posts from all qualifying friends
+WITH forum, COUNT(DISTINCT post) AS postCount
+
+RETURN
+    forum.Forum.title AS forumTitle,
+    postCount,
+    # extra for sorting
+    toInteger(split(tostring(id(forum)), "_")[1]) AS forumId
+ORDER BY postCount DESC, forumId ASC
+LIMIT 20;

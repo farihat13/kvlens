@@ -1,0 +1,38 @@
+# LinkBench (Facebook) -- the 2-table social-graph schema, authored in the shared DSL. One wide Node
+# record (a data blob + metadata) and a directed link carrying its own data. The real LinkBench schema
+# (github.com/facebookarchive/linkbench): nodes id,type,version,time,data; links id1,link_type,id2,
+# visibility,version,time,data, keyed by (id1, link_type, id2). `id` is the vid and `type` is renamed
+# `ntype` (type is a DSL keyword).
+#
+# ONE EDGE TYPE PER LINKBENCH LINK TYPE: a link's identity includes its link_type, and
+# LinkBench's default config generates 2 types over the same pairs (2,416,553 of 2,832,817 pairs at 1M carry
+# both). Here an edge is identified by (src, etype, dst), so ONE `link` edge type with link_type as a property
+# collapsed those pairs and dropped 46% of the links. Mapping: link1 = link_type 123456789, link2 = 123456790
+# (loader.LINK_TYPES). Every LinkBench read names its link type (getLinkList(id1, link_type)), so it reads one
+# type's list.
+#
+# Links are stored OUT only (keyed by id1), as in LinkBench's link table: every LinkBench read walks id1's
+# out-links, so a reverse list would be write cost nothing reads.
+# No property index: getNode is a point read, getLinkList an edge-range read. See experiments/linkbench/README.md.
+
+# ---------------------------------------------------------------- vertices ----
+vertex Node prefix=node
+    ntype    int
+    version  int
+    time     int
+    data     bytes
+
+# ------------------------------------------------------------------- edges ----
+edge link1
+    Node->Node
+    visibility int
+    version    int
+    time       int
+    data       bytes
+
+edge link2
+    Node->Node
+    visibility int
+    version    int
+    time       int
+    data       bytes

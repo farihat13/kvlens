@@ -1,0 +1,644 @@
+{
+  "plan": "ic2",
+  "question": "Given a person and a date, find the 20 most recent messages created before that date by the person's friends, newest first.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "maxDate": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "index_walk": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "topk",
+          "op": "read_top_k_by_index",
+          "vids": {
+            "ref": "msg_vids"
+          },
+          "prop": "creationDate",
+          "k": 20,
+          "hi": {
+            "param": "maxDate"
+          },
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "props": [
+            "content",
+            "imageFile"
+          ]
+        },
+        {
+          "name": "with_authv",
+          "op": "join",
+          "left": {
+            "ref": "topk"
+          },
+          "right": {
+            "ref": "fmsgs"
+          },
+          "left_on": "_vid",
+          "right_on": "dst"
+        },
+        {
+          "name": "author_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "with_authv"
+          },
+          "field": "src"
+        },
+        {
+          "name": "author_vids",
+          "op": "dedup",
+          "items": {
+            "ref": "author_v0"
+          }
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "with_author",
+          "op": "join",
+          "left": {
+            "ref": "with_authv"
+          },
+          "right": {
+            "ref": "authors_named"
+          },
+          "left_on": "src",
+          "right_on": "_vid"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "with_author"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "one_phase": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_vids"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content",
+            "imageFile"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "before_max",
+          "op": "filter",
+          "rows": {
+            "ref": "ranked"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "maxDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "topk",
+          "op": "top_k",
+          "rows": {
+            "ref": "before_max"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "with_authv",
+          "op": "join",
+          "left": {
+            "ref": "topk"
+          },
+          "right": {
+            "ref": "fmsgs"
+          },
+          "left_on": "_vid",
+          "right_on": "dst"
+        },
+        {
+          "name": "author_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "with_authv"
+          },
+          "field": "src"
+        },
+        {
+          "name": "author_vids",
+          "op": "dedup",
+          "items": {
+            "ref": "author_v0"
+          }
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "with_author",
+          "op": "join",
+          "left": {
+            "ref": "with_authv"
+          },
+          "right": {
+            "ref": "authors_named"
+          },
+          "left_on": "src",
+          "right_on": "_vid"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "with_author"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "two_phase": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_vids"
+          },
+          "props": [
+            "id",
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "before_max",
+          "op": "filter",
+          "rows": {
+            "ref": "ranked"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "maxDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "topk",
+          "op": "top_k",
+          "rows": {
+            "ref": "before_max"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "with_authv",
+          "op": "join",
+          "left": {
+            "ref": "topk"
+          },
+          "right": {
+            "ref": "fmsgs"
+          },
+          "left_on": "_vid",
+          "right_on": "dst"
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "with_authv"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bodies",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_vids"
+          },
+          "props": [
+            "content",
+            "imageFile"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "with_body",
+          "op": "zip_rows",
+          "left": {
+            "ref": "with_authv"
+          },
+          "right": {
+            "ref": "bodies"
+          }
+        },
+        {
+          "name": "author_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "with_body"
+          },
+          "field": "src"
+        },
+        {
+          "name": "author_vids",
+          "op": "dedup",
+          "items": {
+            "ref": "author_v0"
+          }
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "with_author",
+          "op": "join",
+          "left": {
+            "ref": "with_body"
+          },
+          "right": {
+            "ref": "authors_named"
+          },
+          "left_on": "src",
+          "right_on": "_vid"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "with_author"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "index_walk": {
+      "sha": "ab3c78320716",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "index_walk"
+      ]
+    },
+    "one_phase": {
+      "sha": "a4ee60579acc",
+      "requires": [],
+      "sources": [
+        "one_phase"
+      ]
+    },
+    "two_phase": {
+      "sha": "0d85794dbbc8",
+      "requires": [],
+      "sources": [
+        "two_phase"
+      ]
+    }
+  }
+}

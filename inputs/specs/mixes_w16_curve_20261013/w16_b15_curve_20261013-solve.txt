@@ -1,0 +1,17 @@
+{
+ "B": 1.5,
+ "assignment": "containerOf in-lists=split; containerOf out-lists=chunked; hasCreator in-lists=chunked; hasCreator out-lists=split; hasInterest out-lists=condensed; hasMember in-lists=condensed; hasMember out-lists=split; hasModerator in-lists=split; hasModerator out-lists=split; hasTag in-lists=condensed; hasTag out-lists=chunked; hasType in-lists=condensed; isLocatedIn in-lists=split; isLocatedIn out-lists=chunked; isPartOf out-lists=chunked; isSubclassOf in-lists=condensed; knows in-lists=condensed; knows out-lists=condensed; likes in-lists=chunked; likes out-lists=split; replyOf in-lists=chunked; replyOf out-lists=chunked; studyAt out-lists=chunked; workAt out-lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+ "base_cell": "props_condensed_adj_chunked",
+ "best_single_ops": 589381467.9719999,
+ "best_single_within_cap": "props_chunked_adj_condensed",
+ "cap_bytes": 638876056842.2999,
+ "label": "built after the curve was seen, to check the stretch between the registered limits (0.5 / 1 / 2 / 3)",
+ "nodes": 241353,
+ "ops_single_over_mix": 10.55684921881049,
+ "option_set": "per type and direction",
+ "reference": "props_condensed_adj_split",
+ "reference_bytes": 425917371228.19995,
+ "solved_bytes": 635697469282.2003,
+ "solved_ops": 55829296.76800001,
+ "workload": "ldbc_mix"
+}

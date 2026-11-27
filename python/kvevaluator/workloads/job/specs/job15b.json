@@ -1,0 +1,184 @@
+{
+ "query": "job15b",
+ "aliases": {
+  "at": "aka_title",
+  "cn": "company_name",
+  "ct": "company_type",
+  "it1": "info_type",
+  "k": "keyword",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "at",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "at",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "at",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "at",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ]
+ ],
+ "predicates": {
+  "at": [],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ],
+   [
+    "cmp",
+    "=",
+    "cn",
+    "name",
+    "YouTube"
+   ]
+  ],
+  "ct": [],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "release dates"
+   ]
+  ],
+  "k": [],
+  "mc": [
+   [
+    "like",
+    "mc",
+    "note",
+    "%(200%)%",
+    false
+   ],
+   [
+    "like",
+    "mc",
+    "note",
+    "%(worldwide)%",
+    false
+   ]
+  ],
+  "mi": [
+   [
+    "like",
+    "mi",
+    "note",
+    "%internet%",
+    false
+   ],
+   [
+    "like",
+    "mi",
+    "info",
+    "USA:% 200%",
+    false
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    2005,
+    2010
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "release_date",
+   "mi",
+   "info"
+  ],
+  [
+   "youtube_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

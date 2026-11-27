@@ -1,0 +1,858 @@
+{
+  "plan": "ic4",
+  "question": "Given a person and a date window, find the 10 tags most used on friends' posts in the window that no friend's post used before it.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "startDate": {
+      "type": "int"
+    },
+    "durationDays": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "end": {
+      "add": [
+        {
+          "param": "startDate"
+        },
+        {
+          "mul": [
+            {
+              "param": "durationDays"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "plans": {
+    "filter_fused": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "post_date_cand",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fmsgs"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "post_date",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date_cand"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "in_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pre_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "startDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "winv",
+          "op": "pluck",
+          "rows": {
+            "ref": "in_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "oldv",
+          "op": "pluck",
+          "rows": {
+            "ref": "pre_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "win_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "winv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "oldv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tagd",
+          "op": "dedup",
+          "items": {
+            "ref": "old_tags"
+          }
+        },
+        {
+          "name": "tag_count",
+          "op": "group_count",
+          "items": {
+            "ref": "win_tags"
+          }
+        },
+        {
+          "name": "tag_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "fresh",
+          "op": "exclude",
+          "items": {
+            "ref": "tag_ids"
+          },
+          "remove": {
+            "ref": "old_tagd"
+          }
+        },
+        {
+          "name": "fresh_count",
+          "op": "filter_in",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item",
+          "allowed": {
+            "ref": "fresh"
+          }
+        },
+        {
+          "name": "fresh_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fresh_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fresh_ids"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "zip_rows",
+          "left": {
+            "ref": "fresh_count"
+          },
+          "right": {
+            "ref": "tag_names"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "top10"
+          },
+          "names": {
+            "name": "tagName",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "tagName",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_index": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "fmsgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "post_date",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "posts"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "in_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pre_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "startDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "winv",
+          "op": "pluck",
+          "rows": {
+            "ref": "in_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "oldv",
+          "op": "pluck",
+          "rows": {
+            "ref": "pre_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "win_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "winv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "oldv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tagd",
+          "op": "dedup",
+          "items": {
+            "ref": "old_tags"
+          }
+        },
+        {
+          "name": "tag_count",
+          "op": "group_count",
+          "items": {
+            "ref": "win_tags"
+          }
+        },
+        {
+          "name": "tag_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "fresh",
+          "op": "exclude",
+          "items": {
+            "ref": "tag_ids"
+          },
+          "remove": {
+            "ref": "old_tagd"
+          }
+        },
+        {
+          "name": "fresh_count",
+          "op": "filter_in",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item",
+          "allowed": {
+            "ref": "fresh"
+          }
+        },
+        {
+          "name": "fresh_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fresh_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fresh_ids"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "zip_rows",
+          "left": {
+            "ref": "fresh_count"
+          },
+          "right": {
+            "ref": "tag_names"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "top10"
+          },
+          "names": {
+            "name": "tagName",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "tagName",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "fmsgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "post_date",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "posts"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "in_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pre_win",
+          "op": "filter",
+          "rows": {
+            "ref": "post_date"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "startDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "winv",
+          "op": "pluck",
+          "rows": {
+            "ref": "in_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "oldv",
+          "op": "pluck",
+          "rows": {
+            "ref": "pre_win"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "win_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "winv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "oldv"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "old_tagd",
+          "op": "dedup",
+          "items": {
+            "ref": "old_tags"
+          }
+        },
+        {
+          "name": "tag_count",
+          "op": "group_count",
+          "items": {
+            "ref": "win_tags"
+          }
+        },
+        {
+          "name": "tag_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "fresh",
+          "op": "exclude",
+          "items": {
+            "ref": "tag_ids"
+          },
+          "remove": {
+            "ref": "old_tagd"
+          }
+        },
+        {
+          "name": "fresh_count",
+          "op": "filter_in",
+          "rows": {
+            "ref": "tag_count"
+          },
+          "field": "item",
+          "allowed": {
+            "ref": "fresh"
+          }
+        },
+        {
+          "name": "fresh_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fresh_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fresh_ids"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "zip_rows",
+          "left": {
+            "ref": "fresh_count"
+          },
+          "right": {
+            "ref": "tag_names"
+          }
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "top10"
+          },
+          "names": {
+            "name": "tagName",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "tagName",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "filter_fused": {
+      "sha": "e40d400f8114",
+      "requires": [
+        "label_scoped_props"
+      ],
+      "on": {
+        "label_scoped_props": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "filter_fused"
+      ]
+    },
+    "filter_index": {
+      "sha": "38961ab2a02a",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "filter_index"
+      ]
+    },
+    "filter_probe": {
+      "sha": "1d67ba0e754b",
+      "requires": [],
+      "sources": [
+        "filter_probe"
+      ]
+    }
+  }
+}

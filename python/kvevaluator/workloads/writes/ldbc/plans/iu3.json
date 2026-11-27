@@ -1,0 +1,78 @@
+{
+  "plan": "iu3",
+  "question": "Add a like from a person to a comment.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "comment": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "comment_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "comment"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "comment"
+            }
+          ]
+        },
+        {
+          "param": "comment"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_edge",
+      "etype": "likes",
+      "src": {
+        "let": "me_vid"
+      },
+      "dst": {
+        "let": "comment_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Comment"
+    }
+  ],
+  "output": "out"
+}

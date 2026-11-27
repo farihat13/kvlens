@@ -1,0 +1,4 @@
+firstName|freq|stratum
+Ehsan|4|p50
+Alexey|30|p90
+John|584|max

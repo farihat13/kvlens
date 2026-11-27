@@ -1,0 +1,157 @@
+{
+ "adjacency": {
+  "group": "owner",
+  "owners": {
+   "pack": 65536
+  },
+  "split": "never"
+ },
+ "adjacency_by_etype": {
+  "hasInterest": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "hasModerator": {
+   "group": "item",
+   "owners": "one",
+   "split": "never"
+  },
+  "hasType": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "isSubclassOf": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "knows": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  }
+ },
+ "adjacency_by_etype_dir": {
+  "containerOf": {
+   "in": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "hasCreator": {
+   "in": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   },
+   "out": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   }
+  },
+  "hasMember": {
+   "in": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   },
+   "out": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   }
+  },
+  "hasTag": {
+   "in": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "isLocatedIn": {
+   "in": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "likes": {
+   "in": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   },
+   "out": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   }
+  }
+ },
+ "direction": "declared",
+ "index": {
+  "group": "item",
+  "owners": "one",
+  "scope": "type",
+  "split": "never",
+  "term": "exact"
+ },
+ "version": 1,
+ "vertex_props": {
+  "group": "owner",
+  "owners": "one",
+  "split": "never"
+ },
+ "vertex_props_by_label": {
+  "Organisation": {
+   "group": "owner",
+   "owners": {
+    "pack": 65536
+   },
+   "split": "never"
+  },
+  "Place": {
+   "group": "owner",
+   "owners": {
+    "pack": 65536
+   },
+   "split": "never"
+  },
+  "Tag": {
+   "group": "owner",
+   "owners": {
+    "pack": 65536
+   },
+   "split": "never"
+  }
+ }
+}

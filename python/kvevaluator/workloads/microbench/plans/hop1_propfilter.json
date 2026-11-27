@@ -1,0 +1,122 @@
+{
+  "plan": "hop1_propfilter",
+  "question": "Given a person, count the people they know who were created before 2011, filtering on a vertex property.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "lit": 1293840000000
+              }
+            ]
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "fx"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "e9cbfc872a9f",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

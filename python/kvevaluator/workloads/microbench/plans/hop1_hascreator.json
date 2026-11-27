@@ -1,0 +1,89 @@
+{
+  "plan": "hop1_hascreator",
+  "question": "Given a person, count the messages they created.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "a83fe99fb626",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

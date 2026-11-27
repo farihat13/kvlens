@@ -1,0 +1,78 @@
+{
+  "plan": "w_upd_edge",
+  "question": "Change the creation date on one existing knows edge between two persons.",
+  "for": "all formats",
+  "params": {
+    "src": {
+      "type": "int"
+    },
+    "dst": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "src_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "dst_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_edge_prop",
+      "etype": "knows",
+      "src": {
+        "let": "src_vid"
+      },
+      "dst": {
+        "let": "dst_vid"
+      },
+      "props": {
+        "creationDate": 1300000000000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    }
+  ],
+  "output": "out"
+}

@@ -1,0 +1,23 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=16.08
+# IS1. Profile of a person
+#
+# Given a start Person with ID $personId, retrieve their first name, last name, birthday, IP address,
+# browser, and city of residence.
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+
+query IS1($personId: int) { 
+    person(func: eq(id, $personId)) @filter(type(person)) @normalize { 
+        firstName : firstName 
+        lastName : lastName 
+        birthday : birthday 
+        locationIP: locationIP 
+        browserUsed: browserUsed 
+        gender : gender 
+        creationDate: creationDate 
+        isLocatedIn {
+            cityId: id
+        }
+    } 
+}

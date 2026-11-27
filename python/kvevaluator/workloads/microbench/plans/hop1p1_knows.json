@@ -1,0 +1,114 @@
+{
+  "plan": "hop1p1_knows",
+  "question": "Given a person, read one property (first name) of each person they know.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "firstName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "firstName",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "firstName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "9323215dc897",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

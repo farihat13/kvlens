@@ -1,0 +1,176 @@
+{
+ "id": "i01-equal-share",
+ "name": "i01_equal_share",
+ "title": "Equal-share frequencies of i01 (LDBC Interactive, LDBC frequencies (sf3's)): each query weighted 1 / its measured wops_bytes4k on Sp-Co at ldbc 3 (chunk view half), so each costs 1 on Sp-Co",
+ "equal_share": {
+  "dataset": "ldbc",
+  "scale": "3",
+  "model": "wops_bytes4k",
+  "chunk_view": "half",
+  "reference": "props_split_adj_condensed"
+ },
+ "items": [
+  {
+   "family": "interactive",
+   "query": "ic1",
+   "frequency": 0.0019216469691534413,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic2",
+   "frequency": 0.004809779333524284,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic3",
+   "frequency": 6.166870207188872e-05,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic4",
+   "frequency": 0.00015926979477645217,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic5",
+   "frequency": 1.3166369777007365e-05,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic6",
+   "frequency": 0.00014463766254870294,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic7",
+   "frequency": 0.06309315420792519,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic8",
+   "frequency": 7.41801660925793e-05,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic9",
+   "frequency": 0.00015135951830315758,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic10",
+   "frequency": 0.0002328251513626095,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic11",
+   "frequency": 0.00014930617544207857,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "ic12",
+   "frequency": 1.8234258481421683e-05,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is1",
+   "frequency": 0.12291367834786733,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is2",
+   "frequency": 0.003600902166652987,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is3",
+   "frequency": 0.047362456927453105,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is4",
+   "frequency": 0.3305091583958686,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is5",
+   "frequency": 0.32134059278552707,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is6",
+   "frequency": 0.1580685993022753,
+   "params": null
+  },
+  {
+   "family": "interactive",
+   "query": "is7",
+   "frequency": 0.040572564467388016,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu1",
+   "frequency": 0.020691759466378926,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu2",
+   "frequency": 0.08911166805903648,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu3",
+   "frequency": 0.08668562914804279,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu4",
+   "frequency": 0.026790748296472065,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu5",
+   "frequency": 0.09057137802936494,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu6",
+   "frequency": 0.01339391113323083,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu7",
+   "frequency": 0.016443235110160843,
+   "params": null
+  },
+  {
+   "family": "writes",
+   "query": "iu8",
+   "frequency": 0.18218857585111778,
+   "params": null
+  }
+ ]
+}

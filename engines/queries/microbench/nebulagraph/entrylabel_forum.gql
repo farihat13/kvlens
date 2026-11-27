@@ -1,0 +1,9 @@
+# microbench entrylabel_forum -- enumerate every Forum (type enumeration).
+# Evaluator: queries/entry.py _entry_label("Forum"): read_vertices_by_label -> dedup -> count.
+# Count-final: one row per Forum, the vid only.
+# mb2 lineage: MB209-210 (the MATCH / no-index variant).
+# GAP: the live store has no tag index on Forum, so `LOOKUP ON Forum` fails ("There is no index
+# to use at runtime"). The only nGQL that answers is MATCH, which falls back to ScanVertices:
+# a scan of every vertex row in the space (all tags), keeping the Forum ones. The evaluator's
+# nebula layout enumerates through a per-type index instead.
+MATCH (f:Forum) RETURN id(f) AS id

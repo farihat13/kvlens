@@ -1,0 +1,249 @@
+{
+ "query": "job26a",
+ "aliases": {
+  "cc": "complete_cast",
+  "cct1": "comp_cast_type",
+  "cct2": "comp_cast_type",
+  "chn": "char_name",
+  "ci": "cast_info",
+  "it2": "info_type",
+  "k": "keyword",
+  "kt": "kind_type",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "kt",
+   "id",
+   "t",
+   "kind_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "cc",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "chn",
+   "id",
+   "ci",
+   "person_role_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "cct1",
+   "id",
+   "cc",
+   "subject_id"
+  ],
+  [
+   "cct2",
+   "id",
+   "cc",
+   "status_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "cc": [],
+  "cct1": [
+   [
+    "cmp",
+    "=",
+    "cct1",
+    "kind",
+    "cast"
+   ]
+  ],
+  "cct2": [
+   [
+    "like",
+    "cct2",
+    "kind",
+    "%complete%",
+    false
+   ]
+  ],
+  "chn": [
+   [
+    "null",
+    "chn",
+    "name",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "chn",
+      "name",
+      "%man%",
+      false
+     ],
+     [
+      "like",
+      "chn",
+      "name",
+      "%Man%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "ci": [],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "rating"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "superhero",
+     "marvel-comics",
+     "based-on-comic",
+     "tv-special",
+     "fight",
+     "violence",
+     "magnet",
+     "web",
+     "claw",
+     "laser"
+    ]
+   ]
+  ],
+  "kt": [
+   [
+    "cmp",
+    "=",
+    "kt",
+    "kind",
+    "movie"
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    ">",
+    "mi_idx",
+    "info",
+    "7.0"
+   ]
+  ],
+  "mk": [],
+  "n": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2000
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "character_name",
+   "chn",
+   "name"
+  ],
+  [
+   "rating",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "playing_actor",
+   "n",
+   "name"
+  ],
+  [
+   "complete_hero_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

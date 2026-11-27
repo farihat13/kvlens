@@ -1,0 +1,47 @@
+{
+  "plan": "w_upd_dated",
+  "question": "Change the creation date of a person, a property with a date index.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_prop",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "prop": "creationDate",
+      "value": 1300000000000
+    }
+  ],
+  "output": "out"
+}

@@ -1,0 +1,213 @@
+{
+ "query": "job23a",
+ "aliases": {
+  "cc": "complete_cast",
+  "cct1": "comp_cast_type",
+  "cn": "company_name",
+  "ct": "company_type",
+  "it1": "info_type",
+  "k": "keyword",
+  "kt": "kind_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "kt",
+   "id",
+   "t",
+   "kind_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "cct1",
+   "id",
+   "cc",
+   "status_id"
+  ]
+ ],
+ "predicates": {
+  "cc": [],
+  "cct1": [
+   [
+    "cmp",
+    "=",
+    "cct1",
+    "kind",
+    "complete+verified"
+   ]
+  ],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "ct": [],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "release dates"
+   ]
+  ],
+  "k": [],
+  "kt": [
+   [
+    "in",
+    "kt",
+    "kind",
+    [
+     "movie"
+    ]
+   ]
+  ],
+  "mc": [],
+  "mi": [
+   [
+    "like",
+    "mi",
+    "note",
+    "%internet%",
+    false
+   ],
+   [
+    "null",
+    "mi",
+    "info",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "mi",
+      "info",
+      "USA:% 199%",
+      false
+     ],
+     [
+      "like",
+      "mi",
+      "info",
+      "USA:% 200%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2000
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_kind",
+   "kt",
+   "kind"
+  ],
+  [
+   "complete_us_internet_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

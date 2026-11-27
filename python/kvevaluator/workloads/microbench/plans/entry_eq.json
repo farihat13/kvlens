@@ -1,0 +1,77 @@
+{
+  "plan": "entry_eq",
+  "question": "Given a first name, find the ids of all persons with that first name, using the value index.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "firstName": {}
+  },
+  "plans": {
+    "index_eq": {
+      "steps": [
+        {
+          "name": "v",
+          "op": "read_index_eq",
+          "label": "Person",
+          "prop": "firstName",
+          "value": {
+            "param": "firstName"
+          }
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "v"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "index_eq": {
+      "sha": "e53cb507161d",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "index_eq"
+      ]
+    }
+  }
+}

@@ -1,0 +1,864 @@
+{
+  "plan": "bi4",
+  "question": "Given a date, find the 100 largest forums created after it by members per country, then the 100 members with the most messages in those forums' threads.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "date": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "fv",
+          "op": "read_vertices_by_label",
+          "label": "Forum"
+        },
+        {
+          "name": "fp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fv"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "fw",
+          "op": "filter",
+          "rows": {
+            "ref": "fp"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "date"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fwv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fw"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "mem",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fwv"
+          },
+          "etype": "hasMember",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "mem_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mem"
+          },
+          "names": {
+            "src": "_forum",
+            "dst": "_person"
+          }
+        },
+        {
+          "name": "pv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "mem_n"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "pv",
+          "op": "dedup",
+          "items": {
+            "ref": "pv0"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pv"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "city_n",
+          "op": "rename",
+          "rows": {
+            "ref": "city"
+          },
+          "names": {
+            "src": "_person",
+            "dst": "_city"
+          }
+        },
+        {
+          "name": "cv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "city_n"
+          },
+          "field": "_city"
+        },
+        {
+          "name": "cv",
+          "op": "dedup",
+          "items": {
+            "ref": "cv0"
+          }
+        },
+        {
+          "name": "ctry",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cv"
+          },
+          "etype": "isPartOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ctry_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ctry"
+          },
+          "names": {
+            "src": "_city",
+            "dst": "_country"
+          }
+        },
+        {
+          "name": "pc",
+          "op": "join_multi",
+          "left": {
+            "ref": "city_n"
+          },
+          "right": {
+            "ref": "ctry_n"
+          },
+          "left_on": "_city",
+          "right_on": "_city"
+        },
+        {
+          "name": "mpc",
+          "op": "join_multi",
+          "left": {
+            "ref": "mem_n"
+          },
+          "right": {
+            "ref": "pc"
+          },
+          "left_on": "_person",
+          "right_on": "_person"
+        },
+        {
+          "name": "fc",
+          "op": "group_agg",
+          "rows": {
+            "ref": "mpc"
+          },
+          "by": [
+            "_forum",
+            "_country"
+          ],
+          "aggs": {
+            "numberOfMembers": [
+              "count",
+              null
+            ]
+          }
+        },
+        {
+          "name": "fbest",
+          "op": "group_top",
+          "rows": {
+            "ref": "fc"
+          },
+          "by": "_forum",
+          "keys": [
+            [
+              "numberOfMembers",
+              "desc"
+            ],
+            [
+              "_country",
+              "asc"
+            ]
+          ]
+        },
+        {
+          "name": "topf",
+          "op": "top_k",
+          "rows": {
+            "ref": "fbest"
+          },
+          "keys": [
+            [
+              "numberOfMembers",
+              "desc"
+            ],
+            [
+              "_forum",
+              "asc"
+            ],
+            [
+              "_country",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "tfv",
+          "op": "pluck",
+          "rows": {
+            "ref": "topf"
+          },
+          "field": "_forum"
+        },
+        {
+          "name": "tmem",
+          "op": "filter_in",
+          "rows": {
+            "ref": "mem_n"
+          },
+          "field": "_forum",
+          "allowed": {
+            "ref": "tfv"
+          }
+        },
+        {
+          "name": "tmv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tmem"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "tmv",
+          "op": "dedup",
+          "items": {
+            "ref": "tmv0"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tfv"
+          },
+          "etype": "containerOf",
+          "dir": "out"
+        },
+        {
+          "name": "msgs",
+          "op": "read_closure",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "cr_m",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cr"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tmv"
+          }
+        },
+        {
+          "name": "cr_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cr_m"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cnt",
+          "op": "group_count",
+          "items": {
+            "ref": "cr_v"
+          }
+        },
+        {
+          "name": "cnt_n",
+          "op": "rename",
+          "rows": {
+            "ref": "cnt"
+          },
+          "names": {
+            "item": "_person",
+            "count": "messageCount"
+          }
+        },
+        {
+          "name": "mrows",
+          "op": "dedup_rows",
+          "rows": {
+            "ref": "tmem"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "scored",
+          "op": "left_join",
+          "left": {
+            "ref": "mrows"
+          },
+          "right": {
+            "ref": "cnt_n"
+          },
+          "left_on": "_person",
+          "right_on": "_person",
+          "default": {
+            "messageCount": 0
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "messageCount",
+              "desc"
+            ],
+            [
+              "_person",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "props_n",
+          "op": "rename",
+          "rows": {
+            "ref": "props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName",
+            "creationDate": "personCreationDate"
+          }
+        },
+        {
+          "name": "with_p",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "props_n"
+          },
+          "left_on": "_person",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_p"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "personCreationDate",
+            "messageCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+fused": {
+      "steps": [
+        {
+          "name": "fp",
+          "op": "read_vertices_by_label",
+          "label": "Forum",
+          "props": [
+            "creationDate"
+          ]
+        },
+        {
+          "name": "fw",
+          "op": "filter",
+          "rows": {
+            "ref": "fp"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "date"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fwv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fw"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "mem",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fwv"
+          },
+          "etype": "hasMember",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "mem_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mem"
+          },
+          "names": {
+            "src": "_forum",
+            "dst": "_person"
+          }
+        },
+        {
+          "name": "pv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "mem_n"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "pv",
+          "op": "dedup",
+          "items": {
+            "ref": "pv0"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pv"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "city_n",
+          "op": "rename",
+          "rows": {
+            "ref": "city"
+          },
+          "names": {
+            "src": "_person",
+            "dst": "_city"
+          }
+        },
+        {
+          "name": "cv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "city_n"
+          },
+          "field": "_city"
+        },
+        {
+          "name": "cv",
+          "op": "dedup",
+          "items": {
+            "ref": "cv0"
+          }
+        },
+        {
+          "name": "ctry",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cv"
+          },
+          "etype": "isPartOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ctry_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ctry"
+          },
+          "names": {
+            "src": "_city",
+            "dst": "_country"
+          }
+        },
+        {
+          "name": "pc",
+          "op": "join_multi",
+          "left": {
+            "ref": "city_n"
+          },
+          "right": {
+            "ref": "ctry_n"
+          },
+          "left_on": "_city",
+          "right_on": "_city"
+        },
+        {
+          "name": "mpc",
+          "op": "join_multi",
+          "left": {
+            "ref": "mem_n"
+          },
+          "right": {
+            "ref": "pc"
+          },
+          "left_on": "_person",
+          "right_on": "_person"
+        },
+        {
+          "name": "fc",
+          "op": "group_agg",
+          "rows": {
+            "ref": "mpc"
+          },
+          "by": [
+            "_forum",
+            "_country"
+          ],
+          "aggs": {
+            "numberOfMembers": [
+              "count",
+              null
+            ]
+          }
+        },
+        {
+          "name": "fbest",
+          "op": "group_top",
+          "rows": {
+            "ref": "fc"
+          },
+          "by": "_forum",
+          "keys": [
+            [
+              "numberOfMembers",
+              "desc"
+            ],
+            [
+              "_country",
+              "asc"
+            ]
+          ]
+        },
+        {
+          "name": "topf",
+          "op": "top_k",
+          "rows": {
+            "ref": "fbest"
+          },
+          "keys": [
+            [
+              "numberOfMembers",
+              "desc"
+            ],
+            [
+              "_forum",
+              "asc"
+            ],
+            [
+              "_country",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "tfv",
+          "op": "pluck",
+          "rows": {
+            "ref": "topf"
+          },
+          "field": "_forum"
+        },
+        {
+          "name": "tmem",
+          "op": "filter_in",
+          "rows": {
+            "ref": "mem_n"
+          },
+          "field": "_forum",
+          "allowed": {
+            "ref": "tfv"
+          }
+        },
+        {
+          "name": "tmv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tmem"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "tmv",
+          "op": "dedup",
+          "items": {
+            "ref": "tmv0"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tfv"
+          },
+          "etype": "containerOf",
+          "dir": "out"
+        },
+        {
+          "name": "msgs",
+          "op": "read_closure",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "cr_m",
+          "op": "filter_in",
+          "rows": {
+            "ref": "cr"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tmv"
+          }
+        },
+        {
+          "name": "cr_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cr_m"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "cnt",
+          "op": "group_count",
+          "items": {
+            "ref": "cr_v"
+          }
+        },
+        {
+          "name": "cnt_n",
+          "op": "rename",
+          "rows": {
+            "ref": "cnt"
+          },
+          "names": {
+            "item": "_person",
+            "count": "messageCount"
+          }
+        },
+        {
+          "name": "mrows",
+          "op": "dedup_rows",
+          "rows": {
+            "ref": "tmem"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "scored",
+          "op": "left_join",
+          "left": {
+            "ref": "mrows"
+          },
+          "right": {
+            "ref": "cnt_n"
+          },
+          "left_on": "_person",
+          "right_on": "_person",
+          "default": {
+            "messageCount": 0
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "messageCount",
+              "desc"
+            ],
+            [
+              "_person",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "props_n",
+          "op": "rename",
+          "rows": {
+            "ref": "props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName",
+            "creationDate": "personCreationDate"
+          }
+        },
+        {
+          "name": "with_p",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "props_n"
+          },
+          "left_on": "_person",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_p"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "personCreationDate",
+            "messageCount"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "48b07cecdca8",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand+fused": {
+      "sha": "c4600685f469",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "hand+fused"
+      ]
+    }
+  }
+}

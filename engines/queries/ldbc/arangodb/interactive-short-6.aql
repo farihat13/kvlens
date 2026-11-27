@@ -1,0 +1,25 @@
+// IS6: Forum of a Message
+// Given a messageId, find the forum containing the original post
+// (walk replyOf chain if it's a comment)
+LET post = DOCUMENT(CONCAT("Post/", @messageId))
+LET comment = DOCUMENT(CONCAT("Comment/", @messageId))
+LET msg = post != null ? post : comment
+
+// Walk replyOf chain to reach the original post
+LET origPost = FIRST(
+    FOR op IN 0..100 OUTBOUND msg replyOf
+        FILTER IS_SAME_COLLECTION("Post", op)
+        LIMIT 1
+        RETURN op
+)
+
+// Find the forum containing that post
+FOR forum IN 1..1 INBOUND (origPost != null ? origPost : msg) containerOf
+    FOR moderator IN 1..1 OUTBOUND forum hasModerator
+        RETURN {
+            forumId: TO_NUMBER(forum._key),
+            forumTitle: forum.title,
+            moderatorId: TO_NUMBER(moderator._key),
+            moderatorFirstName: moderator.firstName,
+            moderatorLastName: moderator.lastName
+        }

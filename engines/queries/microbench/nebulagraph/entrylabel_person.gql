@@ -1,0 +1,10 @@
+# microbench entrylabel_person -- enumerate every Person (type enumeration).
+# Evaluator: queries/entry.py _entry_label("Person"): read_vertices_by_label -> dedup -> count.
+# Count-final: one row per Person, the vid only (the shape reads no property).
+# mb2 lineage: MB9-10, 19-20.
+# Form: LOOKUP ON <tag> with no WHERE = a full scan of one Person tag index (IndexScan), one
+# prefix per partition. Engine note: `id(vertex)` in a LOOKUP yield makes graphd request every
+# Person property (DeducePropsVisitor on the vertex expression), so storage reads the base row
+# per index entry (1 GET each). Yielding only an indexed int column (Person.creationDate)
+# drops those GETs to 0 but returns no id.
+LOOKUP ON Person YIELD id(vertex) AS id

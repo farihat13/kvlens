@@ -1,0 +1,6 @@
+tagClass|country|messagesInClass|personsInCountry|stratum
+Senator|Belgium|16777|162|p50-class-p50-country
+OfficeHolder|Belgium|838543|162|p90-class-p50-country
+Senator|China|16777|3613|p50-class-max-country
+OfficeHolder|China|838543|3613|p90-class-max-country
+Country|China|2293063|3613|max-class-max-country

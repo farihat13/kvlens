@@ -1,0 +1,14 @@
+# Locations (paths.py): data, build and output stay out of git; .env holds this machine's locations.
+/data/
+/build/
+/output/
+/paper-results/
+/paper-results.partial/
+/.env
+/.venv/
+__pycache__/
+*.egg-info/
+/dist/
+# a run's log (e.g. `just check > check.log`) is never artifact content
+*.log
+/output*/

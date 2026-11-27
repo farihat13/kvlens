@@ -1,0 +1,45 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=20
+# IS7. Replies of a message
+# 
+# Given a Message with ID $messageId, retrieve the (1-hop) Comments that reply to it.
+# In addition, return a boolean flag knows indicating if the author of the reply (replyAuthor) 
+# knows the author of the original message (messageAuthor). 
+# If author is same as original author, returnFalse for knows flag.
+# 
+# Params:
+#   $messageId  : int     (e.g., "933")
+# Returns:
+# 1 comment.id ID R
+# 2 comment.content Text R
+# 3 comment.creationDate DateTime R
+# 4 replyAuthor.id ID R
+# 5 replyAuthor.firstName String R
+# 6 replyAuthor.lastName String R
+# 7 knows Boolean C 
+#         True if the knows edge exists between thereplyAuthor and the messageAuthor nodes,
+#         False otherwise (including the case when the two nodes are the same)
+# sort 
+# 1 comment.creationDate ↓
+# 2 replyAuthor.id ↑
+
+
+MATCH (m)<-[:REPLY_OF]-(c:`Comment`)-[:HAS_CREATOR]->(p:Person)
+WHERE id(m) == $messageId
+OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)
+RETURN
+    id(c) AS commentId,
+    c.`Comment`.content AS commentContent,
+    c.`Comment`.creationDate AS commentCreationDate,
+    id(p) AS replyAuthorId,
+    p.Person.firstName AS replyAuthorFirstName,
+    p.Person.lastName AS replyAuthorLastName,
+    CASE r
+        WHEN null THEN false
+        ELSE true
+    END AS knows,
+    # optional for debugging
+    # , id(a) AS originalMessageAuthorId
+    # , a.Person.firstName AS originalMessageAuthorFirstName
+    # , a.Person.lastName AS originalMessageAuthorLastName
+    toInteger(split(tostring(id(p)), "_")[1]) AS replyAuthorIdInt
+ORDER BY commentCreationDate DESC, replyAuthorIdInt ASC

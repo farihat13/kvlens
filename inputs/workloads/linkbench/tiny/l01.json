@@ -1,0 +1,83 @@
+{
+ "id": "l01",
+ "name": "lb_default",
+ "title": "LinkBench, its log's frequencies",
+ "items": [
+  {"family": "linkbench", "query": "getnode", "frequency": 12851, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link1", "frequency": 25511, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link2", "frequency": 25364, "params": null},
+  {"family": "linkbench", "query": "countlink_link1", "frequency": 2370, "params": null},
+  {"family": "linkbench", "query": "countlink_link2", "frequency": 2487, "params": null},
+  {"family": "linkbench", "query": "getlink_link1", "frequency": 256, "params": null},
+  {"family": "linkbench", "query": "getlink_link2", "frequency": 260, "params": null},
+  {"family": "linkbench_writes", "query": "addlink_link1", "frequency": 5761, "params": null},
+  {"family": "linkbench_writes", "query": "addlink_link2", "frequency": 6132, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link1", "frequency": 2737, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link2", "frequency": 2289, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link1", "frequency": 1504, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link2", "frequency": 1502, "params": null},
+  {"family": "linkbench_writes", "query": "addnode", "frequency": 2628, "params": null},
+  {"family": "linkbench_writes", "query": "updatenode", "frequency": 7352, "params": null},
+  {"family": "linkbench_writes", "query": "deletenode", "frequency": 996, "params": null}
+ ],
+ "sweep": [
+  "addlink_link1",
+  "addlink_link2",
+  "updatelink_link1",
+  "updatelink_link2",
+  "deletelink_link1",
+  "deletelink_link2",
+  "addnode",
+  "updatenode",
+  "deletenode"
+ ],
+ "expect": "Condensed props (getNode 13% + updateNode 7%: 1 GET / 1 row write vs Split's 4 GETs / 3 PUTs); Split or Condensed adjacency in ops (a typical list is short, so every layout reads it for about one SEEK, while Chunked pays a chunk read-and-rewrite on the ~20% of requests that write a list); Split adjacency in bytes. The best mixed layout == the best uniform one (P1): every part carries reads and writes of the same kind.",
+ "why": "Node props: Condensed. getNode reads a node in 1 GET (Split: 4, one per field), updateNode rewrites the row in 1 GET + 1 PUT (Split: 3 PUTs), addNode writes 2 keys (Split: 5). Lists: a typical list is short (the median getLinkList returns one link or none), so every layout reads it for about one SEEK. All-Condensed is cheapest in ops ({cc_ops}; Condensed/Split {nb_ops}), and a Condensed list write pays the read of the old list it makes (1 SEEK). It wins because of one hub node: it gets only a few requests, but on Split lists each of them walks the whole list. Without the hub Condensed/Split is cheaper in ops (sensitivity.csv). In bytes Condensed lists win (Split/Condensed {dg_bytes}, All-Condensed {cc_bytes}; Condensed/Split {nb_bytes}): with the schema codec a list entry carries values only. The hub carries most of every non-Chunked layout's bytes; without it Split props + Split lists is cheapest (sensitivity.csv). All-Chunked reads and writes {ch_x} the bytes of the cheapest layout, and no layout with a Chunked part is the cheapest in ops. The best mixed layout is a uniform one: link1 and link2 carry the same traffic, so a mix only interpolates between two uniform layouts.",
+ "why_numbers": {
+  "cc_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_condensed"
+  ],
+  "nb_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_split"
+  ],
+  "dg_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_condensed"
+  ],
+  "cc_bytes": [
+   "total",
+   "bytes",
+   "props_condensed_adj_condensed"
+  ],
+  "nb_bytes": [
+   "total",
+   "bytes",
+   "props_condensed_adj_split"
+  ],
+  "ch_x": [
+   "ratio",
+   [
+    "total",
+    "bytes",
+    "props_chunked_adj_chunked"
+   ],
+   [
+    "total",
+    "bytes",
+    "best_single_bytes"
+   ]
+  ]
+ },
+ "why_scale_free": {
+  "1": "a Condensed row or list is one key (one GET / SEEK, one PUT)",
+  "4": "a node has 4 stored fields: one key each in Split",
+  "3": "updateNode rewrites 3 fields",
+  "2": "a node row + its index entry",
+  "5": "4 field keys + the index entry"
+ }
+}

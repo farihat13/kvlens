@@ -1,0 +1,647 @@
+{
+  "plan": "bi7",
+  "question": "Given a tag, find the 100 tags most often used on replies to messages with that tag, excluding replies that carry the tag themselves.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tag": {
+      "type": "str"
+    }
+  },
+  "plans": {
+    "hand+probe": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "mv_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "mv",
+          "op": "concat",
+          "a": {
+            "ref": "mv_posts"
+          },
+          "b": {
+            "ref": "mv_comments"
+          }
+        },
+        {
+          "name": "replies0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "replies",
+          "op": "dedup",
+          "items": {
+            "ref": "replies0"
+          }
+        },
+        {
+          "name": "rtags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "tagged",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "src"
+        },
+        {
+          "name": "clean",
+          "op": "exclude",
+          "items": {
+            "ref": "replies"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "kept",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "src",
+          "allowed": {
+            "ref": "clean"
+          }
+        },
+        {
+          "name": "rel_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "kept"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "counts",
+          "op": "group_count",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "counts_n",
+          "op": "rename",
+          "rows": {
+            "ref": "counts"
+          },
+          "names": {
+            "item": "_vid"
+          }
+        },
+        {
+          "name": "rel_d",
+          "op": "dedup",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "rel_d"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "counts_n"
+          },
+          "right": {
+            "ref": "names"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "count"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~c7bd76": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "mv_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "mv",
+          "op": "concat",
+          "a": {
+            "ref": "mv_posts"
+          },
+          "b": {
+            "ref": "mv_comments"
+          }
+        },
+        {
+          "name": "replies0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "replies",
+          "op": "dedup",
+          "items": {
+            "ref": "replies0"
+          }
+        },
+        {
+          "name": "rtags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "tagged",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "src"
+        },
+        {
+          "name": "clean",
+          "op": "exclude",
+          "items": {
+            "ref": "replies"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "kept",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "src",
+          "allowed": {
+            "ref": "clean"
+          }
+        },
+        {
+          "name": "rel_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "kept"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "counts",
+          "op": "group_count",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "counts_n",
+          "op": "rename",
+          "rows": {
+            "ref": "counts"
+          },
+          "names": {
+            "item": "_vid"
+          }
+        },
+        {
+          "name": "rel_d",
+          "op": "dedup",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "rel_d"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "counts_n"
+          },
+          "right": {
+            "ref": "names"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "count"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~fe582d": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs"
+          }
+        },
+        {
+          "name": "replies0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "replies",
+          "op": "dedup",
+          "items": {
+            "ref": "replies0"
+          }
+        },
+        {
+          "name": "rtags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "tagged",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "tagged_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "src"
+        },
+        {
+          "name": "clean",
+          "op": "exclude",
+          "items": {
+            "ref": "replies"
+          },
+          "remove": {
+            "ref": "tagged_v"
+          }
+        },
+        {
+          "name": "kept",
+          "op": "filter_in",
+          "rows": {
+            "ref": "rtags"
+          },
+          "field": "src",
+          "allowed": {
+            "ref": "clean"
+          }
+        },
+        {
+          "name": "rel_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "kept"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "counts",
+          "op": "group_count",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "counts_n",
+          "op": "rename",
+          "rows": {
+            "ref": "counts"
+          },
+          "names": {
+            "item": "_vid"
+          }
+        },
+        {
+          "name": "rel_d",
+          "op": "dedup",
+          "items": {
+            "ref": "rel_v"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "rel_d"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "counts_n"
+          },
+          "right": {
+            "ref": "names"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "count"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand+probe": {
+      "sha": "8abc5a117dd7",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~c7bd76": {
+      "sha": "c7bd76ed9114",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~fe582d": {
+      "sha": "fe582de343c4",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

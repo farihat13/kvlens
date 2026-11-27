@@ -1,0 +1,45 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=20
+# IS7. Replies of a message
+# 
+# Given a Message with ID $messageId, retrieve the (1-hop) Comments that reply to it.
+# In addition, return a boolean flag knows indicating if the author of the reply (replyAuthor) 
+# knows the author of the original message (messageAuthor). 
+# If author is same as original author, returnFalse for knows flag.
+# 
+# Params:
+#   $messageId  : string     (e.g., "933")
+# sort 
+# 1 comment.creationDate ↓
+# 2 replyAuthor.id ↑
+
+query IS7($messageId: int) {
+  # Bind the message and its original author
+  var(func: eq(id, $messageId)) @filter(type(post) OR type(comment)) {
+    m as uid
+    o as hasCreator @filter(type(person))
+  }
+
+  # Expose the original author id once (so the parser can do author==origAuthor => false)
+  origAuthor(func: uid(o)) {
+    origAuthorId: id
+  }
+
+  # 1-hop comments replying to the message
+  replies(func: uid(m)) @normalize {
+    ~replyOf @filter(type(comment)) (orderdesc: creationDate, orderasc: id) {
+      commentId: id
+      commentCreationDate: creationDate
+      commentContent: content
+
+      hasCreator @filter(type(person)) {
+        replyAuthorId: id
+        replyAuthorFirstName: firstName
+        replyAuthorLastName: lastName
+
+        # scalar we’ll read as boolean via (knowsCount > 0) AND (replyAuthorId != origAuthorId)
+        knowsCount: count(knows @filter(uid(o)))
+        knowsCount2: count(~knows @filter(uid(o)))
+      }
+    }
+  }
+}

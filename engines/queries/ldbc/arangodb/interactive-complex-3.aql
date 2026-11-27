@@ -1,0 +1,49 @@
+// IC3: Friends and friends-of-friends in two countries
+// Find persons at 1-2 hops who posted in both countryX and countryY
+// within [startDate, endDate), excluding those located in either country
+// Note: Messages (Post/Comment) are located directly in countries, not cities.
+// Persons are located in cities.
+LET startPerson = CONCAT("Person/", @personId)
+LET endDate = @startDate + @durationDays * 86400000
+
+// Get the country documents
+LET countryX = FIRST(FOR c IN Place FILTER c.name == @countryXName RETURN c)
+LET countryY = FIRST(FOR c IN Place FILTER c.name == @countryYName RETURN c)
+
+// Get cities in each country (for person location filtering)
+LET citiesX = (FOR city IN 1..1 INBOUND countryX isPartOf RETURN city._id)
+LET citiesY = (FOR city IN 1..1 INBOUND countryY isPartOf RETURN city._id)
+
+FOR friend IN 1..2 ANY startPerson knows
+    FILTER friend._id != startPerson
+    // Exclude persons located in either country (persons are in cities)
+    LET friendCity = FIRST(FOR c IN 1..1 OUTBOUND friend isLocatedIn RETURN c._id)
+    FILTER friendCity NOT IN citiesX AND friendCity NOT IN citiesY
+    COLLECT f = friend INTO groups
+    // Count messages in countryX (messages are directly in countries)
+    LET xCount = LENGTH(
+        FOR msg IN 1..1 INBOUND f hasCreator
+            FILTER msg.creationDate >= @startDate AND msg.creationDate < endDate
+            FOR msgPlace IN 1..1 OUTBOUND msg isLocatedIn
+                FILTER msgPlace._id == countryX._id
+                RETURN 1
+    )
+    // Count messages in countryY
+    LET yCount = LENGTH(
+        FOR msg IN 1..1 INBOUND f hasCreator
+            FILTER msg.creationDate >= @startDate AND msg.creationDate < endDate
+            FOR msgPlace IN 1..1 OUTBOUND msg isLocatedIn
+                FILTER msgPlace._id == countryY._id
+                RETURN 1
+    )
+    FILTER xCount > 0 AND yCount > 0
+    SORT xCount + yCount DESC, TO_NUMBER(f._key) ASC
+    LIMIT 20
+    RETURN {
+        personId: TO_NUMBER(f._key),
+        personFirstName: f.firstName,
+        personLastName: f.lastName,
+        xCount: xCount,
+        yCount: yCount,
+        count: xCount + yCount
+    }

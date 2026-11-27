@@ -1,0 +1,12 @@
+// IS5: Creator of a Message
+// Given a messageId, return the person who created it
+LET post = DOCUMENT(CONCAT("Post/", @messageId))
+LET comment = DOCUMENT(CONCAT("Comment/", @messageId))
+LET msg = post != null ? post : comment
+
+FOR author IN 1..1 OUTBOUND msg hasCreator
+    RETURN {
+        personId: TO_NUMBER(author._key),
+        firstName: author.firstName,
+        lastName: author.lastName
+    }

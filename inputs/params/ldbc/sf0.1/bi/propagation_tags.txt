@@ -1,0 +1,6 @@
+tag|messages|stratum
+Jay_Leno|85|p50
+H._G._Wells|118|p75
+Walt_Whitman|154|p90
+Celine_Dion|359|p99
+Augustine_of_Hippo|1892|max

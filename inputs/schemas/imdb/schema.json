@@ -1,0 +1,1212 @@
+{
+ "name": "canonical",
+ "vertices": [
+  {
+   "label": "Title",
+   "id": 0,
+   "group": "Title",
+   "tag": 0,
+   "props": [
+    {
+     "name": "title",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "imdb_index",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "kind_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "production_year",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "imdb_id",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "phonetic_code",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "season_nr",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "episode_nr",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "series_years",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "Name",
+   "id": 1,
+   "group": "Name",
+   "tag": 1,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "imdb_index",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "imdb_id",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "gender",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_cf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_nf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "surname_pcode",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "Character",
+   "id": 2,
+   "group": "Character",
+   "tag": 2,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "imdb_index",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "imdb_id",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_nf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "surname_pcode",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "Company",
+   "id": 3,
+   "group": "Company",
+   "tag": 3,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "country_code",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "imdb_id",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_nf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_sf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "Keyword",
+   "id": 4,
+   "group": "Keyword",
+   "tag": 4,
+   "props": [
+    {
+     "name": "keyword",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "phonetic_code",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "MovieInfo",
+   "id": 5,
+   "group": "MovieInfo",
+   "tag": 5,
+   "props": [
+    {
+     "name": "info",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "note",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "info_type_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "MovieRating",
+   "id": 6,
+   "group": "MovieRating",
+   "tag": 6,
+   "props": [
+    {
+     "name": "info",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "note",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "info_type_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "PersonInfo",
+   "id": 7,
+   "group": "PersonInfo",
+   "tag": 7,
+   "props": [
+    {
+     "name": "info",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "note",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "info_type_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "AkaName",
+   "id": 8,
+   "group": "AkaName",
+   "tag": 8,
+   "props": [
+    {
+     "name": "name",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "imdb_index",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_cf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "name_pcode_nf",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "surname_pcode",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "AkaTitle",
+   "id": 9,
+   "group": "AkaTitle",
+   "tag": 9,
+   "props": [
+    {
+     "name": "title",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "imdb_index",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "kind_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "production_year",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "phonetic_code",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "episode_of_id",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "season_nr",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "episode_nr",
+     "type": "int",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "note",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    },
+    {
+     "name": "md5sum",
+     "type": "str",
+     "multi": false,
+     "nullable": true
+    }
+   ]
+  },
+  {
+   "label": "CompleteCast",
+   "id": 10,
+   "group": "CompleteCast",
+   "tag": 10,
+   "props": [
+    {
+     "name": "subject_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    },
+    {
+     "name": "status_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "MovieLink",
+   "id": 11,
+   "group": "MovieLink",
+   "tag": 11,
+   "props": [
+    {
+     "name": "link_type_id",
+     "type": "int",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "KindType",
+   "id": 12,
+   "group": "KindType",
+   "tag": 12,
+   "props": [
+    {
+     "name": "kind",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "InfoType",
+   "id": 13,
+   "group": "InfoType",
+   "tag": 13,
+   "props": [
+    {
+     "name": "info",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "LinkType",
+   "id": 14,
+   "group": "LinkType",
+   "tag": 14,
+   "props": [
+    {
+     "name": "link",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  },
+  {
+   "label": "CompCastType",
+   "id": 15,
+   "group": "CompCastType",
+   "tag": 15,
+   "props": [
+    {
+     "name": "kind",
+     "type": "str",
+     "multi": false,
+     "nullable": false
+    }
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "etype": "aka_name_of",
+   "id": 0,
+   "reverse": true,
+   "endpoints": [
+    [
+     "AkaName",
+     "Name"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "aka_title_of",
+   "id": 1,
+   "reverse": true,
+   "endpoints": [
+    [
+     "AkaTitle",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "cast_actor",
+   "id": 2,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_actress",
+   "id": 3,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_cinematographer",
+   "id": 4,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_composer",
+   "id": 5,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_costume_designer",
+   "id": 6,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_director",
+   "id": 7,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_editor",
+   "id": 8,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_miscellaneous_crew",
+   "id": 9,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_producer",
+   "id": 10,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_production_designer",
+   "id": 11,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "cast_writer",
+   "id": 12,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Name",
+     "Title"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    },
+    {
+     "name": "nr_order",
+     "type": "int"
+    },
+    {
+     "name": "character",
+     "type": "int"
+    }
+   ]
+  },
+  {
+   "etype": "company_distributor",
+   "id": 13,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Title",
+     "Company"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    }
+   ]
+  },
+  {
+   "etype": "company_production",
+   "id": 14,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Title",
+     "Company"
+    ]
+   ],
+   "props": [
+    {
+     "name": "note",
+     "type": "str"
+    }
+   ]
+  },
+  {
+   "etype": "complete_cast_of",
+   "id": 15,
+   "reverse": true,
+   "endpoints": [
+    [
+     "CompleteCast",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "episode_of",
+   "id": 16,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Title",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "has_keyword",
+   "id": 17,
+   "reverse": true,
+   "endpoints": [
+    [
+     "Title",
+     "Keyword"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "info_of",
+   "id": 18,
+   "reverse": true,
+   "endpoints": [
+    [
+     "MovieInfo",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "link_from",
+   "id": 19,
+   "reverse": true,
+   "endpoints": [
+    [
+     "MovieLink",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "link_to",
+   "id": 20,
+   "reverse": true,
+   "endpoints": [
+    [
+     "MovieLink",
+     "Title"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "person_info_of",
+   "id": 21,
+   "reverse": true,
+   "endpoints": [
+    [
+     "PersonInfo",
+     "Name"
+    ]
+   ],
+   "props": []
+  },
+  {
+   "etype": "rating_of",
+   "id": 22,
+   "reverse": true,
+   "endpoints": [
+    [
+     "MovieRating",
+     "Title"
+    ]
+   ],
+   "props": []
+  }
+ ],
+ "indexes": [
+  {
+   "label": "Title",
+   "prop": "",
+   "kind": "type",
+   "id": 0
+  },
+  {
+   "label": "Title",
+   "prop": "kind_id",
+   "kind": "value",
+   "id": 1,
+   "type_scoped": true
+  },
+  {
+   "label": "Title",
+   "prop": "production_year",
+   "kind": "value",
+   "id": 2,
+   "type_scoped": true
+  },
+  {
+   "label": "Title",
+   "prop": "title",
+   "kind": "value",
+   "id": 3,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "Name",
+   "prop": "",
+   "kind": "type",
+   "id": 4
+  },
+  {
+   "label": "Name",
+   "prop": "gender",
+   "kind": "value",
+   "id": 5,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "Character",
+   "prop": "",
+   "kind": "type",
+   "id": 6
+  },
+  {
+   "label": "Character",
+   "prop": "name",
+   "kind": "value",
+   "id": 7,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "Company",
+   "prop": "",
+   "kind": "type",
+   "id": 8
+  },
+  {
+   "label": "Company",
+   "prop": "country_code",
+   "kind": "value",
+   "id": 9,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "Company",
+   "prop": "name",
+   "kind": "value",
+   "id": 10,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "Keyword",
+   "prop": "",
+   "kind": "type",
+   "id": 11
+  },
+  {
+   "label": "Keyword",
+   "prop": "keyword",
+   "kind": "value",
+   "id": 12,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "MovieInfo",
+   "prop": "",
+   "kind": "type",
+   "id": 13
+  },
+  {
+   "label": "MovieInfo",
+   "prop": "info",
+   "kind": "value",
+   "id": 14,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "MovieInfo",
+   "prop": "info_type_id",
+   "kind": "value",
+   "id": 15,
+   "type_scoped": true
+  },
+  {
+   "label": "MovieRating",
+   "prop": "",
+   "kind": "type",
+   "id": 16
+  },
+  {
+   "label": "MovieRating",
+   "prop": "info_type_id",
+   "kind": "value",
+   "id": 17,
+   "type_scoped": true
+  },
+  {
+   "label": "PersonInfo",
+   "prop": "",
+   "kind": "type",
+   "id": 18
+  },
+  {
+   "label": "PersonInfo",
+   "prop": "info_type_id",
+   "kind": "value",
+   "id": 19,
+   "type_scoped": true
+  },
+  {
+   "label": "PersonInfo",
+   "prop": "note",
+   "kind": "value",
+   "id": 20,
+   "width": 64,
+   "type_scoped": true
+  },
+  {
+   "label": "AkaName",
+   "prop": "",
+   "kind": "type",
+   "id": 21
+  },
+  {
+   "label": "AkaTitle",
+   "prop": "",
+   "kind": "type",
+   "id": 22
+  },
+  {
+   "label": "CompleteCast",
+   "prop": "",
+   "kind": "type",
+   "id": 23
+  },
+  {
+   "label": "CompleteCast",
+   "prop": "status_id",
+   "kind": "value",
+   "id": 24,
+   "type_scoped": true
+  },
+  {
+   "label": "CompleteCast",
+   "prop": "subject_id",
+   "kind": "value",
+   "id": 25,
+   "type_scoped": true
+  },
+  {
+   "label": "MovieLink",
+   "prop": "",
+   "kind": "type",
+   "id": 26
+  },
+  {
+   "label": "MovieLink",
+   "prop": "link_type_id",
+   "kind": "value",
+   "id": 27,
+   "type_scoped": true
+  },
+  {
+   "label": "KindType",
+   "prop": "",
+   "kind": "type",
+   "id": 28
+  },
+  {
+   "label": "InfoType",
+   "prop": "",
+   "kind": "type",
+   "id": 29
+  },
+  {
+   "label": "LinkType",
+   "prop": "",
+   "kind": "type",
+   "id": 30
+  },
+  {
+   "label": "CompCastType",
+   "prop": "",
+   "kind": "type",
+   "id": 31
+  }
+ ],
+ "type_indexed_labels": [
+  "AkaName",
+  "AkaTitle",
+  "Character",
+  "CompCastType",
+  "Company",
+  "CompleteCast",
+  "InfoType",
+  "Keyword",
+  "KindType",
+  "LinkType",
+  "MovieInfo",
+  "MovieLink",
+  "MovieRating",
+  "Name",
+  "PersonInfo",
+  "Title"
+ ],
+ "type_groups": {},
+ "vid_tags": {
+  "Title": 0,
+  "Name": 1,
+  "Character": 2,
+  "Company": 3,
+  "Keyword": 4,
+  "MovieInfo": 5,
+  "MovieRating": 6,
+  "PersonInfo": 7,
+  "AkaName": 8,
+  "AkaTitle": 9,
+  "CompleteCast": 10,
+  "MovieLink": 11,
+  "KindType": 12,
+  "InfoType": 13,
+  "LinkType": 14,
+  "CompCastType": 15
+ },
+ "predicates": "per_label",
+ "hash": "88d17669d0737ee84b28c9cdd9464b9a371a9af964c16027fba8d0b55bf854b1",
+ "adj": {
+  "sort": {},
+  "inline": {},
+  "sort_facet": {},
+  "dir": {}
+ },
+ "prop_groups": {}
+}

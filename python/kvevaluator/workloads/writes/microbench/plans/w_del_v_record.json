@@ -1,0 +1,46 @@
+{
+  "plan": "w_del_v_record",
+  "question": "Delete a person's record and its index entries, leaving its edges in place.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "delete_vertex",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "with_edges": false
+    }
+  ],
+  "output": "out"
+}

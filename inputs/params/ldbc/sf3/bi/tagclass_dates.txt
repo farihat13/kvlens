@@ -1,0 +1,6 @@
+tagClass|date|messagesInClass|stratum
+Senator|1306045403425|16777|p50-class
+Monarch|1306045403425|132400|p75-class
+OfficeHolder|1306045403425|838543|p90-class
+Country|1306045403425|2293063|max-class
+Country|1318840378678|2293063|max-class-p50date

@@ -1,0 +1,7 @@
+id|firstName|lastName|gender|birthday|creationDate|locationIP|browserUsed
+1|Ann|Lee|female|-315619200000|1266161530447|1.2.3.4|Firefox
+2|  Spaced|trailing  |male|0|0|::1|Chrome
+576460752303423487|Max|Id|male|9223372036854775807|-9223372036854775807|255.255.255.255|Opera
+4|Émile|Ñúñez|female|1|1|10.0.0.1|Safari
+5|名前|😀𝔘|||2||
+6|tab	here, quote" backslash\ slash/ bs ff ctrl del|2-byte é ñ ü, 3-byte 名前   ﻿, 4-byte 😀 𝔘|male|3|3|1.1.1.1|Internet Explorer

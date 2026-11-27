@@ -1,0 +1,30 @@
+{
+ "file": "interactive_short_param_7.txt",
+ "generated_by": "python cost_eval/setup/gen-short-params.py --sf 0.3 --by replies",
+ "script": "cost_eval/setup/gen-short-params.py",
+ "source": "$LDBC_SNB_DATA_DIR/sf0.3/CsvBasic-LongDateFormatter/dynamic",
+ "stratification": "reply count, 7 anchors per bucket, rank-spaced over the sorted ids; rows interleaved round-robin over the buckets (any first-N prefix is stratified)",
+ "buckets": {
+  "0": {
+   "candidates": 685099,
+   "picked": 7
+  },
+  "1-2": {
+   "candidates": 81156,
+   "picked": 7
+  },
+  "3-5": {
+   "candidates": 56174,
+   "picked": 7
+  },
+  "6-9": {
+   "candidates": 21967,
+   "picked": 7
+  },
+  "10+": {
+   "candidates": 3651,
+   "picked": 7
+  }
+ },
+ "note": "IS7 = the replies of a message; the IS4 depth set (interactive_short_param_4.txt) picked mostly childless anchors for it"
+}

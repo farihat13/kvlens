@@ -1,0 +1,136 @@
+# LDBC SNB -- canonical schema (the shared, cross-format symmetric design).
+# Structure (vertex/edge) + the canonical property indexes. Pick with `--schema canonical`
+# (the default). Types: str | int | date (date is stored as an epoch-ms int).
+
+# ---------------------------------------------------------------- vertices ----
+vertex Person prefix=person
+    firstName    str
+    lastName     str
+    gender       str
+    birthday     date
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    email        str multi
+    language     str multi
+
+# Post & Comment share one id space (group=Message -> the msg_ vid prefix); the concrete
+# label still rides in storage, so a query recovers Post-vs-Comment, never from the vid.
+vertex Post prefix=msg group=Message
+    imageFile    str nullable
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    language     str nullable
+    content      str nullable
+    length       int
+
+vertex Comment prefix=msg group=Message
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    content      str
+    length       int
+
+vertex Forum prefix=forum
+    title        str
+    creationDate date
+
+vertex Organisation prefix=org
+    type str
+    name str
+    url  str
+
+vertex Place prefix=place
+    name str
+    url  str
+    type str
+
+vertex Tag prefix=tag
+    name str
+    url  str
+
+vertex TagClass prefix=tagclass
+    name str
+    url  str
+
+# ------------------------------------------------------------------- edges ----
+# `reverse` = the workload traverses it backward (dgraph @reverse, per-predicate). One etype
+# can span many endpoint pairs. Edge props are read by name from the CSV.
+edge knows reverse
+    Person->Person
+    creationDate date
+
+edge likes reverse
+    Person->Post Person->Comment
+    creationDate date
+
+edge hasCreator reverse
+    Post->Person Comment->Person
+
+edge hasTag reverse
+    Post->Tag Comment->Tag Forum->Tag
+
+edge hasType reverse
+    Tag->TagClass
+
+edge isLocatedIn reverse
+    Person->Place Post->Place Comment->Place Organisation->Place
+
+edge replyOf reverse
+    Comment->Post Comment->Comment
+
+edge containerOf reverse
+    Forum->Post
+
+edge hasMember reverse
+    Forum->Person
+    joinDate date
+
+edge hasModerator reverse
+    Forum->Person
+
+edge isPartOf reverse
+    Place->Place
+
+edge isSubclassOf reverse
+    TagClass->TagClass
+
+# forward-only (no @reverse)
+edge hasInterest
+    Person->Tag
+
+edge studyAt
+    Person->Organisation
+    classYear int
+
+edge workAt
+    Person->Organisation
+    workFrom int
+
+# ----------------------------------------------------------------- indexes ----
+# `index Label.prop` = a property index; the kind is inferred from the column type
+# (string -> equality, date/number -> sorted). `index Label` (no prop) = a per-type
+# membership (type-enumeration) index.
+index Person.firstName
+index Tag.name
+index TagClass.name
+index Place.name
+index Person.creationDate
+index Post.creationDate
+index Comment.creationDate
+
+# Per-type membership index on every label. This is a REAL structure of the canonical design,
+# not an opt-in: dgraph mandates it (dgraph.type -- opaque uids can't be typed without it), and
+# nebula/arango materialize it faithfully. The SCHEMA declares that the structure exists; whether
+# a given FORMAT is "fair" or "faithful" is a separate axis (how it prices that structure), so a
+# per-type index in canonical is symmetric across formats, not an advantage for any one. It is the
+# enumeration structure read_vertices_by_label scans and the "index" path read_filter_by_label_index takes.
+index Person
+index Post
+index Comment
+index Forum
+index Organisation
+index Place
+index Tag
+index TagClass

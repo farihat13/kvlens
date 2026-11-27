@@ -1,0 +1,10 @@
+# microbench nhop2_hetero -- the distinct Tags on the messages a Person created
+# (Person <-HAS_CREATOR- message -HAS_TAG-> Tag).
+# Evaluator: queries/nhop.py nhop2_hetero: read_neighbors(hasCreator, in) -> dedup ->
+# read_neighbors(hasTag, out) -> dedup. One row per distinct Tag, the vid only.
+# mb2 lineage: MB43-44 (MATCH).
+# Form: two GO walks piped (GetNeighbors per hop; the second GO requests the distinct
+# message vids). $param note: see hop1_knows.gql.
+YIELD $personId AS s
+| GO FROM $-.s OVER HAS_CREATOR REVERSELY YIELD DISTINCT src(edge) AS m
+| GO FROM $-.m OVER HAS_TAG YIELD DISTINCT dst(edge) AS id

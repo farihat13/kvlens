@@ -1,0 +1,263 @@
+{
+  "plan": "edge_probe",
+  "question": "Given two persons, check whether they know each other.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "src": {
+      "type": "id"
+    },
+    "dst": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "src_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "dst_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "edge_probe": {
+      "steps": [
+        {
+          "name": "dr",
+          "op": "annotate",
+          "items": [
+            {
+              "let": "dst_vid"
+            }
+          ],
+          "field": "probe",
+          "value": 1
+        },
+        {
+          "name": "fl",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "dr"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "knows",
+          "others": [
+            {
+              "let": "src_vid"
+            }
+          ],
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "in",
+              "at": "anchor"
+            }
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "fl"
+          },
+          "fields": [
+            "knows"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "edge_probe_out": {
+      "steps": [
+        {
+          "name": "dr",
+          "op": "annotate",
+          "items": [
+            {
+              "let": "dst_vid"
+            }
+          ],
+          "field": "probe",
+          "value": 1
+        },
+        {
+          "name": "fl",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "dr"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "knows",
+          "others": [
+            {
+              "let": "src_vid"
+            }
+          ],
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "out",
+              "at": "cand",
+              "unless_found": true
+            }
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "fl"
+          },
+          "fields": [
+            "knows"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "materialize_intersect": {
+      "steps": [
+        {
+          "name": "dr",
+          "op": "annotate",
+          "items": [
+            {
+              "let": "dst_vid"
+            }
+          ],
+          "field": "probe",
+          "value": 1
+        },
+        {
+          "name": "src_nb0",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "src_vid"
+            }
+          ],
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "src_nb",
+          "op": "dedup",
+          "items": {
+            "ref": "src_nb0"
+          }
+        },
+        {
+          "name": "fl",
+          "op": "flag_in",
+          "rows": {
+            "ref": "dr"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "src_nb"
+          },
+          "into": "knows"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "fl"
+          },
+          "fields": [
+            "knows"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "edge_probe": {
+      "sha": "2cab1bb45c41",
+      "requires": [
+        "reverse_adjacency"
+      ],
+      "on": {
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe"
+      ]
+    },
+    "edge_probe_out": {
+      "sha": "3ac2e6c1616f",
+      "requires": [],
+      "measure_only_where": {
+        "adjacency_lists": [
+          "knows"
+        ],
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe_out"
+      ]
+    },
+    "materialize_intersect": {
+      "sha": "ba36b453259a",
+      "requires": [],
+      "sources": [
+        "materialize_intersect"
+      ]
+    }
+  }
+}

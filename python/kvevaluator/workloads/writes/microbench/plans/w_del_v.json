@@ -1,0 +1,46 @@
+{
+  "plan": "w_del_v",
+  "question": "Delete a person together with all the edges that touch it.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "delete_vertex",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "with_edges": true
+    }
+  ],
+  "output": "out"
+}

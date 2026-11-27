@@ -1,0 +1,17 @@
+{
+ "what": "the param census (data/param_census.py): hosted rows, answer row counts and weighted ops per row on one cell",
+ "census_version": 1,
+ "cell": "props_condensed_adj_split",
+ "store": "output/rocksdb-cpp/sf0.3/meta-props_condensed_adj_split",
+ "rows": "1-35",
+ "queries": [
+  "ic5"
+ ],
+ "binary": {
+  "binary_git_sha": "0747235cfea798592d73a745f983bc008e9a1a6f",
+  "binary_dirty": false
+ },
+ "command": "python3 data/param_census.py --sf 0.3 --queries ic5 --rows 1-35 --out data/params/ldbc/sf0.3/param_census_ic5_rows_1_35.csv",
+ "date": "2026-10-19",
+ "stops_early": "an empty answer with weighted ops under 0.1 x the median non-empty row's (no non-empty row: under 1000 ops)"
+}

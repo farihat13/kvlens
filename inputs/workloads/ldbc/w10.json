@@ -1,0 +1,65 @@
+{
+ "id": "w10",
+ "name": "fat_column",
+ "title": "Fat column: a date filter over many messages vs reading their content",
+ "items": [
+  {"family": "microbench", "query": "hop1_msgs_date", "frequency": 100, "params": null},
+  {"family": "microbench", "query": "hop1_msgs_content", "frequency": 10, "params": null}
+ ],
+ "expect": "Split props for the filter; a Condensed row drags content along (the column-group case)",
+ "why": "both queries read one column of a person's messages. Split and Condensed cost the same ops (one GET per message), but Split reads only that column ({sp_bytes} of Message properties) while Condensed drags whole rows, content included ({cc_bytes}). Chunked packs messages into shared chunks: {ch_x} fewer ops, {ch_bytes} read.",
+ "why_numbers": {
+  "sp_bytes": [
+   "sum",
+   [
+    "runs",
+    "bytes",
+    "hop1_msgs_date",
+    "Message props",
+    "props_split_adj_split"
+   ],
+   [
+    "runs",
+    "bytes",
+    "hop1_msgs_content",
+    "Message props",
+    "props_split_adj_split"
+   ]
+  ],
+  "cc_bytes": [
+   "sum",
+   [
+    "runs",
+    "bytes",
+    "hop1_msgs_date",
+    "Message props",
+    "props_condensed_adj_condensed"
+   ],
+   [
+    "runs",
+    "bytes",
+    "hop1_msgs_content",
+    "Message props",
+    "props_condensed_adj_condensed"
+   ]
+  ],
+  "ch_x": [
+   "ratio",
+   [
+    "total",
+    "ops",
+    "props_split_adj_split"
+   ],
+   [
+    "total",
+    "ops",
+    "props_chunked_adj_chunked"
+   ]
+  ],
+  "ch_bytes": [
+   "total",
+   "read_bytes",
+   "props_chunked_adj_chunked"
+  ]
+ }
+}

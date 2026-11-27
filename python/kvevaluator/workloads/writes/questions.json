@@ -1,0 +1,22 @@
+{
+  "iu1": "Add a person with all properties, their city, three interests, one university, one company and five friends.",
+  "iu2": "Add a like from a person to a post.",
+  "iu3": "Add a like from a person to a comment.",
+  "iu4": "Add a forum with its moderator and three tags.",
+  "iu5": "Add a person as a member of a forum.",
+  "iu6": "Add a post with its creator, forum, country and three tags.",
+  "iu7": "Add a comment with its creator, country, two tags and the post it replies to.",
+  "iu8": "Add a knows edge, with its creation date, between two persons.",
+  "w_del_e": "Delete one knows edge between two persons who know each other.",
+  "w_del_v": "Delete a person together with all the edges that touch it.",
+  "w_del_v_record": "Delete a person's record and its index entries, leaving its edges in place.",
+  "w_ins_e_facet": "Add a knows edge carrying its creation date between two persons who do not know each other yet.",
+  "w_ins_e_plain": "Add a knows edge, with no properties, between two persons who do not know each other yet.",
+  "w_ins_v_full": "Insert a new person with all of its properties, including the indexed ones.",
+  "w_ins_v_min": "Insert a new person with only three non-indexed properties.",
+  "w_upd_dated": "Change the creation date of a person, a property with a date index.",
+  "w_upd_edge": "Change the creation date on one existing knows edge between two persons.",
+  "w_upd_indexed": "Change one indexed property (first name) of a person.",
+  "w_upd_multi": "Change three properties of a person in one update, one of them indexed.",
+  "w_upd_plain": "Change one non-indexed property (last name) of a person."
+}

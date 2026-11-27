@@ -1,0 +1,6 @@
+personId|startDate|durationDays|countryXName|countryYName
+32985348850559|1304208000000|29|Honduras|Estonia
+17592186066134|1306886400000|30|Papua_New_Guinea|Malta
+17592186049118|1296518400000|30|Estonia|Singapore
+19791209317966|1304208000000|31|Singapore|New_Zealand
+6597069783613|1298937600000|30|Bolivia|Papua_New_Guinea

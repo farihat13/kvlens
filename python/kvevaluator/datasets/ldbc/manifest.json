@@ -1,0 +1,21 @@
+{
+  "name": "ldbc",
+  "order": 1,
+  "title": "LDBC SNB, the social network",
+  "scale_axis": "sf",
+  "scale_dir": "sf{scale}",
+  "deciding_scale": "3",
+  "scales": ["0.1", "0.3", "1", "3", "30"],
+  "schema": "inputs/schemas/ldbc/schema.json",
+  "schema_module": "kvevaluator.datasets.ldbc.schema",
+  "output_root": "ldbc",
+  "records_source": "kvevaluator.datasets.ldbc.records",
+  "fetch_module": "kvevaluator.datasets.ldbc.fetch",
+  "capture_key_schema": "python/kvevaluator/benchmarks/ldbc/schema.json",
+  "workload_files": [
+    "inputs/workloads/ldbc"
+  ],
+  "measure_peak_gb": {
+    "0.1": 0.44
+  }
+}

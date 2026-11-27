@@ -1,0 +1,28 @@
+# chain3 -- follow replyOf from a message for AT MOST 3 hops; return where the walk stops (TM2, capped).
+# Reads: replyOf of the anchor and its first two ancestors (fewer if the chain ends first),
+#   the type(post) check over the walked messages, then `id` of the landing message.
+# Evaluator: queries/nhop.py _chain(3) -- read_chase(replyOf, max_hops=3) -> read id -> 1 row.
+#   On chains of depth <= 3 that is the root post; deeper, it is the comment 3 hops up
+#   (the engines' truncation, FINDINGS 13-14).
+# Written as the engines' 3-level unroll; the landing message is the root post if the walk
+#   reached it, else the 3rd ancestor (h3).
+# mb2 lineage: MB59-60 (same unroll; MB59 returns nothing past depth 3, this returns h3).
+# Anchor: Dgraph has no external-key addressing, so the message is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (message 5443 collides with a tag and an organisation
+#   5443), so type(post) OR type(comment) is what names THE message.
+# answer-path: result
+query q($messageId: string) {
+  m as var(func: eq(id, $messageId)) @filter(type(post) OR type(comment)) {
+    h1 as replyOf
+  }
+  var(func: uid(h1)) {
+    h2 as replyOf
+  }
+  var(func: uid(h2)) {
+    h3 as replyOf
+  }
+  result(func: uid(m, h1, h2, h3)) @filter(type(post) OR uid(h3)) {
+    id
+  }
+}

@@ -1,0 +1,576 @@
+client:
+  version: v3
+  address: "127.0.0.1:9669"
+  user: root
+  password: nebula
+  concurrencyPerAddress: 10
+  reconnectInitialInterval: 1s
+  retry: 3
+  retryInitialInterval: 1s
+
+manager:
+  spaceName: ldbc
+  batch: 128
+  readerConcurrency: 50
+  importerConcurrency: 512
+  statsInterval: 10s
+
+log:
+  level: ERROR
+  console: true
+  files:
+    - nebula-importer.log
+
+sources:
+  # dynamic - tags
+  - path: dynamic/person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Person
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: firstName
+            type: STRING
+            index: 1
+          - name: lastName
+            type: STRING
+            index: 2
+          - name: gender
+            type: STRING
+            index: 3
+          - name: birthday
+            type: INT
+            index: 4
+          - name: creationDate
+            type: INT
+            index: 5
+          - name: locationIP
+            type: STRING
+            index: 6
+          - name: browserUsed
+            type: STRING
+            index: 7
+
+  - path: dynamic/post_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Post
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: imageFile
+            type: STRING
+            index: 1
+          - name: creationDate
+            type: INT
+            index: 2
+          - name: locationIP
+            type: STRING
+            index: 3
+          - name: browserUsed
+            type: STRING
+            index: 4
+          - name: language
+            type: STRING
+            index: 5
+          - name: content
+            type: STRING
+            index: 6
+          - name: length
+            type: INT
+            index: 7
+
+  - path: dynamic/comment_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Comment
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: creationDate
+            type: INT
+            index: 1
+          - name: locationIP
+            type: STRING
+            index: 2
+          - name: browserUsed
+            type: STRING
+            index: 3
+          - name: content
+            type: STRING
+            index: 4
+          - name: length
+            type: INT
+            index: 5
+
+  - path: dynamic/forum_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Forum
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: title
+            type: STRING
+            index: 1
+          - name: creationDate
+            type: INT
+            index: 2
+
+  - path: static/organisation_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Organisation
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: type
+            type: STRING
+            index: 1
+          - name: name
+            type: STRING
+            index: 2
+          - name: url
+            type: STRING
+            index: 3
+
+  - path: static/place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Place
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: name
+            type: STRING
+            index: 1
+          - name: url
+            type: STRING
+            index: 2
+          - name: type
+            type: STRING
+            index: 3
+
+  - path: static/tag_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: Tag
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: name
+            type: STRING
+            index: 1
+          - name: url
+            type: STRING
+            index: 2
+
+  - path: static/tagclass_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    tags:
+      - name: TagClass
+        id:
+          type: "STRING"
+          index: 0
+        props:
+          - name: name
+            type: STRING
+            index: 1
+          - name: url
+            type: STRING
+            index: 2
+
+  # dynamic - edges
+  - path: dynamic/person_knows_person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: KNOWS
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: creationDate
+            type: INT
+            index: 2
+
+  - path: dynamic/person_likes_post_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: LIKES
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: creationDate
+            type: INT
+            index: 2
+
+  - path: dynamic/person_likes_comment_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: LIKES
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: creationDate
+            type: INT
+            index: 2
+
+  - path: dynamic/person_hasInterest_tag_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_INTEREST
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/person_studyAt_organisation_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: STUDY_AT
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: classYear
+            type: INT
+            index: 2
+
+  - path: dynamic/person_workAt_organisation_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: WORK_AT
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: workFrom
+            type: INT
+            index: 2
+
+  - path: dynamic/person_isLocatedIn_place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_LOCATED_IN
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/post_isLocatedIn_place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_LOCATED_IN
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/comment_isLocatedIn_place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_LOCATED_IN
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/forum_hasMember_person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_MEMBER
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+        props:
+          - name: joinDate
+            type: INT
+            index: 2
+
+  - path: dynamic/forum_hasModerator_person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_MODERATOR
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/forum_containerOf_post_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: CONTAINER_OF
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/forum_hasTag_tag_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_TAG
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/comment_hasCreator_person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_CREATOR
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/comment_hasTag_tag_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_TAG
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/comment_replyOf_comment_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: REPLY_OF
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/comment_replyOf_post_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: REPLY_OF
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/post_hasCreator_person_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_CREATOR
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: dynamic/post_hasTag_tag_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_TAG
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  # static - edges relating static files
+  - path: static/organisation_isLocatedIn_place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_LOCATED_IN
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: static/place_isPartOf_place_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_PART_OF
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: static/tag_hasType_tagclass_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: HAS_TYPE
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1
+
+  - path: static/tagclass_isSubclassOf_tagclass_0_0.csv
+    csv:
+      delimiter: "|"
+      withHeader: true
+    edges:
+      - name: IS_SUBCLASS_OF
+        src:
+          id:
+            type: STRING
+            index: 0
+        dst:
+          id:
+            type: STRING
+            index: 1

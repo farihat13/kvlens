@@ -1,0 +1,88 @@
+{
+  "plan": "getlinklist_link1",
+  "question": "Given a node, list its up to 10,000 newest links of link type 1, with their data.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "ll",
+      "op": "read_neighbors",
+      "srcs": [
+        {
+          "let": "n_vid"
+        }
+      ],
+      "etype": "link1",
+      "dir": "out",
+      "edge_props": [
+        "visibility",
+        "version",
+        "time",
+        "data"
+      ],
+      "pairs": true
+    },
+    {
+      "name": "srt",
+      "op": "top_k",
+      "rows": {
+        "ref": "ll"
+      },
+      "keys": [
+        [
+          "time",
+          "desc"
+        ],
+        [
+          "dst",
+          "asc"
+        ]
+      ],
+      "k": 10000
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "srt"
+      },
+      "fields": [
+        "src",
+        "dst",
+        "visibility",
+        "version",
+        "time",
+        "data"
+      ]
+    }
+  ],
+  "output": "out"
+}

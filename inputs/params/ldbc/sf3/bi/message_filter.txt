@@ -1,0 +1,6 @@
+startDate|lengthThreshold|languages|stratum
+1331900179871|6|uz;tk;ar|p70-len50-top3
+1318840378678|83|uz;tk;ar|p50-len75-top5
+1339174953294|4|uz;tk|p85-len25-top2
+1306045403425|102|uz;tk;ar|p30-len90-top5
+1262315206593|1994|uz;tk;ar|all

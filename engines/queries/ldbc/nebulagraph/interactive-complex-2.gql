@@ -1,0 +1,53 @@
+# CORRECTED IC2 — the engine's canonical query (engine/data/queries), used by every case study.
+#
+# The pinned cost_eval query (data/costeval/queries/nebula/interactive-complex-2.gql) uses per-branch
+# LIMIT 10 "to match Nebula", which returns a WRONG top-20 on some params: when the true top-20 needs
+# >10 messages from one branch (e.g. one friend's dense run of recent posts), posts 11-20 are dropped
+# and more-recent messages from other friends are lost. The sim (correct) and
+# dgraph (first: 20 per branch) agree; nebula/arango with LIMIT 10 diverge on p2-5.
+#
+# Fix: per-branch LIMIT 20. This is provably correct — the final result keeps 20, and in the worst
+# case all 20 come from one branch, so each branch's top-20 is sufficient (union of per-branch top-20s
+# always contains the true top-20). Only the per-branch LIMIT changed from the pinned query.
+#
+# Owned here (engine/data/queries) rather than editing the cost_eval pinned query, because cost_eval's
+# measured.csv + cost model are calibrated against the LIMIT-10 text (reproducibility). compare.py's
+# load_query_local reads this set; cost_eval still loads its own pinned copy.
+
+
+# -- POSTS written by friends
+MATCH (p:`Person`)-[:KNOWS]-(f:`Person`)<-[:HAS_CREATOR]-(m:`Post`)
+WHERE id(p) == $personId and m.`Post`.creationDate < $maxDate
+RETURN
+    id(f) AS friendId,
+    f.Person.firstName AS friendFirstName,
+    f.Person.lastName AS friendLastName,
+    id(m) AS messageId,
+    CASE
+      WHEN (m.Post.content IS NOT NULL AND m.Post.content != "") THEN m.Post.content
+      ELSE m.Post.imageFile
+    END AS messageContent,
+    m.`Post`.creationDate AS messageCreationDate,
+    # For debugging
+    "post" AS messageType,
+    toInteger(split(tostring(id(m)), "_")[1]) AS messageIdInt
+ORDER BY messageCreationDate DESC, messageIdInt ASC
+LIMIT 20
+
+UNION ALL
+
+# -- COMMENTS written by friends
+MATCH (p:`Person`)-[:KNOWS]-(f:`Person`)<-[:HAS_CREATOR]-(m:`Comment`)
+WHERE id(p) == $personId and m.`Comment`.creationDate < $maxDate
+RETURN
+    id(f) AS friendId,
+    f.Person.firstName AS friendFirstName,
+    f.Person.lastName AS friendLastName,
+    id(m) AS messageId,
+    m.`Comment`.content AS messageContent,
+    m.`Comment`.creationDate AS messageCreationDate,
+    # For debugging
+    "comment" AS messageType,
+    toInteger(split(tostring(id(m)), "_")[1]) AS messageIdInt
+ORDER BY messageCreationDate DESC, messageIdInt ASC
+LIMIT 20;

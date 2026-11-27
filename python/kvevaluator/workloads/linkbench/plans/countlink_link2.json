@@ -1,0 +1,63 @@
+{
+  "plan": "countlink_link2",
+  "question": "Given a node, count its links of link type 2.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "ll",
+      "op": "read_neighbors",
+      "srcs": [
+        {
+          "let": "n_vid"
+        }
+      ],
+      "etype": "link2",
+      "dir": "out"
+    },
+    {
+      "name": "n",
+      "op": "count",
+      "items": {
+        "ref": "ll"
+      }
+    },
+    {
+      "name": "out",
+      "op": "as_row",
+      "value": {
+        "ref": "n"
+      },
+      "field": "count"
+    }
+  ],
+  "output": "out"
+}

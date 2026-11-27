@@ -1,0 +1,41 @@
+{
+ "id": "w12",
+ "name": "profiles_vs_message_filters",
+ "title": "Read vs read by type: whole Person rows vs one column of many messages",
+ "items": [
+  {"family": "microbench", "query": "point7", "frequency": 100, "params": null},
+  {"family": "microbench", "query": "hop1_msgs_date", "frequency": 100, "params": null}
+ ],
+ "expect": "Person Condensed props, Message Split (or Chunked) props",
+ "why": "point7 wants Person properties Condensed; the date filter wants Message properties Split (bytes) or Chunked (ops). A mixed layout can give each its own, but point7 is so cheap ({p7_ops} ops in all) that it barely moves the total ({saving} fewer ops).",
+ "why_numbers": {
+  "p7_ops": [
+   "runs",
+   "ops",
+   "point7",
+   "Person props",
+   "props_condensed_adj_condensed"
+  ],
+  "saving": [
+   "share",
+   [
+    "diff",
+    [
+     "total",
+     "ops",
+     "best_single_ops"
+    ],
+    [
+     "total",
+     "ops",
+     "per_type_fewest_ops"
+    ]
+   ],
+   [
+    "total",
+    "ops",
+    "best_single_ops"
+   ]
+  ]
+ }
+}

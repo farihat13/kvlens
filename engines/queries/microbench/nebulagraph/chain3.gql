@@ -1,0 +1,13 @@
+# microbench chain3 -- chain with the engines' 3-hop cap: follow REPLY_OF up at most 3 times;
+# on a chain deeper than 3 this returns a non-root Comment.
+# Evaluator: queries/nhop.py _chain(3): read_chase(replyOf, out, max_hops=3) -> the last
+# message reached -> its id. One row.
+# mb2 lineage: MB59-60 (REPLY_OF*0..3 ending at (p:Post) -- that returns NO row past depth 3,
+# a different answer from this shape's).
+# Form: chain.gql with the variable length capped at 3: the farthest message within 3 hops.
+MATCH (m)-[e:REPLY_OF*0..3]->(r)
+WHERE id(m) == $messageId
+WITH r, size(e) AS hops
+ORDER BY hops DESC
+LIMIT 1
+RETURN id(r) AS id

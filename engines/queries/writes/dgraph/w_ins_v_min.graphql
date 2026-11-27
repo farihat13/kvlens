@@ -1,0 +1,18 @@
+# w_ins_v_min -- insert a new person carrying only non-indexed properties (lastName, gender, locationIP).
+# Writes: one posting per predicate, plus the index postings of the two indexed predicates every loaded person
+#   carries: dgraph.type and the LDBC `id` (the loader also writes `fqid`, a string copy of the vid that no
+#   query here reads; this insert carries one id predicate, as mb2's did).
+# Evaluator: workloads/writes/microbench/queries.py w_ins_v_min -- insert_vertex(new_vid, _MIN_PROPS).
+# mb2 lineage: MB83 (the same properties; its id predicate was fqid).
+# Id: the plan's own synthetic id (its `let` new_vid), entered as the plain LDBC id inside the vid.
+{
+  "set": [
+    {
+      "id": $new_vid,
+      "dgraph.type": "person",
+      "lastName": "WMin",
+      "gender": "other",
+      "locationIP": "10.0.0.1"
+    }
+  ]
+}

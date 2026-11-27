@@ -1,0 +1,6358 @@
+{
+ "plan": "job9c",
+ "question": "Join Order Benchmark query 9c: join 8 IMDb tables (aka_name, cast_info, char_name, company_name, movie_companies, name, role_type, title) on 9 join conditions, keep the rows that pass 5 filters, and return the smallest value of each of its 4 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_n_by_index"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_n_by_index": {
+   "steps": [
+    {
+     "name": "s01_n_ix",
+     "op": "read_index_eq",
+     "label": "Name",
+     "prop": "gender",
+     "value": "f"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_ix"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%An%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s08_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s07_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s08_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s10_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_ci_dst_col"
+     }
+    },
+    {
+     "name": "s12_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_ci_dst_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_ci_dst_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s14_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s13_mc_company_production"
+     }
+    },
+    {
+     "name": "s15_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mc_dst_col"
+     }
+    },
+    {
+     "name": "s17_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s18_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_cn_back_col"
+     }
+    },
+    {
+     "name": "s21_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s20_cn_back_set"
+     }
+    },
+    {
+     "name": "s22_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s23_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_mc_back_col"
+     }
+    },
+    {
+     "name": "s24_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s23_mc_back_set"
+     }
+    },
+    {
+     "name": "s25_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s26_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_ci_character_col"
+     }
+    },
+    {
+     "name": "s27_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s28_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_ci_back_col"
+     }
+    },
+    {
+     "name": "s29_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s28_ci_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s31_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_an_col"
+     }
+    },
+    {
+     "name": "s32_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s33_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_an_back_col"
+     }
+    },
+    {
+     "name": "s34_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s33_an_back_set"
+     }
+    },
+    {
+     "name": "s35_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s36_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_n_self_final_col"
+     }
+    },
+    {
+     "name": "s37_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s36_n_self_final_set"
+     }
+    },
+    {
+     "name": "s38_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s39_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s40_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s39_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s41_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s42_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s43_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s42_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s45_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s36_n_self_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s37_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_cn_final"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s40_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_n_cut"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s63_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s45_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s64_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s63_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_alternative_name_in"
+     },
+     "right": {
+      "ref": "s66_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s68_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s34_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s70_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s72_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s39_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s73_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s75_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s77_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s78_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_american_movie_in"
+     },
+     "right": {
+      "ref": "s78_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s81_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_an_n_in"
+     },
+     "right": {
+      "ref": "s81_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s84_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_chn_n_in"
+     },
+     "right": {
+      "ref": "s84_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s87_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_ci_n_in"
+     },
+     "right": {
+      "ref": "s87_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s90_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_cn_n_in"
+     },
+     "right": {
+      "ref": "s90_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s92_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s93_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s91_mc_n_in"
+     },
+     "right": {
+      "ref": "s93_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s95_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s96_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_n_n_in"
+     },
+     "right": {
+      "ref": "s96_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s97_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_scan": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "gender",
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "gender"
+          }
+         },
+         {
+          "eq": [
+           {
+            "get": "gender"
+           },
+           {
+            "lit": "f"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%An%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s08_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s07_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s08_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s10_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_ci_dst_col"
+     }
+    },
+    {
+     "name": "s12_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_ci_dst_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_ci_dst_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s14_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s13_mc_company_production"
+     }
+    },
+    {
+     "name": "s15_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mc_dst_col"
+     }
+    },
+    {
+     "name": "s17_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s18_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_cn_back_col"
+     }
+    },
+    {
+     "name": "s21_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s20_cn_back_set"
+     }
+    },
+    {
+     "name": "s22_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s23_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_mc_back_col"
+     }
+    },
+    {
+     "name": "s24_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s23_mc_back_set"
+     }
+    },
+    {
+     "name": "s25_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s26_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_ci_character_col"
+     }
+    },
+    {
+     "name": "s27_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s28_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_ci_back_col"
+     }
+    },
+    {
+     "name": "s29_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s28_ci_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s31_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_an_col"
+     }
+    },
+    {
+     "name": "s32_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s33_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_an_back_col"
+     }
+    },
+    {
+     "name": "s34_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s33_an_back_set"
+     }
+    },
+    {
+     "name": "s35_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s36_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_n_self_final_col"
+     }
+    },
+    {
+     "name": "s37_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s24_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s36_n_self_final_set"
+     }
+    },
+    {
+     "name": "s38_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s39_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s40_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s39_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s41_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s42_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s43_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s42_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s45_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s46_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s29_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s36_n_self_final_set"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_an_final"
+     }
+    },
+    {
+     "name": "s48_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s37_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_cn_final"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s40_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_n_cut"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s63_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s45_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s64_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s63_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_alternative_name_in"
+     },
+     "right": {
+      "ref": "s66_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s68_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s34_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s70_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s72_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s39_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s73_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s75_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s77_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s78_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_american_movie_in"
+     },
+     "right": {
+      "ref": "s78_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s81_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_an_n_in"
+     },
+     "right": {
+      "ref": "s81_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s84_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_chn_n_in"
+     },
+     "right": {
+      "ref": "s84_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s87_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_ci_n_in"
+     },
+     "right": {
+      "ref": "s87_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s90_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_cn_n_in"
+     },
+     "right": {
+      "ref": "s90_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s92_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s93_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s91_mc_n_in"
+     },
+     "right": {
+      "ref": "s93_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s95_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s96_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_n_n_in"
+     },
+     "right": {
+      "ref": "s96_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s97_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_n_run",
+     "op": "read_vertices_by_label",
+     "label": "Name",
+     "props": [
+      "gender",
+      "name"
+     ]
+    },
+    {
+     "name": "s02_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_n_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "gender"
+          }
+         },
+         {
+          "eq": [
+           {
+            "get": "gender"
+           },
+           {
+            "lit": "f"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%An%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_n_keep"
+     }
+    },
+    {
+     "name": "s04_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_n_self_col"
+     }
+    },
+    {
+     "name": "s06_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s07_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s06_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s08_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s07_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_ci_dst_col"
+     }
+    },
+    {
+     "name": "s11_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_ci_dst_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s12_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_ci_dst_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s12_mc_company_production"
+     }
+    },
+    {
+     "name": "s14_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_mc_dst_col"
+     }
+    },
+    {
+     "name": "s16_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s17_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_cn_back_col"
+     }
+    },
+    {
+     "name": "s20_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_cn_back_set"
+     }
+    },
+    {
+     "name": "s21_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s22_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_mc_back_col"
+     }
+    },
+    {
+     "name": "s23_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s22_mc_back_set"
+     }
+    },
+    {
+     "name": "s24_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s25_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_ci_character_col"
+     }
+    },
+    {
+     "name": "s26_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s27_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_ci_back_col"
+     }
+    },
+    {
+     "name": "s28_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s27_ci_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_an_col"
+     }
+    },
+    {
+     "name": "s31_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s32_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_an_back_col"
+     }
+    },
+    {
+     "name": "s33_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s32_an_back_set"
+     }
+    },
+    {
+     "name": "s34_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s35_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_n_self_final_col"
+     }
+    },
+    {
+     "name": "s36_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s23_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s35_n_self_final_set"
+     }
+    },
+    {
+     "name": "s37_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s39_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s40_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s42_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s43_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s44_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s45_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s28_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s35_n_self_final_set"
+     }
+    },
+    {
+     "name": "s46_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_an_final"
+     }
+    },
+    {
+     "name": "s47_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s44_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_cn_final"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s33_n_cut"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s45_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s62_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s44_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s63_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s62_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s64_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_alternative_name_in"
+     },
+     "right": {
+      "ref": "s65_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s67_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s33_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s68_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s67_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s69_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s68_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s70_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s69_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s71_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s72_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s73_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s74_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s74_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s76_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s46_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s77_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_american_movie_in"
+     },
+     "right": {
+      "ref": "s77_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s80_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_an_n_in"
+     },
+     "right": {
+      "ref": "s80_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s83_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_chn_n_in"
+     },
+     "right": {
+      "ref": "s83_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s86_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_ci_n_in"
+     },
+     "right": {
+      "ref": "s86_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s89_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_cn_n_in"
+     },
+     "right": {
+      "ref": "s89_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mc_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_index": {
+   "steps": [
+    {
+     "name": "s01_cn_ix",
+     "op": "read_index_eq",
+     "label": "Company",
+     "prop": "country_code",
+     "value": "[us]"
+    },
+    {
+     "name": "s02_cn_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_cn_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_rows"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s12_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s11_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s13_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s12_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_ci_src_col"
+     }
+    },
+    {
+     "name": "s16_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_ci_src_set"
+     },
+     "props": [
+      "gender",
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s17_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "gender"
+          }
+         },
+         {
+          "eq": [
+           {
+            "get": "gender"
+           },
+           {
+            "lit": "f"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%An%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_n_back_col"
+     }
+    },
+    {
+     "name": "s20_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s19_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s22_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_an_col"
+     }
+    },
+    {
+     "name": "s23_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s24_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_an_back_col"
+     }
+    },
+    {
+     "name": "s25_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s24_an_back_set"
+     }
+    },
+    {
+     "name": "s26_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s27_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_ci_character_col"
+     }
+    },
+    {
+     "name": "s28_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s29_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_ci_back_col"
+     }
+    },
+    {
+     "name": "s30_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s29_ci_back_set"
+     }
+    },
+    {
+     "name": "s31_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s32_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_mc_back_col"
+     }
+    },
+    {
+     "name": "s33_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s32_mc_back_set"
+     }
+    },
+    {
+     "name": "s34_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s35_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s36_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s35_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s37_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s39_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s40_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s42_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s43_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s41_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s45_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s46_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_an_final"
+     }
+    },
+    {
+     "name": "s47_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s33_cn_cut"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_n_final"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s62_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s45_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s63_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s62_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s64_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_alternative_name_in"
+     },
+     "right": {
+      "ref": "s65_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s67_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s42_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s68_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s67_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s69_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s68_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s70_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s69_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s71_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s72_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s73_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s74_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s74_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s76_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s46_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s77_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_american_movie_in"
+     },
+     "right": {
+      "ref": "s77_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s80_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_an_n_in"
+     },
+     "right": {
+      "ref": "s80_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s83_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_chn_n_in"
+     },
+     "right": {
+      "ref": "s83_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s86_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_ci_n_in"
+     },
+     "right": {
+      "ref": "s86_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s89_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_cn_n_in"
+     },
+     "right": {
+      "ref": "s89_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mc_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_scan": {
+   "steps": [
+    {
+     "name": "s01_cn_scan",
+     "op": "read_vertices_by_label",
+     "label": "Company"
+    },
+    {
+     "name": "s02_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_cn_scan"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s03_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_cn_keep"
+     }
+    },
+    {
+     "name": "s05_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_cn_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s09_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s08_mc_company_production"
+     }
+    },
+    {
+     "name": "s10_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_src_col"
+     }
+    },
+    {
+     "name": "s12_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_mc_src_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s13_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s12_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s13_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s15_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_ci_src_col"
+     }
+    },
+    {
+     "name": "s17_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_ci_src_set"
+     },
+     "props": [
+      "gender",
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s18_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "gender"
+          }
+         },
+         {
+          "eq": [
+           {
+            "get": "gender"
+           },
+           {
+            "lit": "f"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%An%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s20_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_n_back_col"
+     }
+    },
+    {
+     "name": "s21_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s23_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s22_an_col"
+     }
+    },
+    {
+     "name": "s24_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s21_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s25_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_an_back_col"
+     }
+    },
+    {
+     "name": "s26_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s25_an_back_set"
+     }
+    },
+    {
+     "name": "s27_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s28_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_ci_character_col"
+     }
+    },
+    {
+     "name": "s29_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s30_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_ci_back_col"
+     }
+    },
+    {
+     "name": "s31_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s30_ci_back_set"
+     }
+    },
+    {
+     "name": "s32_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s33_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_mc_back_col"
+     }
+    },
+    {
+     "name": "s34_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s33_mc_back_set"
+     }
+    },
+    {
+     "name": "s35_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s36_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s37_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s31_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s36_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s38_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s39_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s40_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s26_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s39_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s41_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s42_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s43_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s42_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s44_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s21_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s42_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s45_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s46_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s47_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s44_an_final"
+     }
+    },
+    {
+     "name": "s48_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s49_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s40_ci_final"
+     }
+    },
+    {
+     "name": "s50_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_cn_cut"
+     }
+    },
+    {
+     "name": "s51_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s37_mc_final"
+     }
+    },
+    {
+     "name": "s52_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_n_final"
+     }
+    },
+    {
+     "name": "s53_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s54_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s55_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_an_out_col"
+     }
+    },
+    {
+     "name": "s58_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s57_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s59_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s58_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s60_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s59_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s61_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s60_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s62_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_base"
+     },
+     "right": {
+      "ref": "s61_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s63_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s46_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s64_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s63_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s62_alternative_name_in"
+     },
+     "right": {
+      "ref": "s66_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s68_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s43_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s70_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s72_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s39_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s73_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s75_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s77_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s78_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_american_movie_in"
+     },
+     "right": {
+      "ref": "s78_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s81_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_an_n_in"
+     },
+     "right": {
+      "ref": "s81_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s84_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_chn_n_in"
+     },
+     "right": {
+      "ref": "s84_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s87_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_ci_n_in"
+     },
+     "right": {
+      "ref": "s87_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s90_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_cn_n_in"
+     },
+     "right": {
+      "ref": "s90_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s92_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s93_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s91_mc_n_in"
+     },
+     "right": {
+      "ref": "s93_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s95_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s53_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s96_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_n_n_in"
+     },
+     "right": {
+      "ref": "s96_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s97_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_cn_run",
+     "op": "read_vertices_by_label",
+     "label": "Company",
+     "props": [
+      "country_code"
+     ]
+    },
+    {
+     "name": "s02_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_cn_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_keep"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true,
+     "edge_props": [
+      "character",
+      "note"
+     ]
+    },
+    {
+     "name": "s12_ci_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s11_ci_cast_actress"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "character"
+        }
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": [
+             "(voice)",
+             "(voice: Japanese version)",
+             "(voice) (uncredited)",
+             "(voice: English version)"
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s13_ci_ch",
+     "op": "derive",
+     "rows": {
+      "ref": "s12_ci_keep"
+     },
+     "into": "ch",
+     "fn": {
+      "vid": [
+       {
+        "lit": "Character"
+       },
+       {
+        "field": "character"
+       }
+      ]
+     }
+    },
+    {
+     "name": "s14_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_ci_ch"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_ci_src_col"
+     }
+    },
+    {
+     "name": "s16_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_ci_src_set"
+     },
+     "props": [
+      "gender",
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s17_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "gender"
+          }
+         },
+         {
+          "eq": [
+           {
+            "get": "gender"
+           },
+           {
+            "lit": "f"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "name"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "name"
+           },
+           {
+            "lit": "%An%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_n_back_col"
+     }
+    },
+    {
+     "name": "s20_an_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s19_n_back_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_an_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s22_an_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_an_col"
+     }
+    },
+    {
+     "name": "s23_an_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s24_an_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_an_back_col"
+     }
+    },
+    {
+     "name": "s25_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_ci_ch"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s24_an_back_set"
+     }
+    },
+    {
+     "name": "s26_ci_character_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s27_ci_character_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_ci_character_col"
+     }
+    },
+    {
+     "name": "s28_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s29_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_ci_back_col"
+     }
+    },
+    {
+     "name": "s30_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s29_ci_back_set"
+     }
+    },
+    {
+     "name": "s31_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s32_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_mc_back_col"
+     }
+    },
+    {
+     "name": "s33_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s32_mc_back_set"
+     }
+    },
+    {
+     "name": "s34_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s35_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s36_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s35_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s37_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s39_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s25_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s38_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s40_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s42_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s17_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s41_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s43_an_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_an_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s41_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s44_ci_character_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_ci_final"
+     },
+     "field": "ch"
+    },
+    {
+     "name": "s45_ci_character_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_character_final_col"
+     }
+    },
+    {
+     "name": "s46_an_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s43_an_final"
+     }
+    },
+    {
+     "name": "s47_chn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s45_ci_character_final_set"
+     }
+    },
+    {
+     "name": "s48_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_ci_final"
+     }
+    },
+    {
+     "name": "s49_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s33_cn_cut"
+     }
+    },
+    {
+     "name": "s50_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s36_mc_final"
+     }
+    },
+    {
+     "name": "s51_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s42_n_final"
+     }
+    },
+    {
+     "name": "s52_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s53_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s54_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_an_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_an_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_an_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_an_out_col"
+     }
+    },
+    {
+     "name": "s57_an_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s56_an_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s58_alternative_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_an_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s59_alternative_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s58_alternative_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "alternative_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s60_alternative_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_alternative_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_alternative_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_base"
+     },
+     "right": {
+      "ref": "s60_alternative_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "alternative_name": null
+     }
+    },
+    {
+     "name": "s62_chn_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s45_ci_character_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Character"
+    },
+    {
+     "name": "s63_voiced_character_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s62_chn_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s64_voiced_character_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s63_voiced_character_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "voiced_character_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s65_voiced_character_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_voiced_character_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_voiced_character_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_alternative_name_in"
+     },
+     "right": {
+      "ref": "s65_voiced_character_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voiced_character_name": null
+     }
+    },
+    {
+     "name": "s67_voicing_actress_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s42_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s68_voicing_actress_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s67_voicing_actress_some"
+     },
+     "by": [],
+     "aggs": {
+      "voicing_actress": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s69_voicing_actress_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s68_voicing_actress_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s70_voicing_actress_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_voiced_character_name_in"
+     },
+     "right": {
+      "ref": "s69_voicing_actress_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "voicing_actress": null
+     }
+    },
+    {
+     "name": "s71_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s72_american_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s73_american_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_american_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "american_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s74_american_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_american_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_american_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_voicing_actress_in"
+     },
+     "right": {
+      "ref": "s74_american_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "american_movie": null
+     }
+    },
+    {
+     "name": "s76_an_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s46_an_final_n"
+     },
+     "field": "rows_an"
+    },
+    {
+     "name": "s77_an_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_an_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_an_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_american_movie_in"
+     },
+     "right": {
+      "ref": "s77_an_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_chn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s47_chn_final_n"
+     },
+     "field": "rows_chn"
+    },
+    {
+     "name": "s80_chn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_chn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_chn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_an_n_in"
+     },
+     "right": {
+      "ref": "s80_chn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s48_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s83_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_chn_n_in"
+     },
+     "right": {
+      "ref": "s83_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s49_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s86_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_ci_n_in"
+     },
+     "right": {
+      "ref": "s86_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s50_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s89_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_cn_n_in"
+     },
+     "right": {
+      "ref": "s89_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s51_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mc_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s52_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "alternative_name",
+      "voiced_character_name",
+      "voicing_actress",
+      "american_movie",
+      "rows_an",
+      "rows_chn",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

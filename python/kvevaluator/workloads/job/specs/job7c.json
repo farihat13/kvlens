@@ -1,0 +1,203 @@
+{
+ "query": "job7c",
+ "aliases": {
+  "an": "aka_name",
+  "ci": "cast_info",
+  "it": "info_type",
+  "lt": "link_type",
+  "ml": "movie_link",
+  "n": "name",
+  "pi": "person_info",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "n",
+   "id",
+   "an",
+   "person_id"
+  ],
+  [
+   "n",
+   "id",
+   "pi",
+   "person_id"
+  ],
+  [
+   "ci",
+   "person_id",
+   "n",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "linked_movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "lt",
+   "id",
+   "ml",
+   "link_type_id"
+  ],
+  [
+   "it",
+   "id",
+   "pi",
+   "info_type_id"
+  ],
+  [
+   "pi",
+   "person_id",
+   "an",
+   "person_id"
+  ],
+  [
+   "pi",
+   "person_id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "an",
+   "person_id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "ml",
+   "linked_movie_id"
+  ]
+ ],
+ "predicates": {
+  "an": [
+   [
+    "null",
+    "an",
+    "name",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "an",
+      "name",
+      "%a%",
+      false
+     ],
+     [
+      "like",
+      "an",
+      "name",
+      "A%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "ci": [],
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "mini biography"
+   ]
+  ],
+  "lt": [
+   [
+    "in",
+    "lt",
+    "link",
+    [
+     "references",
+     "referenced in",
+     "features",
+     "featured in"
+    ]
+   ]
+  ],
+  "ml": [],
+  "n": [
+   [
+    "between",
+    "n",
+    "name_pcode_cf",
+    "A",
+    "F"
+   ],
+   [
+    "or",
+    [
+     [
+      "cmp",
+      "=",
+      "n",
+      "gender",
+      "m"
+     ],
+     [
+      "and",
+      [
+       [
+        "cmp",
+        "=",
+        "n",
+        "gender",
+        "f"
+       ],
+       [
+        "like",
+        "n",
+        "name",
+        "A%",
+        false
+       ]
+      ]
+     ]
+    ]
+   ]
+  ],
+  "pi": [
+   [
+    "null",
+    "pi",
+    "note",
+    false
+   ]
+  ],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    1980,
+    2010
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "cast_member_name",
+   "n",
+   "name"
+  ],
+  [
+   "cast_member_info",
+   "pi",
+   "info"
+  ]
+ ]
+}

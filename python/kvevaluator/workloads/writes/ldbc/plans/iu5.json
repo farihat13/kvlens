@@ -1,0 +1,78 @@
+{
+  "plan": "iu5",
+  "question": "Add a person as a member of a forum.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "forum": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "forum_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "forum"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Forum"
+            },
+            {
+              "param": "forum"
+            }
+          ]
+        },
+        {
+          "param": "forum"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_edge",
+      "etype": "hasMember",
+      "src": {
+        "let": "forum_vid"
+      },
+      "dst": {
+        "let": "me_vid"
+      },
+      "props": {
+        "joinDate": 1577836800000
+      },
+      "src_label": "Forum",
+      "dst_label": "Person"
+    }
+  ],
+  "output": "out"
+}

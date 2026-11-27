@@ -1,0 +1,27 @@
+diff --git a/cpp/kvevaluator/src/formats/meta/reads.cc b/cpp/kvevaluator/src/formats/meta/reads.cc
+--- a/cpp/kvevaluator/src/formats/meta/reads.cc
++++ b/cpp/kvevaluator/src/formats/meta/reads.cc
+@@ -569,8 +569,11 @@
+   auto pass = [&](bool packed, const std::vector<bool>& dirs) {
+     return ex.run_range_map(d.uids.size(), [&](WorkerSlot& slot, size_t ti, std::vector<Landing>& log) {
+         const Value* sv = tag ? &d.values[ti] : nullptr;
+-        if (!packed)
+-          return Value::list(neighbors_of(slot.store, d.uids[ti], etype, dirs, edge_props, pairs, used_first_n, sv));
++        if (!packed) {
++          auto nb = neighbors_of(slot.store, d.uids[ti], etype, dirs, edge_props, pairs, used_first_n, sv);
++          if (cfg_.adj_of(etype, dirs.empty() ? true : dirs[0]).grouped()) std::reverse(nb.begin(), nb.end());   // (control: a Condensed list handed on in descending order)
++          return Value::list(std::move(nb));
++        }
+         ChunkReader rd(fo.table, slot, log, group);
+         return Value::list(neighbors_of_packed(slot.store, rd, d.uids[ti], etype, dirs, edge_props, pairs, used_first_n, sv));
+     }, /*additive_counts=*/!packed);
+@@ -581,7 +584,9 @@
+     return ex.run_range_append(d.uids.size(), [&](WorkerSlot& slot, size_t ti, ValueList& out, std::vector<Landing>& log) {
+         const Value* sv = tag ? &d.values[ti] : nullptr;
+         if (!packed) {
++          size_t first = out.size();
+           neighbors_of_into(slot.store, d.uids[ti], etype, dirs, edge_props, pairs, used_first_n, sv, items.of(slot), out);
++          if (cfg_.adj_of(etype, dirs.empty() ? true : dirs[0]).grouped()) std::reverse(out.begin() + first, out.end());   // (control: a Condensed list handed on in descending order)
+         } else {
+           ChunkReader rd(fo.table, slot, log, group);
+           neighbors_of_packed_into(slot.store, rd, d.uids[ti], etype, dirs, edge_props, pairs, used_first_n, sv, items.of(slot), out);

@@ -1,0 +1,10 @@
+# microbench point7 -- read 7 properties of a known Person (PERSON_PROPS: firstName, lastName,
+# gender, birthday, creationDate, locationIP, browserUsed).
+# Evaluator: queries/point.py _point(7): read_vertex_props(vid, PERSON_PROPS[:7]) -> 1 row.
+# mb2 lineage: MB1-2. Form and $param note: see point1.gql (FETCH PROP via a piped YIELD).
+YIELD $personId AS s
+| FETCH PROP ON Person $-.s
+  YIELD Person.firstName AS firstName, Person.lastName AS lastName,
+        Person.gender AS gender, Person.birthday AS birthday,
+        Person.creationDate AS creationDate, Person.locationIP AS locationIP,
+        Person.browserUsed AS browserUsed

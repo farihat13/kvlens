@@ -1,0 +1,13 @@
+// microbench edge_probe: does a knows edge exist between two given persons, either direction?
+// (E1 / primitive 14). One boolean row.
+// Reads: the knows edge index of person1 (both sides), testing each neighbor's _id.
+// Evaluator: queries/hop.py edge_probe -- read_edge_exists (arango: scan the src's from+to edge
+// lists, no composite (from, to) index), 1 row.
+// mb2 lineage: MB55-56, 155-156 (no arango text in mb2). Same knows test as the IS7 query.
+LET src = CONCAT("Person/", @person1Id)
+LET dst = CONCAT("Person/", @person2Id)
+RETURN {knows: LENGTH(
+    FOR v IN 1..1 ANY src knows
+        FILTER v._id == dst
+        LIMIT 1
+        RETURN 1) > 0}

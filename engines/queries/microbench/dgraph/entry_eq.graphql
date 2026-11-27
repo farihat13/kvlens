@@ -1,0 +1,16 @@
+# entry_eq -- persons by an indexed value, plus their ids (NS3).
+# Reads: the firstName hash-index posting for the name, then `id` of each match.
+# Evaluator: queries/entry.py entry_eq -- read_index_eq(Person.firstName) -> read id -> sort by
+#   id in RAM -> one row per person.
+# Not ordered here: the evaluator's sort is an in-memory ordering of the same set. In Dgraph,
+#   orderasc: id would walk the `id` int index shared by all 8 types (detsort picks
+#   sortWithIndex for a sortable tokenizer) and cap at 1000 rows without first:, so it would
+#   measure the engine's sort, not this lookup.
+# No type filter: firstName exists only on person in the loaded schema.
+# mb2 lineage: MB3-4 (fqid projection, older schema).
+# answer-path: result
+query q($firstName: string) {
+  result(func: eq(firstName, $firstName)) {
+    id
+  }
+}

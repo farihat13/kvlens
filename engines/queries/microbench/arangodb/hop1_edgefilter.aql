@@ -1,0 +1,10 @@
+// microbench hop1_edgefilter: the knows EDGES of a person, both directions, created before
+// 2011-01-01 (T5, edge-property filter). Counts edges, not distinct neighbors, as the
+// evaluator does (no dedup step).
+// Reads: the knows edge index (both sides), then each edge's creationDate (in the edge document).
+// Evaluator: queries/hop.py hop1_edgefilter -- read_neighbors(edge_props=[creationDate]) +
+// filter creationDate < DATE_CUTOFF (1293840000000), count-final.
+// mb2 lineage: MB35-36, 27-28 (MB35 = OUTBOUND with a date window on e.creationDate).
+FOR v, e IN 1..1 ANY CONCAT("Person/", @personId) knows
+    FILTER e.creationDate < 1293840000000
+    RETURN e._key

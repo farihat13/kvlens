@@ -1,0 +1,76 @@
+{
+  "plan": "w_ins_e_plain",
+  "question": "Add a knows edge, with no properties, between two persons who do not know each other yet.",
+  "for": "all formats",
+  "params": {
+    "src": {
+      "type": "int"
+    },
+    "dst": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "src_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "dst_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "src_vid"
+      },
+      "dst": {
+        "let": "dst_vid"
+      },
+      "props": {},
+      "src_label": "Person",
+      "dst_label": "Person"
+    }
+  ],
+  "output": "out"
+}

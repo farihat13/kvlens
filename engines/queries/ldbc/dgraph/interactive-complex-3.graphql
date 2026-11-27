@@ -1,0 +1,77 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=4
+# Q3: Friends and friends of friends that have been to given countries
+
+# Given a start Person with ID $personId, find Persons that are their friends and friends of friends
+# (excluding the start Person) that have made Posts / Comments in both of the given Countries 
+# (named $countryXName and $countryYName), within [$startDate, $startDate + $durationDays) (closed open interval). 
+# Only Persons that are foreign to these Countries are considered, that is Persons 
+# whose location Country is neither named $countryXName nor $countryYName.
+#
+# Sort  count (desc), other.id (asc)
+# Limit 20
+#
+# Params:
+#   $personId      : string     (personId, e.g., "219902
+#   $countryXName  : string     (e.g., "CountryX")
+#   $countryYName  : string     (e.g., "CountryY")
+#   $startDate     : string     (ISO8601 datetime, e.g., "2010-10-16T12:00:00Z")
+#   $endDate       : string     (ISO8601 datetime, e.g., "2010-11-16T12:00:00Z")
+
+query Q3(
+    $personId: string,
+    $countryXName: string,
+    $countryYName: string,
+    $startDate: string,
+    $endDate: string
+) {
+    # 1. Anchor person
+    P as var(func: eq(id, $personId)) @filter(type(person))
+
+    # 2. Countries (places with type="country")
+    CX as var(func: eq(name, $countryXName)) @filter(eq(type, "country"))
+    CY as var(func: eq(name, $countryYName)) @filter(eq(type, "country"))
+
+    # 3. Friends and friends-of-friends (undirected)
+    _n1(func: uid(P)) { a as knows  b as ~knows }
+    _n2(func: uid(a, b)) { c as knows  d as ~knows }
+    FOF as var(func: uid(a, b, c, d)) @filter(type(person) AND NOT uid(P))
+
+    # 4. Filter out people living in target countries
+    var(func: uid(CX, CY)) @filter(eq(type, "country")) {
+        CITIES_ALL_LIST as ~isPartOf @filter(eq(type, "city"))
+    }
+    #   CITIES_ALL_LIST as var(func: eq(type, "city")) @filter(uid_in(isPartOf, CX) OR uid_in(isPartOf, CY))
+    validFriends as var(func: uid(FOF)) @filter(type(person)) {
+        isLocatedIn @filter(eq(type, "city") AND NOT uid(CITIES_ALL_LIST))
+    }
+
+    # 5. Per-friend counts of messages in CX and CY within the time window
+    # need to do this in two passes due to Dgraph limitations
+    var(func: uid(validFriends)) {
+        rcx as count(~hasCreator @filter(
+            (type(post) OR type(comment)) AND
+            ge(creationDate, $startDate) AND lt(creationDate, $endDate) AND
+            uid_in(isLocatedIn, uid(CX))
+        ))
+    }
+    var(func: uid(validFriends)) {
+        rcy as count(~hasCreator @filter(
+            (type(post) OR type(comment)) AND
+            ge(creationDate, $startDate) AND lt(creationDate, $endDate) AND
+            uid_in(isLocatedIn, uid(CY))
+        ))
+        total as math(rcx + rcy)
+    }
+
+    # 6. Final output — only those with posts in both countries
+    friends(func: uid(validFriends), orderdesc: val(total), first: 20)
+    @filter(gt(val(rcx), 0) AND gt(val(rcy), 0))
+    @normalize {
+        friendId: id
+        friendFirstName: firstName
+        friendLastName: lastName
+        xCount: val(rcx)
+        yCount: val(rcy)
+        count: val(total)
+    }
+}

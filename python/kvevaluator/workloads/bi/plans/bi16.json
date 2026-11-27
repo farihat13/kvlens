@@ -1,0 +1,1136 @@
+{
+  "plan": "bi16",
+  "question": "Given two tags with a date each, find the 20 people who wrote messages with each tag on that day, keeping those whose friends rarely did the same.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tagA": {
+      "type": "str"
+    },
+    "dateA": {
+      "type": "int"
+    },
+    "tagB": {
+      "type": "str"
+    },
+    "dateB": {
+      "type": "int"
+    },
+    "maxKnowsLimit": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "A_lo": {
+      "mul": [
+        {
+          "floordiv": [
+            {
+              "param": "dateA"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    },
+    "A_hi": {
+      "add": [
+        {
+          "mul": [
+            {
+              "floordiv": [
+                {
+                  "param": "dateA"
+                },
+                {
+                  "lit": 86400000
+                }
+              ]
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    },
+    "B_lo": {
+      "mul": [
+        {
+          "floordiv": [
+            {
+              "param": "dateB"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    },
+    "B_hi": {
+      "add": [
+        {
+          "mul": [
+            {
+              "floordiv": [
+                {
+                  "param": "dateB"
+                },
+                {
+                  "lit": 86400000
+                }
+              ]
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    }
+  },
+  "plans": {
+    "bi16_index(hand)": {
+      "steps": [
+        {
+          "name": "A_tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagA"
+          }
+        },
+        {
+          "name": "A_m0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "A_m1",
+          "op": "dedup",
+          "items": {
+            "ref": "A_m0"
+          }
+        },
+        {
+          "name": "A_day",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "let": "A_lo"
+          },
+          "hi": {
+            "let": "A_hi"
+          }
+        },
+        {
+          "name": "A_mv",
+          "op": "intersect",
+          "items": {
+            "ref": "A_m1"
+          },
+          "other": {
+            "ref": "A_day"
+          }
+        },
+        {
+          "name": "A_cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "A_cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "A_cr"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "A_cm",
+          "op": "group_count",
+          "items": {
+            "ref": "A_cv"
+          }
+        },
+        {
+          "name": "A_cm_n",
+          "op": "rename",
+          "rows": {
+            "ref": "A_cm"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "cmA"
+          }
+        },
+        {
+          "name": "A_p",
+          "op": "dedup",
+          "items": {
+            "ref": "A_cv"
+          }
+        },
+        {
+          "name": "A_kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_p"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "A_kn_i",
+          "op": "filter_in",
+          "rows": {
+            "ref": "A_kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "A_p"
+          }
+        },
+        {
+          "name": "A_kv",
+          "op": "pluck",
+          "rows": {
+            "ref": "A_kn_i"
+          },
+          "field": "src"
+        },
+        {
+          "name": "A_cp",
+          "op": "group_count",
+          "items": {
+            "ref": "A_kv"
+          }
+        },
+        {
+          "name": "A_cp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "A_cp"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_cp2"
+          }
+        },
+        {
+          "name": "A_all",
+          "op": "left_join",
+          "left": {
+            "ref": "A_cm_n"
+          },
+          "right": {
+            "ref": "A_cp_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_cp2": 0
+          }
+        },
+        {
+          "name": "A_res",
+          "op": "filter",
+          "rows": {
+            "ref": "A_all"
+          },
+          "pred": {
+            "le": [
+              {
+                "field": "_cp2"
+              },
+              {
+                "param": "maxKnowsLimit"
+              }
+            ]
+          }
+        },
+        {
+          "name": "B_tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagB"
+          }
+        },
+        {
+          "name": "B_m0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "B_m1",
+          "op": "dedup",
+          "items": {
+            "ref": "B_m0"
+          }
+        },
+        {
+          "name": "B_day",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "let": "B_lo"
+          },
+          "hi": {
+            "let": "B_hi"
+          }
+        },
+        {
+          "name": "B_mv",
+          "op": "intersect",
+          "items": {
+            "ref": "B_m1"
+          },
+          "other": {
+            "ref": "B_day"
+          }
+        },
+        {
+          "name": "B_cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "B_cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "B_cr"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "B_cm",
+          "op": "group_count",
+          "items": {
+            "ref": "B_cv"
+          }
+        },
+        {
+          "name": "B_cm_n",
+          "op": "rename",
+          "rows": {
+            "ref": "B_cm"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "cmB"
+          }
+        },
+        {
+          "name": "B_p",
+          "op": "dedup",
+          "items": {
+            "ref": "B_cv"
+          }
+        },
+        {
+          "name": "B_kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_p"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "B_kn_i",
+          "op": "filter_in",
+          "rows": {
+            "ref": "B_kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "B_p"
+          }
+        },
+        {
+          "name": "B_kv",
+          "op": "pluck",
+          "rows": {
+            "ref": "B_kn_i"
+          },
+          "field": "src"
+        },
+        {
+          "name": "B_cp",
+          "op": "group_count",
+          "items": {
+            "ref": "B_kv"
+          }
+        },
+        {
+          "name": "B_cp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "B_cp"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_cp2"
+          }
+        },
+        {
+          "name": "B_all",
+          "op": "left_join",
+          "left": {
+            "ref": "B_cm_n"
+          },
+          "right": {
+            "ref": "B_cp_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_cp2": 0
+          }
+        },
+        {
+          "name": "B_res",
+          "op": "filter",
+          "rows": {
+            "ref": "B_all"
+          },
+          "pred": {
+            "le": [
+              {
+                "field": "_cp2"
+              },
+              {
+                "param": "maxKnowsLimit"
+              }
+            ]
+          }
+        },
+        {
+          "name": "both",
+          "op": "join_multi",
+          "left": {
+            "ref": "A_res"
+          },
+          "right": {
+            "ref": "B_res"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "both"
+          },
+          "into": "_score",
+          "fn": {
+            "add": [
+              {
+                "field": "cmA"
+              },
+              {
+                "field": "cmB"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "_score",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ids_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ids"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out0",
+          "op": "rename",
+          "rows": {
+            "ref": "with_id"
+          },
+          "names": {
+            "cmA": "messageCountA",
+            "cmB": "messageCountB"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "out0"
+          },
+          "fields": [
+            "personId",
+            "messageCountA",
+            "messageCountB"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand": {
+      "steps": [
+        {
+          "name": "A_tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagA"
+          }
+        },
+        {
+          "name": "A_m0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "A_m1",
+          "op": "dedup",
+          "items": {
+            "ref": "A_m0"
+          }
+        },
+        {
+          "name": "A_mp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "A_m1"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "A_md",
+          "op": "filter",
+          "rows": {
+            "ref": "A_mp"
+          },
+          "pred": {
+            "and": [
+              {
+                "notnull": {
+                  "field": "creationDate"
+                }
+              },
+              {
+                "eq": [
+                  {
+                    "floordiv": [
+                      {
+                        "field": "creationDate"
+                      },
+                      {
+                        "lit": 86400000
+                      }
+                    ]
+                  },
+                  {
+                    "floordiv": [
+                      {
+                        "param": "dateA"
+                      },
+                      {
+                        "lit": 86400000
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "A_mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "A_md"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "A_cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "A_cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "A_cr"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "A_cm",
+          "op": "group_count",
+          "items": {
+            "ref": "A_cv"
+          }
+        },
+        {
+          "name": "A_cm_n",
+          "op": "rename",
+          "rows": {
+            "ref": "A_cm"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "cmA"
+          }
+        },
+        {
+          "name": "A_p",
+          "op": "dedup",
+          "items": {
+            "ref": "A_cv"
+          }
+        },
+        {
+          "name": "A_kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "A_p"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "A_kn_i",
+          "op": "filter_in",
+          "rows": {
+            "ref": "A_kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "A_p"
+          }
+        },
+        {
+          "name": "A_kv",
+          "op": "pluck",
+          "rows": {
+            "ref": "A_kn_i"
+          },
+          "field": "src"
+        },
+        {
+          "name": "A_cp",
+          "op": "group_count",
+          "items": {
+            "ref": "A_kv"
+          }
+        },
+        {
+          "name": "A_cp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "A_cp"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_cp2"
+          }
+        },
+        {
+          "name": "A_all",
+          "op": "left_join",
+          "left": {
+            "ref": "A_cm_n"
+          },
+          "right": {
+            "ref": "A_cp_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_cp2": 0
+          }
+        },
+        {
+          "name": "A_res",
+          "op": "filter",
+          "rows": {
+            "ref": "A_all"
+          },
+          "pred": {
+            "le": [
+              {
+                "field": "_cp2"
+              },
+              {
+                "param": "maxKnowsLimit"
+              }
+            ]
+          }
+        },
+        {
+          "name": "B_tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagB"
+          }
+        },
+        {
+          "name": "B_m0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "B_m1",
+          "op": "dedup",
+          "items": {
+            "ref": "B_m0"
+          }
+        },
+        {
+          "name": "B_mp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "B_m1"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "B_md",
+          "op": "filter",
+          "rows": {
+            "ref": "B_mp"
+          },
+          "pred": {
+            "and": [
+              {
+                "notnull": {
+                  "field": "creationDate"
+                }
+              },
+              {
+                "eq": [
+                  {
+                    "floordiv": [
+                      {
+                        "field": "creationDate"
+                      },
+                      {
+                        "lit": 86400000
+                      }
+                    ]
+                  },
+                  {
+                    "floordiv": [
+                      {
+                        "param": "dateB"
+                      },
+                      {
+                        "lit": 86400000
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "B_mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "B_md"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "B_cr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "B_cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "B_cr"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "B_cm",
+          "op": "group_count",
+          "items": {
+            "ref": "B_cv"
+          }
+        },
+        {
+          "name": "B_cm_n",
+          "op": "rename",
+          "rows": {
+            "ref": "B_cm"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "cmB"
+          }
+        },
+        {
+          "name": "B_p",
+          "op": "dedup",
+          "items": {
+            "ref": "B_cv"
+          }
+        },
+        {
+          "name": "B_kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "B_p"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "B_kn_i",
+          "op": "filter_in",
+          "rows": {
+            "ref": "B_kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "B_p"
+          }
+        },
+        {
+          "name": "B_kv",
+          "op": "pluck",
+          "rows": {
+            "ref": "B_kn_i"
+          },
+          "field": "src"
+        },
+        {
+          "name": "B_cp",
+          "op": "group_count",
+          "items": {
+            "ref": "B_kv"
+          }
+        },
+        {
+          "name": "B_cp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "B_cp"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_cp2"
+          }
+        },
+        {
+          "name": "B_all",
+          "op": "left_join",
+          "left": {
+            "ref": "B_cm_n"
+          },
+          "right": {
+            "ref": "B_cp_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_cp2": 0
+          }
+        },
+        {
+          "name": "B_res",
+          "op": "filter",
+          "rows": {
+            "ref": "B_all"
+          },
+          "pred": {
+            "le": [
+              {
+                "field": "_cp2"
+              },
+              {
+                "param": "maxKnowsLimit"
+              }
+            ]
+          }
+        },
+        {
+          "name": "both",
+          "op": "join_multi",
+          "left": {
+            "ref": "A_res"
+          },
+          "right": {
+            "ref": "B_res"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "both"
+          },
+          "into": "_score",
+          "fn": {
+            "add": [
+              {
+                "field": "cmA"
+              },
+              {
+                "field": "cmB"
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "_score",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ids_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ids"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out0",
+          "op": "rename",
+          "rows": {
+            "ref": "with_id"
+          },
+          "names": {
+            "cmA": "messageCountA",
+            "cmB": "messageCountB"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "out0"
+          },
+          "fields": [
+            "personId",
+            "messageCountA",
+            "messageCountB"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "bi16_index(hand)": {
+      "sha": "58e4c787686c",
+      "requires": [
+        "per_type_index",
+        "property_index"
+      ],
+      "on": {
+        "per_type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "bi16_index(hand)"
+      ]
+    },
+    "hand": {
+      "sha": "b4e38a51bf3b",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

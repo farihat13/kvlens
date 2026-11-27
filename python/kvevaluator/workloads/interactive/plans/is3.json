@@ -1,0 +1,152 @@
+{
+  "plan": "is3",
+  "question": "Given a person, list all their friends with the date the friendship began, newest first.",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "is3": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "friends",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "friend_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "friends"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "friend_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "friend_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "rows",
+          "op": "zip_rows",
+          "left": {
+            "ref": "friends"
+          },
+          "right": {
+            "ref": "friend_props"
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "rows"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "sorted"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName",
+            "creationDate": "friendshipCreationDate"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "friendshipCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "is3": {
+      "sha": "ef06880caea5",
+      "requires": [],
+      "sources": [
+        "is3"
+      ]
+    }
+  }
+}

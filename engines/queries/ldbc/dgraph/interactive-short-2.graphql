@@ -1,0 +1,72 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=17
+# IS2. Recent messages of a person
+# 
+# Given a start Person with ID $personId, retrieve the last 10 Messages created by that user. 
+# For eachMessage, return that Message, the original Post in its conversation (post), and 
+# the author of that Post(originalPoster). 
+# If any of the Messages is a Post, then the original Post (post) will be the sameMessage, 
+# i.e. that Message will appear twice in that result.
+#
+# Sort.  message.creationDate DESC, message.id ASC
+# Limit. 10 
+# 
+# Note. You can't write @recurse inside a query block, so we unroll up to 3 levels to find the original Post.
+# Approximation: We assume that the original Post is either the direct parent of the Message, or the grandparent, or the great-grandparent.
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+
+query IS2($personId: string) {
+  person(func: eq(id, $personId), orderdesc: creationDate, orderasc: id, first: 10) @filter(type(person)) {
+    messages: ~hasCreator @filter(type(post) OR type(comment))
+              (orderdesc: creationDate, orderasc: id, first: 10) {
+      messageId: id
+      messageCreationDate: creationDate
+      imageFile: imageFile
+      content: content
+      messageType: dgraph.type
+
+      # For all messages, find the original post (direct parent is post)
+      originalPost: replyOf @filter(type(post)) {
+        postId: id
+        postCreationDate: creationDate
+        postContent: content
+        originalPoster: hasCreator @filter(type(person)) {
+          authorId: id
+          authorFirstName: firstName
+          authorLastName: lastName
+        }
+      }
+      
+      # For posts, they are their own original post
+      selfAsOriginal: hasCreator @filter(type(person)) {
+        authorId: id
+        authorFirstName: firstName
+        authorLastName: lastName
+      }
+      
+      # For nested comments, traverse up the chain
+      parentComment: replyOf @filter(type(comment)) {
+        dgraph.type
+        grandParentPost: replyOf @filter(type(post)) {
+          postId: id
+          originalPoster: hasCreator @filter(type(person)) {
+            authorId: id
+            authorFirstName: firstName
+            authorLastName: lastName
+          }
+        }
+        grandParentComment: replyOf @filter(type(comment)) {
+          greatGrandParentPost: replyOf @filter(type(post)) {
+            postId: id
+            originalPoster: hasCreator @filter(type(person)) {
+              authorId: id
+              authorFirstName: firstName
+              authorLastName: lastName
+            }
+          }
+        }
+      }
+    }
+  }
+}

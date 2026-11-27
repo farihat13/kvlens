@@ -1,0 +1,20 @@
+# entry_range -- persons whose creationDate falls in a window (NS5), counted.
+# Reads: the creationDate day-token index over the window (with exact-value checks on the
+#   boundary days), then the type(person) restriction; `uid` is free.
+# Evaluator: queries/entry.py entry_range_dgraph -- type posting + day-bucket walk + boundary-day
+#   ms GETs + intersect -> count row. Count-final, so one item per person here.
+# Window: between() is inclusive at BOTH ends; the evaluator's window is [start, end). They
+#   differ only for a person created exactly at the end instant. (The binder also drops the
+#   milliseconds from both ISO bounds -- see the report.)
+# The date index is per-predicate (persons, forums, posts, comments share it), so the
+#   type(person) filter is part of the question.
+# Measured engine behaviour: Dgraph exact-checks every uid in the two boundary days, of ALL
+#   types, before the type filter runs (~1.2k value reads for a 1-day window); the evaluator
+#   intersects with persons first and checks only the boundary persons.
+# mb2 lineage: MB7-8 (type(person) root + between filter; here the index range is the root).
+# answer-path: result
+query q($startDate: string, $endDate: string) {
+  result(func: between(creationDate, $startDate, $endDate)) @filter(type(person)) {
+    uid
+  }
+}

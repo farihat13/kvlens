@@ -1,0 +1,1067 @@
+{
+  "plan": "fof_posters_profile",
+  "question": "Given a person, list the id and name of the authors of posts by friends and friends of friends who were born in 1985 or later.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "fof_posters_profile_from_person_run(hand)": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "scan",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "birthday"
+          ],
+          "keep": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "inorder",
+          "op": "annotate",
+          "items": {
+            "ref": "authors"
+          },
+          "field": "author",
+          "value": 1
+        },
+        {
+          "name": "born",
+          "op": "join",
+          "left": {
+            "ref": "inorder"
+          },
+          "right": {
+            "ref": "scan"
+          },
+          "left_on": "_vid"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "young"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "fof_posters_profile_from_person_run(hand)+probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "scan",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "birthday"
+          ],
+          "keep": {
+            "ref": "authors"
+          }
+        },
+        {
+          "name": "inorder",
+          "op": "annotate",
+          "items": {
+            "ref": "authors"
+          },
+          "field": "author",
+          "value": 1
+        },
+        {
+          "name": "born",
+          "op": "join",
+          "left": {
+            "ref": "inorder"
+          },
+          "right": {
+            "ref": "scan"
+          },
+          "left_on": "_vid"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "young"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~812ebf": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "born",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "authors"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "birthday"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "young"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~86db83": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "born",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "authors"
+          },
+          "props": [
+            "birthday"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "yv",
+          "op": "pluck",
+          "rows": {
+            "ref": "young"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "prof",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "yv"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "prof"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~2f6660": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "born",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "authors"
+          },
+          "props": [
+            "birthday"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "yv",
+          "op": "pluck",
+          "rows": {
+            "ref": "young"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "prof",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "yv"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "prof"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~dc6ac4": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1d"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "reach",
+          "op": "dedup",
+          "items": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "reach"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msgd",
+          "op": "dedup",
+          "items": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgd"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pp",
+          "op": "filter_in",
+          "rows": {
+            "ref": "msgs"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "auth",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "src"
+        },
+        {
+          "name": "authors",
+          "op": "dedup",
+          "items": {
+            "ref": "auth"
+          }
+        },
+        {
+          "name": "born",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "authors"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "birthday"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "young",
+          "op": "filter",
+          "rows": {
+            "ref": "born"
+          },
+          "pred": {
+            "ge": [
+              {
+                "field": "birthday"
+              },
+              {
+                "lit": 473385600000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "young"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "fof_posters_profile_from_person_run(hand)": {
+      "sha": "bba7b07ed62e",
+      "requires": [
+        "label_rows_one_run",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "fof_posters_profile_from_person_run(hand)"
+      ]
+    },
+    "fof_posters_profile_from_person_run(hand)+probe": {
+      "sha": "dfd725764405",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "fof_posters_profile_from_person_run(hand)+probe"
+      ]
+    },
+    "hand+probe~812ebf": {
+      "sha": "812ebf8fdb78",
+      "requires": [],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand+probe~86db83": {
+      "sha": "86db83112422",
+      "requires": [],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~2f6660": {
+      "sha": "2f66607af77d",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~dc6ac4": {
+      "sha": "dc6ac43507a7",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=5.08
+# Q4. New topics
+#
+# Given a start Person with ID $personId, find Tags that are attached to Posts that were created by 
+# thatPerson’s friends. Only include Tags that were attached to friends’ Posts created within a given time
+# interval [$startDate, $startDate + $durationDays) (closed-open) and that were never attached
+# to friends’ Posts created before this interval.
+# 
+# Params:
+#   $personId   : int
+#   $startDate : string  (ISO-8601 UTC, inclusive lower bound)
+#   $endDate   : string  (ISO-8601 UTC, exclusive upper bound)
+# result
+# 1 tag.name Long String R
+# 2 postCount 32-bit Integer A Number of Posts made within the given time interval that have tag
+# sort 
+# 1 postCount ↓
+# 2 tag.name ↑
+# limit 10
+
+# Find tags used by friends in the window
+MATCH (start:Person)-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(p1:Post)-[:HAS_TAG]->(t:`Tag`)
+WHERE id(start) == $personId 
+  AND id(friend) != $personId
+  AND p1.Post.creationDate >= $startDate
+  AND p1.Post.creationDate < ($endDate)
+
+WITH start, t, COUNT(DISTINCT p1) AS postCount
+
+# Find old posts with this tag (no WHERE in OPTIONAL MATCH)
+OPTIONAL MATCH (start)-[:KNOWS]-(friend2:Person)<-[:HAS_CREATOR]-(p0:Post)-[:HAS_TAG]->(t)
+
+# Filter using CASE in aggregation
+WITH t, postCount, 
+     COUNT(DISTINCT CASE 
+       WHEN id(friend2) != $personId AND p0.Post.creationDate < $startDate 
+       THEN p0 
+       ELSE NULL 
+     END) AS oldCount
+
+WHERE oldCount == 0
+
+RETURN t.`Tag`.name AS tagName, postCount
+ORDER BY postCount DESC, tagName ASC
+LIMIT 10;

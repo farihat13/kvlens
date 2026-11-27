@@ -1,0 +1,512 @@
+{
+  "plan": "ic6",
+  "question": "Given a person and a tag, find the 10 tags that most often appear together with it on posts by friends and friends of friends.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "tagName": {}
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "index_eq+filter_index": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f12",
+          "op": "concat",
+          "a": {
+            "ref": "f1"
+          },
+          "b": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "fd",
+          "op": "dedup",
+          "items": {
+            "ref": "f12"
+          }
+        },
+        {
+          "name": "f",
+          "op": "exclude",
+          "items": {
+            "ref": "fd"
+          },
+          "remove": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagName"
+          }
+        },
+        {
+          "name": "tag_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "fm_tagged",
+          "op": "intersect",
+          "items": {
+            "ref": "fmsgs"
+          },
+          "other": {
+            "ref": "tag_msgs"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "fm_tagged"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "alltags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "cotags",
+          "op": "exclude",
+          "items": {
+            "ref": "alltags"
+          },
+          "remove": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "counts",
+          "op": "group_count",
+          "items": {
+            "ref": "cotags"
+          }
+        },
+        {
+          "name": "cand_tags",
+          "op": "top_k",
+          "rows": {
+            "ref": "counts"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ]
+          ],
+          "k": 10,
+          "keep_ties": true
+        },
+        {
+          "name": "cand_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand_tags"
+          },
+          "field": "item"
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_vids"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "cand_tags"
+          },
+          "right": {
+            "ref": "tag_names"
+          },
+          "left_on": "item",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "top10"
+          },
+          "names": {
+            "name": "tagName",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "tagName",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "index_eq+filter_probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f12",
+          "op": "concat",
+          "a": {
+            "ref": "f1"
+          },
+          "b": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "fd",
+          "op": "dedup",
+          "items": {
+            "ref": "f12"
+          }
+        },
+        {
+          "name": "f",
+          "op": "exclude",
+          "items": {
+            "ref": "fd"
+          },
+          "remove": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tagName"
+          }
+        },
+        {
+          "name": "tag_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "fm_tagged",
+          "op": "intersect",
+          "items": {
+            "ref": "fmsgs"
+          },
+          "other": {
+            "ref": "tag_msgs"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "fm_tagged"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "alltags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "cotags",
+          "op": "exclude",
+          "items": {
+            "ref": "alltags"
+          },
+          "remove": {
+            "ref": "tag"
+          }
+        },
+        {
+          "name": "counts",
+          "op": "group_count",
+          "items": {
+            "ref": "cotags"
+          }
+        },
+        {
+          "name": "cand_tags",
+          "op": "top_k",
+          "rows": {
+            "ref": "counts"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ]
+          ],
+          "k": 10,
+          "keep_ties": true
+        },
+        {
+          "name": "cand_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand_tags"
+          },
+          "field": "item"
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_vids"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "cand_tags"
+          },
+          "right": {
+            "ref": "tag_names"
+          },
+          "left_on": "item",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "named"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "top10"
+          },
+          "names": {
+            "name": "tagName",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "tagName",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "index_eq+filter_index": {
+      "sha": "fd09c24ad4f7",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "index_eq+filter_index"
+      ]
+    },
+    "index_eq+filter_probe": {
+      "sha": "f73d6b9e0801",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "index_eq+filter_probe"
+      ]
+    }
+  }
+}

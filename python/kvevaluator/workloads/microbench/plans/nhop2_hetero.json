@@ -1,0 +1,90 @@
+{
+  "plan": "nhop2_hetero",
+  "question": "Given a person, find the distinct tags on the messages they created.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "tg",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "md"
+          },
+          "etype": "hasTag",
+          "dir": "out"
+        },
+        {
+          "name": "out",
+          "op": "dedup",
+          "items": {
+            "ref": "tg"
+          }
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "641bfa356849",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

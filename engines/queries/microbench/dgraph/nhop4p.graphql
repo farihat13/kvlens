@@ -1,0 +1,36 @@
+# nhop4p -- the depth-4 knows frontier (as nhop4) with id, firstName, lastName per person.
+# Reads: nhop4's postings, then 3 props per frontier person.
+# Evaluator: queries/nhop.py _nhop(4, props=True) -> read id/firstName/lastName -> sort by id
+#   in RAM -> one row per person.
+# Not ordered here: the evaluator's sort is an in-memory ordering of the same set; Dgraph's
+#   orderasc: id would walk the shared `id` int index and cap at 1000 rows without first:.
+# mb2 lineage: MB42 / MB54 (props at the last level).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  h0 as var(func: eq(id, $personId)) @filter(type(person)) {
+    f1 as knows
+    r1 as ~knows
+  }
+  h1 as var(func: uid(f1, r1)) @filter(NOT uid(h0)) {
+    f2 as knows
+    r2 as ~knows
+  }
+  h2 as var(func: uid(f2, r2)) @filter(NOT uid(h0, h1)) {
+    f3 as knows
+    r3 as ~knows
+  }
+  h3 as var(func: uid(f3, r3)) @filter(NOT uid(h0, h1, h2)) {
+    f4 as knows
+    r4 as ~knows
+  }
+  h4 as var(func: uid(f4, r4)) @filter(NOT uid(h0, h1, h2, h3))
+  result(func: uid(h4)) {
+    id
+    firstName
+    lastName
+  }
+}

@@ -1,0 +1,6 @@
+personId|country|tagClass|knowsDegree|stratum
+30786325578585|Belarus|Politician|373|deg-p100-13+p50-class-p50-country
+28587302325648|Belarus|OfficeHolder|63|deg-p90+p90-class-p50-country
+985|China|Politician|16|deg-p50+p50-class-max-country
+985|China|OfficeHolder|16|deg-p50+p90-class-max-country
+32985348836419|China|Country|2|deg-p10+max-class-max-country

@@ -1,0 +1,25 @@
+{
+  "name": "writes",
+  "order": 3,
+  "title": "the write primitives and LDBC's updates (IU1-8)",
+  "dataset": "ldbc",
+  "kind": "write",
+  "pick_params": "none",
+  "plan_dirs": [
+    "writes/microbench/plans",
+    "writes/ldbc/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ],
+  "predict_gate": {
+    "about": "predict mode's exact gate (run/predict-gate.sh): the cell only the write requests run on (its spec dir under inputs/specs/: the write card's own placement, an insert's edge-prop ordinal and chunk; the read card refuses edge props in own chunks), and the write rules no request reaches, each with why",
+    "own_cell": "props_chunked_adj_chunked_own",
+    "own_spec_dir": "grid_chunked_own",
+    "known_untested": {
+      "delete_vertex.self_loop": "LDBC holds no knows edge from a person to itself, and no write plan makes one"
+    }
+  }
+}

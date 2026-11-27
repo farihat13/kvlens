@@ -1,0 +1,11 @@
+# w_del_v_record -- delete one person: every predicate of the node (an S * * delete).
+# Writes: a tombstone SET per predicate the node holds and per index or reverse posting they touch, so its count
+#   grows with the person's degree (Dgraph has no KV delete: a delete is a SET).
+# Evaluator: workloads/writes/microbench/queries.py w_del_v_record (the record only) and w_del_v (with its edges);
+#   write_fidelity.py compares Dgraph's against w_del_v, by range.
+# mb2 lineage: MB87 (same upsert; it found the person by fqid).
+# Anchor: as w_upd_plain (eq(id, ...) with type(person)). A text template.
+{
+  "query": "{ v as var(func: eq(id, $person)) @filter(type(person)) }",
+  "delete": { "uid": "uid(v)" }
+}

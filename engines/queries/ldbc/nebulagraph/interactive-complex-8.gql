@@ -1,0 +1,33 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=9.08
+# Q8. Recent replies
+# 
+# Given a start Person with ID $personId, find the most recent Comments that are replies to 
+# Messagesof the start Person. Only consider direct (single-hop) replies, not the transitive (multi-hop) ones.
+# Return the reply Comments, and the Person that created each reply Comment.
+#
+# Param: $personId : int  (personId)
+# result
+# 1 commentAuthor.id ID R
+# 2 commentAuthor.firstName String R
+# 3 commentAuthor.lastName String R
+# 4 comment.creationDate DateTime R
+# 5 comment.id ID R
+# 6 comment.content Text R
+# sort 
+# 1 comment.creationDate ↓
+# 2 comment.id ↑
+# limit 20
+
+MATCH
+  (start:Person)<-[:HAS_CREATOR]-(m)<-[:REPLY_OF]-(comment:`Comment`)-[:HAS_CREATOR]->(person:Person)
+WHERE id(start) == $personId
+RETURN
+  id(person) AS personId,
+  person.Person.firstName AS personFirstName,
+  person.Person.lastName AS personLastName,
+  comment.`Comment`.creationDate AS commentCreationDate,
+  id(comment) AS commentId,
+  comment.`Comment`.content AS commentContent,
+  toInteger(split(tostring(id(comment)), "_")[1]) AS commentIdInt
+ORDER BY commentCreationDate DESC, commentIdInt ASC
+LIMIT 20

@@ -1,0 +1,160 @@
+{
+ "query": "job12a",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "it1": "info_type",
+  "it2": "info_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "info_type_id",
+   "it1",
+   "id"
+  ],
+  [
+   "mi_idx",
+   "info_type_id",
+   "it2",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "genres"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "rating"
+   ]
+  ],
+  "mc": [],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Drama",
+     "Horror"
+    ]
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    ">",
+    "mi_idx",
+    "info",
+    "8.0"
+   ]
+  ],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    2005,
+    2008
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_company",
+   "cn",
+   "name"
+  ],
+  [
+   "rating",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "drama_horror_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

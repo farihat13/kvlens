@@ -1,0 +1,88 @@
+{
+  "name": "interactive",
+  "order": 1,
+  "title": "LDBC SNB Interactive: the complex (IC) and short (IS) reads",
+  "dataset": "ldbc",
+  "kind": "read",
+  "pick_params": "held-out",
+  "params_module": "kvevaluator.datasets.ldbc.params",
+  "plan_dirs": [
+    "interactive/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ],
+  "label_only_dir": "interactive/plans/label_only",
+  "queries": [
+    "ic1",
+    "ic2",
+    "ic3",
+    "ic4",
+    "ic5",
+    "ic6",
+    "ic7",
+    "ic8",
+    "ic9",
+    "ic10",
+    "ic11",
+    "ic12",
+    "is1",
+    "is2",
+    "is3",
+    "is4",
+    "is5",
+    "is6",
+    "is7"
+  ],
+  "params_like": {
+    "is1": "ic1",
+    "is2": "ic1",
+    "is3": "ic1",
+    "fof": "ic1",
+    "friends": "ic1",
+    "knows": "ic1",
+    "profile_multiget": "ic1",
+    "network_profile_digest": "ic1",
+    "full_profile_page": "ic1",
+    "liker_digest": "ic1",
+    "reply_thread_render": "is7"
+  },
+  "capped": {
+    "is2": "is2_capped",
+    "is6": "is6_capped",
+    "ic12": "ic12_capped"
+  },
+  "predict_gate": {
+    "about": "predict mode's exact gate (run/predict-gate.sh) on this workload: the bodies the picks never run, on the uniform cells at param 1; the queries run again with label tags off (a control); the queries run at params 1-5 on every cell (the list reads need them); the rules no request reaches, each with why",
+    "bodies": [
+      "ic10@ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_deferred)",
+      "ic10@ic10_interest_lists(filter_probe+fetch_deferred)",
+      "ic4@filter_probe",
+      "ic12@filter_probe+index_eq",
+      "ic6@index_eq+filter_probe",
+      "is7@edge_probe_out"
+    ],
+    "untagged": [
+      "ic10@ic10_interest_lists(filter_probe+fetch_deferred)",
+      "ic4@filter_probe",
+      "ic12@filter_probe+index_eq",
+      "ic6@index_eq+filter_probe",
+      "is4",
+      "is2",
+      "ic1",
+      "ic8",
+      "ic3"
+    ],
+    "edge_check": [
+      "is7",
+      "is7@edge_probe_out"
+    ],
+    "known_untested": {
+      "by_id.candidates": "no LDBC plan reads a vertex by a candidate vid list",
+      "hop.direction_dropped_by_owner_label": "no plan hops both ways on an edge type whose owner label lacks one direction",
+      "index_walk.empty": "no plan walks an index range that holds nothing (the fixtures' windows all hit)"
+    }
+  }
+}

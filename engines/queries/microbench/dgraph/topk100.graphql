@@ -1,0 +1,24 @@
+# topk100 -- the 100 newest messages (posts + comments) created before maxDate (NS7).
+# Reads: the creationDate day index below maxDate (root), the post/comment type postings,
+#   the index walk for the sort (exact ms of crossed candidates; id for the tie-break), then
+#   id, creationDate, content of the 100 winners.
+# Evaluator: queries/topk.py _topk_dgraph(100) -- two type postings as candidates +
+#   read_top_k_by_index(creationDate, k=100, hi=maxDate exclusive), ties by id asc -> 100 rows.
+# The date is the root function so Dgraph can use its index for the bound; the index is
+#   per-predicate, so the type filter is part of the question. orderasc: id is the evaluator's
+#   tie-break (it decides WHICH messages make the cut when dates tie).
+# Measured engine behaviour: Dgraph scans the root range as its own pass (every day token
+#   below maxDate), then walks the index again for the sort, and its secondary sort key
+#   reads `id` for EVERY candidate, not just the tie group (~848k GETs at maxDate=all).
+#   Without orderasc: id the GETs drop to ~32; no sf0.3 param has a date tie at the k-th row,
+#   so the answer set is the same either way.
+# mb2 lineage: MB47-48, 147 (persons, not messages; no maxDate bound).
+# answer-path: result
+query q($maxDate: string) {
+  result(func: lt(creationDate, $maxDate), orderdesc: creationDate, orderasc: id, first: 100)
+      @filter(type(post) OR type(comment)) {
+    id
+    creationDate
+    content
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "plan": "profile_multiget",
+  "question": "Given a person, read the full profile (eight properties) of each of their friends, in id order.",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "profile_multiget": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "fr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "fvids",
+          "op": "dedup",
+          "items": {
+            "ref": "fr"
+          }
+        },
+        {
+          "name": "props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fvids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "props"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "profile_multiget": {
+      "sha": "019c4e906220",
+      "requires": [],
+      "sources": [
+        "profile_multiget"
+      ]
+    }
+  }
+}

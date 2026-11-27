@@ -1,0 +1,37 @@
+# fof_posters_profile -- people 2 knows-hops away who wrote at least one Post, born on or after
+#   1985-01-01, with id, firstName, lastName.
+# Reads: knows/~knows of the anchor and of each friend; ~hasCreator per reached person with the
+#   type(post) check (typefilterpath=index: the post type posting once); birthday per author;
+#   id/firstName/lastName per young author.
+# Evaluator: queries/split.py fof_posters_profile (dgraph's two-phase shape) -- reach =
+#   neighbors of neighbors (the anchor and friends included, no exclusion), their messages
+#   (person, message) pairs -> Posts -> authors -> birthday per author -> filter >=
+#   BIRTHDAY_CUTOFF (473385600000 = 1985-01-01T00:00:00Z) -> 3 props per survivor -> 1 row each.
+# Authors are found by counting each person's posts (the pairs read: no per-post hasCreator
+#   re-read). The birthday filter is its own block so birthday is read for authors only, as
+#   in the shape (a single AND filter would read it for every reached person).
+# mb2 lineage: none (new shape).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  var(func: eq(id, $personId)) @filter(type(person)) {
+    f1 as knows
+    r1 as ~knows
+  }
+  var(func: uid(f1, r1)) {
+    f2 as knows
+    r2 as ~knows
+  }
+  var(func: uid(f2, r2)) {
+    nposts as count(~hasCreator @filter(type(post)))
+  }
+  authors as var(func: uid(f2, r2)) @filter(gt(val(nposts), 0))
+  result(func: uid(authors)) @filter(ge(birthday, "1985-01-01T00:00:00Z")) {
+    id
+    firstName
+    lastName
+  }
+}

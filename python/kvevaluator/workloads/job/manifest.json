@@ -1,0 +1,18 @@
+{
+  "name": "job",
+  "order": 6,
+  "title": "the Join Order Benchmark's 113 queries",
+  "dataset": "imdb",
+  "kind": "read",
+  "pick_params": "in-sample",
+  "plan_dirs": [
+    "job/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ],
+  "study_dir": "job-cells",
+  "data_step": "kvevaluator.workloads.job.ensure"
+}

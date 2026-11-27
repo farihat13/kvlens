@@ -1,0 +1,9 @@
+{
+ "_comment": "What each step of an IMDb fetch takes (kvevaluator.datasets.imdb.fetch plan): its disk bytes as measured on the data dir, and its seconds as recorded in python/kvevaluator/workloads/job/README.md (fetch 57 s, build_tables 55 s full and 4 s sample1pct; another run of the tables: 37 s and 4 s). The download's size is the pin's (pins.json).",
+ "date": "2026-10-12",
+ "steps": {
+  "download": {"disk_bytes": 5143941040, "seconds": 57},
+  "tables full": {"disk_bytes": 6353713546, "seconds": 55},
+  "tables sample1pct": {"disk_bytes": 830560886, "seconds": 4}
+ }
+}

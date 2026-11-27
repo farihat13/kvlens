@@ -1,0 +1,25 @@
+// microbench topk100: the 100 newest messages created before maxDate (NS7), with id,
+// creationDate and content.
+// Reads: the Post.creationDate and Comment.creationDate persistent indexes, newest-first,
+// and the documents of the entries crossed (content lives in the document).
+// Evaluator: queries/topk.py _topk_rowwalk(100) -- read_top_k_by_index over both per-collection
+// date indexes (merged, stops at k), 100 rows. maxDate is exclusive, as in the evaluator.
+// AQL has no merged walk over two collections, so each collection gives its own top 100 and the
+// union is re-ranked (ties on creationDate broken by id, as in the evaluator).
+// mb2 lineage: MB47-48, 147 (no arango text in mb2).
+LET posts = (
+    FOR p IN Post
+        FILTER p.creationDate < @maxDate
+        SORT p.creationDate DESC
+        LIMIT 100
+        RETURN {id: TO_NUMBER(p._key), creationDate: p.creationDate, content: p.content})
+LET comments = (
+    FOR c IN Comment
+        FILTER c.creationDate < @maxDate
+        SORT c.creationDate DESC
+        LIMIT 100
+        RETURN {id: TO_NUMBER(c._key), creationDate: c.creationDate, content: c.content})
+FOR m IN UNION(posts, comments)
+    SORT m.creationDate DESC, m.id ASC
+    LIMIT 100
+    RETURN m

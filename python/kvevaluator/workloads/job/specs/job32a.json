@@ -1,0 +1,82 @@
+{
+ "query": "job32a",
+ "aliases": {
+  "k": "keyword",
+  "lt": "link_type",
+  "mk": "movie_keyword",
+  "ml": "movie_link",
+  "t1": "title",
+  "t2": "title"
+ },
+ "joins": [
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "t1",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "t1",
+   "id"
+  ],
+  [
+   "ml",
+   "linked_movie_id",
+   "t2",
+   "id"
+  ],
+  [
+   "lt",
+   "id",
+   "ml",
+   "link_type_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "t1",
+   "id"
+  ]
+ ],
+ "predicates": {
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "10,000-mile-club"
+   ]
+  ],
+  "lt": [],
+  "mk": [],
+  "ml": [],
+  "t1": [],
+  "t2": []
+ },
+ "outputs": [
+  [
+   "link_type",
+   "lt",
+   "link"
+  ],
+  [
+   "first_movie",
+   "t1",
+   "title"
+  ],
+  [
+   "second_movie",
+   "t2",
+   "title"
+  ]
+ ]
+}

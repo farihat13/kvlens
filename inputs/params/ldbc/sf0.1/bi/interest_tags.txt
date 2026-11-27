@@ -1,0 +1,6 @@
+tag|interested|pairs|stratum
+Jerry_Lewis|17|164|p50
+Otto_von_Bismarck|30|368|p75
+H._G._Wells|46|1472|p90
+Pope_John_Paul_II|110|7462|p99
+Augustine_of_Hippo|173|21606|max

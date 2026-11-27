@@ -1,0 +1,2180 @@
+{
+ "plan": "job8d",
+ "question": "Join Order Benchmark query 8d: join 7 IMDb tables (aka_name, cast_info, company_name, movie_companies, name, role_type, title) on 8 join conditions, keep the rows that pass 2 filters, and return the smallest value of each of its 2 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_cn_by_index"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_cn_by_index": {
+   "steps": [
+    {
+     "name": "s01_cn_ix",
+     "op": "read_index_eq",
+     "label": "Company",
+     "prop": "country_code",
+     "value": "[us]"
+    },
+    {
+     "name": "s02_cn_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_cn_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_rows"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s12_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_ci_cast_costume_designer"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_ci_src_col"
+     }
+    },
+    {
+     "name": "s14_an1_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_ci_src_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_an1_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_an1_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_an1_col"
+     }
+    },
+    {
+     "name": "s17_an1_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s18_an1_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_an1_back_col"
+     }
+    },
+    {
+     "name": "s19_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_ci_cast_costume_designer"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_an1_back_set"
+     }
+    },
+    {
+     "name": "s20_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s21_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_ci_back_col"
+     }
+    },
+    {
+     "name": "s22_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s21_ci_back_set"
+     }
+    },
+    {
+     "name": "s23_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s24_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_mc_back_col"
+     }
+    },
+    {
+     "name": "s25_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s24_mc_back_set"
+     }
+    },
+    {
+     "name": "s26_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s27_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s28_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s27_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s29_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s31_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s19_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s30_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s32_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s33_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s34_an1_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s33_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s35_an1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_an1_final"
+     }
+    },
+    {
+     "name": "s36_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s31_ci_final"
+     }
+    },
+    {
+     "name": "s37_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s25_cn_cut"
+     }
+    },
+    {
+     "name": "s38_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s28_mc_final"
+     }
+    },
+    {
+     "name": "s39_n1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s33_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s40_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s30_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s41_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s42_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s41_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s43_an1_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_an1_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_an1_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_an1_out_col"
+     }
+    },
+    {
+     "name": "s45_an1_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s44_an1_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s46_costume_designer_pseudo_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s45_an1_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s47_costume_designer_pseudo_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s46_costume_designer_pseudo_some"
+     },
+     "by": [],
+     "aggs": {
+      "costume_designer_pseudo": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s48_costume_designer_pseudo_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s47_costume_designer_pseudo_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s49_costume_designer_pseudo_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s42_base"
+     },
+     "right": {
+      "ref": "s48_costume_designer_pseudo_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "costume_designer_pseudo": null
+     }
+    },
+    {
+     "name": "s50_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s30_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s51_movie_with_costumes_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s50_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s52_movie_with_costumes_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s51_movie_with_costumes_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_with_costumes": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s53_movie_with_costumes_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s52_movie_with_costumes_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s54_movie_with_costumes_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s49_costume_designer_pseudo_in"
+     },
+     "right": {
+      "ref": "s53_movie_with_costumes_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_with_costumes": null
+     }
+    },
+    {
+     "name": "s55_an1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s35_an1_final_n"
+     },
+     "field": "rows_an1"
+    },
+    {
+     "name": "s56_an1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s55_an1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s57_an1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_movie_with_costumes_in"
+     },
+     "right": {
+      "ref": "s56_an1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s58_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s36_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s59_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s58_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s60_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s57_an1_n_in"
+     },
+     "right": {
+      "ref": "s59_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s61_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s37_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s62_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s61_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s63_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s60_ci_n_in"
+     },
+     "right": {
+      "ref": "s62_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s64_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s38_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s65_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_cn_n_in"
+     },
+     "right": {
+      "ref": "s65_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s67_n1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s39_n1_final_n"
+     },
+     "field": "rows_n1"
+    },
+    {
+     "name": "s68_n1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s67_n1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s69_n1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_mc_n_in"
+     },
+     "right": {
+      "ref": "s68_n1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s70_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s40_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s71_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s69_n1_n_in"
+     },
+     "right": {
+      "ref": "s71_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s72_t_n_in"
+     },
+     "fields": [
+      "costume_designer_pseudo",
+      "movie_with_costumes",
+      "rows_an1",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n1",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_scan": {
+   "steps": [
+    {
+     "name": "s01_cn_scan",
+     "op": "read_vertices_by_label",
+     "label": "Company"
+    },
+    {
+     "name": "s02_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_cn_scan"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s03_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_cn_keep"
+     }
+    },
+    {
+     "name": "s05_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_cn_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s09_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s08_mc_company_production"
+     }
+    },
+    {
+     "name": "s10_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_src_col"
+     }
+    },
+    {
+     "name": "s12_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_mc_src_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s13_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s12_ci_cast_costume_designer"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s14_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s13_ci_src_col"
+     }
+    },
+    {
+     "name": "s15_an1_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s14_ci_src_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s16_an1_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_an1_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s17_an1_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_an1_col"
+     }
+    },
+    {
+     "name": "s18_an1_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_an1_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s19_an1_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_an1_back_col"
+     }
+    },
+    {
+     "name": "s20_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s12_ci_cast_costume_designer"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_an1_back_set"
+     }
+    },
+    {
+     "name": "s21_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s22_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_ci_back_col"
+     }
+    },
+    {
+     "name": "s23_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s22_ci_back_set"
+     }
+    },
+    {
+     "name": "s24_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s25_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_mc_back_col"
+     }
+    },
+    {
+     "name": "s26_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s25_mc_back_set"
+     }
+    },
+    {
+     "name": "s27_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s28_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s29_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s23_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s28_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s30_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s29_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s31_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s30_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s32_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s31_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s33_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s32_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s34_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s35_an1_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_an1_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s34_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s36_an1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_an1_final"
+     }
+    },
+    {
+     "name": "s37_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s32_ci_final"
+     }
+    },
+    {
+     "name": "s38_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s26_cn_cut"
+     }
+    },
+    {
+     "name": "s39_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s29_mc_final"
+     }
+    },
+    {
+     "name": "s40_n1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s41_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s31_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s42_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s43_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s42_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s44_an1_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_an1_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s45_an1_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_an1_out_col"
+     }
+    },
+    {
+     "name": "s46_an1_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s45_an1_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s47_costume_designer_pseudo_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s46_an1_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s48_costume_designer_pseudo_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s47_costume_designer_pseudo_some"
+     },
+     "by": [],
+     "aggs": {
+      "costume_designer_pseudo": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s49_costume_designer_pseudo_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s48_costume_designer_pseudo_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s50_costume_designer_pseudo_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s43_base"
+     },
+     "right": {
+      "ref": "s49_costume_designer_pseudo_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "costume_designer_pseudo": null
+     }
+    },
+    {
+     "name": "s51_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s31_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s52_movie_with_costumes_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s51_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s53_movie_with_costumes_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s52_movie_with_costumes_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_with_costumes": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s54_movie_with_costumes_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s53_movie_with_costumes_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s55_movie_with_costumes_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s50_costume_designer_pseudo_in"
+     },
+     "right": {
+      "ref": "s54_movie_with_costumes_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_with_costumes": null
+     }
+    },
+    {
+     "name": "s56_an1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s36_an1_final_n"
+     },
+     "field": "rows_an1"
+    },
+    {
+     "name": "s57_an1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s56_an1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s58_an1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s55_movie_with_costumes_in"
+     },
+     "right": {
+      "ref": "s57_an1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s59_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s37_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s60_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s59_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s61_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s58_an1_n_in"
+     },
+     "right": {
+      "ref": "s60_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s62_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s38_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s63_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s61_ci_n_in"
+     },
+     "right": {
+      "ref": "s63_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s65_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s39_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s66_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_cn_n_in"
+     },
+     "right": {
+      "ref": "s66_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s68_n1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s40_n1_final_n"
+     },
+     "field": "rows_n1"
+    },
+    {
+     "name": "s69_n1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s68_n1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s70_n1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_mc_n_in"
+     },
+     "right": {
+      "ref": "s69_n1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s71_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s41_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s72_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s71_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s73_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_n1_n_in"
+     },
+     "right": {
+      "ref": "s72_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s73_t_n_in"
+     },
+     "fields": [
+      "costume_designer_pseudo",
+      "movie_with_costumes",
+      "rows_an1",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n1",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_cn_run",
+     "op": "read_vertices_by_label",
+     "label": "Company",
+     "props": [
+      "country_code"
+     ]
+    },
+    {
+     "name": "s02_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_cn_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_keep"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s12_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_ci_cast_costume_designer"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_ci_src_col"
+     }
+    },
+    {
+     "name": "s14_an1_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_ci_src_set"
+     },
+     "etype": "aka_name_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_an1_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_an1_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_an1_col"
+     }
+    },
+    {
+     "name": "s17_an1_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s18_an1_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_an1_back_col"
+     }
+    },
+    {
+     "name": "s19_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_ci_cast_costume_designer"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_an1_back_set"
+     }
+    },
+    {
+     "name": "s20_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s21_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_ci_back_col"
+     }
+    },
+    {
+     "name": "s22_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s21_ci_back_set"
+     }
+    },
+    {
+     "name": "s23_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s24_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_mc_back_col"
+     }
+    },
+    {
+     "name": "s25_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s24_mc_back_set"
+     }
+    },
+    {
+     "name": "s26_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s27_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s28_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s27_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s29_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s28_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s30_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s29_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s31_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s19_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s30_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s32_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s33_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s34_an1_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_an1_of"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s33_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s35_an1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s34_an1_final"
+     }
+    },
+    {
+     "name": "s36_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s31_ci_final"
+     }
+    },
+    {
+     "name": "s37_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s25_cn_cut"
+     }
+    },
+    {
+     "name": "s38_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s28_mc_final"
+     }
+    },
+    {
+     "name": "s39_n1_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s33_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s40_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s30_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s41_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s42_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s41_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s43_an1_out_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_an1_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_an1_out_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_an1_out_col"
+     }
+    },
+    {
+     "name": "s45_an1_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s44_an1_out_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "AkaName"
+    },
+    {
+     "name": "s46_costume_designer_pseudo_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s45_an1_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s47_costume_designer_pseudo_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s46_costume_designer_pseudo_some"
+     },
+     "by": [],
+     "aggs": {
+      "costume_designer_pseudo": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s48_costume_designer_pseudo_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s47_costume_designer_pseudo_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s49_costume_designer_pseudo_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s42_base"
+     },
+     "right": {
+      "ref": "s48_costume_designer_pseudo_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "costume_designer_pseudo": null
+     }
+    },
+    {
+     "name": "s50_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s30_mc_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s51_movie_with_costumes_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s50_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s52_movie_with_costumes_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s51_movie_with_costumes_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_with_costumes": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s53_movie_with_costumes_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s52_movie_with_costumes_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s54_movie_with_costumes_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s49_costume_designer_pseudo_in"
+     },
+     "right": {
+      "ref": "s53_movie_with_costumes_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_with_costumes": null
+     }
+    },
+    {
+     "name": "s55_an1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s35_an1_final_n"
+     },
+     "field": "rows_an1"
+    },
+    {
+     "name": "s56_an1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s55_an1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s57_an1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_movie_with_costumes_in"
+     },
+     "right": {
+      "ref": "s56_an1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s58_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s36_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s59_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s58_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s60_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s57_an1_n_in"
+     },
+     "right": {
+      "ref": "s59_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s61_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s37_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s62_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s61_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s63_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s60_ci_n_in"
+     },
+     "right": {
+      "ref": "s62_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s64_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s38_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s65_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s64_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s66_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_cn_n_in"
+     },
+     "right": {
+      "ref": "s65_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s67_n1_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s39_n1_final_n"
+     },
+     "field": "rows_n1"
+    },
+    {
+     "name": "s68_n1_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s67_n1_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s69_n1_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s66_mc_n_in"
+     },
+     "right": {
+      "ref": "s68_n1_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s70_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s40_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s71_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s69_n1_n_in"
+     },
+     "right": {
+      "ref": "s71_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s72_t_n_in"
+     },
+     "fields": [
+      "costume_designer_pseudo",
+      "movie_with_costumes",
+      "rows_an1",
+      "rows_ci",
+      "rows_cn",
+      "rows_mc",
+      "rows_n1",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

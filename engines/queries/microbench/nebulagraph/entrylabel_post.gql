@@ -1,0 +1,7 @@
+# microbench entrylabel_post -- enumerate every Post (type enumeration).
+# Evaluator: queries/entry.py _entry_label("Post"): read_vertices_by_label -> dedup -> count.
+# Count-final: one row per Post, the vid only.
+# mb2 lineage: MB9-10, 19-20 (those enumerated Person).
+# Form: LOOKUP ON Post, a full scan of the Post tag index. The id(vertex) base-row GET per entry
+# applies here too (see entrylabel_person.gql).
+LOOKUP ON Post YIELD id(vertex) AS id

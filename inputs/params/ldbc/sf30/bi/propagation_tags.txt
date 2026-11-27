@@ -1,0 +1,6 @@
+tag|messages|stratum
+Sea_of_Cowards|2500|p50
+People_Are_Crazy|5015|p75
+Mel_Tormé|28990|p90
+India|73550|p99
+Augustine_of_Hippo|854225|max

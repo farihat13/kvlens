@@ -1,0 +1,7 @@
+# w_upd_indexed -- write one INDEXED property (firstName, person_first_name_idx) of one person.
+# Writes: the packed tag row read and rewritten, the old index entry out and the new one in, the tag's other
+#   index entry rewritten too, and a raft commit key.
+# Evaluator: workloads/writes/microbench/queries.py w_upd_indexed -- update_prop(me_vid, firstName).
+# mb2 lineage: MB82 (same statement).
+# Anchor: the vid, inlined (a text template), as w_upd_plain.
+UPDATE VERTEX ON `Person` "person_$person" SET firstName = "WUpd";

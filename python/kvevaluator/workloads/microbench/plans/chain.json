@@ -1,0 +1,86 @@
+{
+  "plan": "chain",
+  "question": "Given a message, follow its replyOf edges up to the original post and return that post's id.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "root",
+          "op": "read_chase",
+          "srcs": [
+            {
+              "let": "anchor_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "out",
+          "max_hops": null
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "root"
+          },
+          "props": [
+            "id"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "pr"
+          },
+          "fields": [
+            "id"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "7b8f9786fa37",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

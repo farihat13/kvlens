@@ -1,0 +1,53 @@
+{
+ "workload": "i01",
+ "sf": "3",
+ "root": "<data dir>/results/sf3/mix-benefit-20261029/sf3/layout-choice/wops_bytes4k",
+ "grouped_options": false,
+ "reference": "props_split_adj_condensed",
+ "picks": {
+  "2": {
+   "B": 2.0,
+   "fits": true,
+   "spec": "w16_b2_spco.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type and direction",
+    "assignment": "containerOf in-lists=split; containerOf out-lists=chunked; hasCreator in-lists=condensed; hasCreator out-lists=split; hasInterest out-lists=condensed; hasMember in-lists=condensed; hasMember out-lists=split; hasModerator in-lists=split; hasModerator out-lists=split; hasTag in-lists=condensed; hasTag out-lists=chunked; hasType in-lists=condensed; isLocatedIn in-lists=condensed; isLocatedIn out-lists=chunked; isPartOf out-lists=chunked; isSubclassOf in-lists=condensed; knows in-lists=condensed; knows out-lists=condensed; likes in-lists=split; likes out-lists=split; replyOf in-lists=condensed; replyOf out-lists=condensed; studyAt out-lists=chunked; workAt out-lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 206390165.578,
+    "bytes": 179980490748.2,
+    "ops_vs_ref": 0.521525633558453,
+    "bytes_vs_ref": 1.9940743881013818,
+    "source": "options.csv"
+   },
+   "best_without_direction": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=condensed; hasInterest lists=condensed; hasMember lists=condensed; hasModerator lists=split; hasTag lists=chunked; hasType lists=condensed; isLocatedIn lists=condensed; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=condensed; likes lists=split; replyOf lists=condensed; studyAt lists=condensed; workAt lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=split; Person props=condensed; Place props=split; Tag props=chunked",
+    "ops": 220933787.608,
+    "bytes": 180329890956.2,
+    "ops_vs_ref": 0.5582757939751999,
+    "bytes_vs_ref": 1.9979455299294417,
+    "fits": true,
+    "ops_x_pick": 1.070466642580911,
+    "within_10pct": true
+   },
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_condensed",
+    "fits": true,
+    "ops": 386834747.492,
+    "bytes": 88367279638.2,
+    "ops_vs_ref": 0.9774895824285064,
+    "bytes_vs_ref": 0.9790557206517098
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_split_adj_condensed",
+    "ops": 395743089.692,
+    "bytes": 90257661310.0
+   }
+  }
+ },
+ "specs": [
+  "w16_b2_spco"
+ ]
+}

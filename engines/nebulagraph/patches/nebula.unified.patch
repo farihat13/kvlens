@@ -1,0 +1,2654 @@
+diff --git nebulagraph/nebula/CMakeLists.txt nebulagraph/nebula/CMakeLists.txt
+index 6fdb7b827..b78565162 100644
+--- nebulagraph/nebula/CMakeLists.txt
++++ nebulagraph/nebula/CMakeLists.txt
+@@ -30,6 +30,28 @@ option(ENABLE_PACKAGE_TAR "Enable package artifacts to tar." OFF)
+ option(ENABLE_CREATE_GIT_HOOKS "Enable create git hooks." ON)
+ option(ENABLE_INCLUDE_WHAT_YOU_USE "Enable include-what-you-use find  nouse include files" OFF)
+ 
++option(ENABLE_QUERY_PLAN_DEBUG "Enable query plan debug logging" OFF)
++if(ENABLE_QUERY_PLAN_DEBUG)
++    add_definitions(-DQUERY_PLAN_DEBUG)
++endif()
++option(ENABLE_KV_STATS "Enable cumulative KV operation counters and /kvstats endpoint" OFF)
++if(ENABLE_KV_STATS)
++    add_definitions(-DKV_STATS)
++endif()
++
++option(ENABLE_KV_PROFILE "Enable per-request kvstore time tracking in storage exec nodes" OFF)
++if(ENABLE_KV_PROFILE)
++    add_definitions(-DKV_PROFILE)
++endif()
++
++option(ENABLE_KV_HISTOGRAMS "Enable KV operation histograms (requires ENABLE_KV_STATS)" OFF)
++if(ENABLE_KV_HISTOGRAMS)
++    if(NOT ENABLE_KV_STATS)
++        message(FATAL_ERROR "ENABLE_KV_HISTOGRAMS requires ENABLE_KV_STATS")
++    endif()
++    add_definitions(-DKV_HISTOGRAMS)
++endif()
++
+ add_definitions(-DNEBULA_HOME=${CMAKE_SOURCE_DIR})
+ 
+ if(ENABLE_STANDALONE_VERSION)
+diff --git nebulagraph/nebula/src/graph/executor/query/TraverseExecutor.cpp nebulagraph/nebula/src/graph/executor/query/TraverseExecutor.cpp
+index 0ced0963f..b85d4dc80 100644
+--- nebulagraph/nebula/src/graph/executor/query/TraverseExecutor.cpp
++++ nebulagraph/nebula/src/graph/executor/query/TraverseExecutor.cpp
+@@ -45,6 +45,7 @@ Status TraverseExecutor::buildRequestVids() {
+ 
+   bool mv = movable(traverse_->inputVars().front());
+   if (traverse_->trackPrevPath()) {
++    // Build list of vertexID to previous paths
+     for (; iter->valid(); iter->next()) {
+       const auto& vid = src->eval(ctx(iter));
+       auto prevPath = mv ? iter->moveRow() : *iter->row();
+@@ -60,6 +61,7 @@ Status TraverseExecutor::buildRequestVids() {
+     const auto& spaceInfo = qctx()->rctx()->session()->space();
+     const auto& metaVidType = *(spaceInfo.spaceDesc.vid_type_ref());
+     auto vidType = SchemaUtil::propTypeToValueType(metaVidType.get_type());
++    // Build set of vertexID to visit
+     for (; iter->valid(); iter->next()) {
+       const auto& vid = src->eval(ctx(iter));
+       // FIXME(czp): Remove this DCHECK for now, we should check vid type at compile-time
+diff --git nebulagraph/nebula/src/graph/service/GraphFlags.cpp nebulagraph/nebula/src/graph/service/GraphFlags.cpp
+index 662d7a532..1265ec2a2 100644
+--- nebulagraph/nebula/src/graph/service/GraphFlags.cpp
++++ nebulagraph/nebula/src/graph/service/GraphFlags.cpp
+@@ -118,3 +118,4 @@ DEFINE_uint32(
+     "Background garbage clean workers, default number is 0 which means using hardware core size.");
+ 
+ DEFINE_bool(graph_use_vertex_key, false, "whether allow insert or query the vertex key");
++DEFINE_bool(print_best_plan, false, "Print the best execution plan in detail");
+diff --git nebulagraph/nebula/src/graph/service/GraphFlags.h nebulagraph/nebula/src/graph/service/GraphFlags.h
+index 871391131..94ee7f03f 100644
+--- nebulagraph/nebula/src/graph/service/GraphFlags.h
++++ nebulagraph/nebula/src/graph/service/GraphFlags.h
+@@ -73,5 +73,6 @@ DECLARE_bool(enable_async_gc);
+ DECLARE_uint32(gc_worker_size);
+ 
+ DECLARE_bool(graph_use_vertex_key);
++DECLARE_bool(print_best_plan);
+ 
+ #endif  // GRAPH_GRAPHFLAGS_H_
+diff --git nebulagraph/nebula/src/graph/service/QueryInstance.cpp nebulagraph/nebula/src/graph/service/QueryInstance.cpp
+index cc1f6cd45..e7968db5b 100644
+--- nebulagraph/nebula/src/graph/service/QueryInstance.cpp
++++ nebulagraph/nebula/src/graph/service/QueryInstance.cpp
+@@ -21,6 +21,7 @@
+ #include "parser/ExplainSentence.h"
+ #include "parser/Sentence.h"
+ #include "parser/SequentialSentences.h"
++#include <sstream> 
+ 
+ using nebula::opt::Optimizer;
+ using nebula::opt::OptRule;
+@@ -213,6 +214,7 @@ void QueryInstance::onError(Status status) {
+ 
+ void QueryInstance::addSlowQueryStats(uint64_t latency, const std::string &spaceName) const {
+   stats::StatsManager::addValue(kQueryLatencyUs, latency);
++  stats::StatsManager::addValue(kQueryLatencySumUs, latency);
+   if (FLAGS_enable_space_level_metrics && spaceName != "") {
+     stats::StatsManager::addValue(
+         stats::StatsManager::histoWithLabels(kQueryLatencyUs, {{"space", spaceName}}), latency);
+diff --git nebulagraph/nebula/src/graph/stats/GraphStats.cpp nebulagraph/nebula/src/graph/stats/GraphStats.cpp
+index 395f67f3f..88c854581 100644
+--- nebulagraph/nebula/src/graph/stats/GraphStats.cpp
++++ nebulagraph/nebula/src/graph/stats/GraphStats.cpp
+@@ -24,6 +24,7 @@ stats::CounterId kNumQueryErrors;
+ stats::CounterId kNumQueryErrorsLeaderChanges;
+ stats::CounterId kNumSentences;
+ stats::CounterId kQueryLatencyUs;
++stats::CounterId kQueryLatencySumUs;
+ stats::CounterId kSlowQueryLatencyUs;
+ stats::CounterId kNumKilledQueries;
+ stats::CounterId kNumQueriesHitMemoryWatermark;
+@@ -53,6 +54,7 @@ void initGraphStats() {
+       stats::StatsManager::registerStats("num_query_errors_leader_changes", "rate, sum");
+   kQueryLatencyUs = stats::StatsManager::registerHisto(
+       "query_latency_us", 1000, 0, 2000, "avg, p75, p95, p99, p999");
++  kQueryLatencySumUs = stats::StatsManager::registerStats("query_latency_sum_us", "sum");
+   kSlowQueryLatencyUs = stats::StatsManager::registerHisto(
+       "slow_query_latency_us", 1000, 0, 2000, "avg, p75, p95, p99, p999");
+   kNumKilledQueries = stats::StatsManager::registerStats("num_killed_queries", "rate, sum");
+diff --git nebulagraph/nebula/src/graph/stats/GraphStats.h nebulagraph/nebula/src/graph/stats/GraphStats.h
+index e91fd355c..c8f28845c 100644
+--- nebulagraph/nebula/src/graph/stats/GraphStats.h
++++ nebulagraph/nebula/src/graph/stats/GraphStats.h
+@@ -24,6 +24,7 @@ extern stats::CounterId kNumQueryErrorsLeaderChanges;
+ // A sequential sentence is treated as multiple sentences separated by `;`
+ extern stats::CounterId kNumSentences;
+ extern stats::CounterId kQueryLatencyUs;
++extern stats::CounterId kQueryLatencySumUs;
+ extern stats::CounterId kSlowQueryLatencyUs;
+ extern stats::CounterId kNumKilledQueries;
+ extern stats::CounterId kNumQueriesHitMemoryWatermark;
+diff --git nebulagraph/nebula/src/kvstore/RocksEngine.cpp nebulagraph/nebula/src/kvstore/RocksEngine.cpp
+index b3b030e9b..96872384b 100644
+--- nebulagraph/nebula/src/kvstore/RocksEngine.cpp
++++ nebulagraph/nebula/src/kvstore/RocksEngine.cpp
+@@ -14,6 +14,10 @@
+ #include "common/utils/NebulaKeyUtils.h"
+ #include "kvstore/KVStore.h"
+ 
++#ifdef KV_HISTOGRAMS
++#include <folly/json.h>
++#endif
++
+ DEFINE_bool(move_files, false, "Move the SST files instead of copy when ingest into dataset");
+ DEFINE_int64(balance_expired_sesc,
+              86400,
+@@ -22,6 +26,97 @@ DEFINE_int64(balance_expired_sesc,
+ namespace nebula {
+ namespace kvstore {
+ 
++#ifdef KV_STATS
++static KVStatsCounters sKVStatsCounters;
++
++KVStatsCounters& kvStatsCounters() {
++  return sKVStatsCounters;
++}
++#endif
++
++#ifdef KV_HISTOGRAMS
++void ResettableHistogram::record(uint64_t val) {
++  count.fetch_add(1, std::memory_order_relaxed);
++  sum.fetch_add(val, std::memory_order_relaxed);
++  // Update min (CAS loop)
++  uint64_t cur = min.load(std::memory_order_relaxed);
++  while (val < cur && !min.compare_exchange_weak(cur, val, std::memory_order_relaxed)) {}
++  // Update max (CAS loop)
++  cur = max.load(std::memory_order_relaxed);
++  while (val > cur && !max.compare_exchange_weak(cur, val, std::memory_order_relaxed)) {}
++  uint32_t idx = static_cast<uint32_t>(val / bucket_width);
++  if (idx > num_buckets) idx = num_buckets;
++  buckets[idx].fetch_add(1, std::memory_order_relaxed);
++}
++
++void ResettableHistogram::reset() {
++  count.store(0, std::memory_order_relaxed);
++  sum.store(0, std::memory_order_relaxed);
++  min.store(UINT64_MAX, std::memory_order_relaxed);
++  max.store(0, std::memory_order_relaxed);
++  for (uint32_t i = 0; i <= num_buckets; ++i) {
++    buckets[i].store(0, std::memory_order_relaxed);
++  }
++}
++
++uint64_t ResettableHistogram::percentile(double pct) const {
++  uint64_t total = count.load(std::memory_order_relaxed);
++  if (total == 0) return 0;
++  uint64_t threshold = static_cast<uint64_t>(total * pct);
++  if (threshold == 0) threshold = 1;
++  uint64_t cumulative = 0;
++  for (uint32_t i = 0; i <= num_buckets; ++i) {
++    cumulative += buckets[i].load(std::memory_order_relaxed);
++    if (cumulative >= threshold) {
++      return static_cast<uint64_t>(i + 1) * bucket_width;
++    }
++  }
++  return static_cast<uint64_t>(num_buckets) * bucket_width;
++}
++
++folly::dynamic ResettableHistogram::toJson() const {
++  uint64_t n = count.load(std::memory_order_relaxed);
++  uint64_t minVal = min.load(std::memory_order_relaxed);
++  uint64_t maxVal = max.load(std::memory_order_relaxed);
++  return folly::dynamic::object
++      ("count", n)
++      ("sum", sum.load(std::memory_order_relaxed))
++      ("min", n > 0 ? minVal : 0)
++      ("max", maxVal)
++      ("p50", percentile(0.50))
++      ("p75", percentile(0.75))
++      ("p99", percentile(0.99))
++      ("p999", percentile(0.999));
++}
++
++void KVHistograms::reset() {
++  get_latency.reset();
++  multiget_latency.reset();
++  seek_latency.reset();
++  next_latency.reset();
++  get_size.reset();
++  next_size.reset();
++}
++
++folly::dynamic KVHistograms::toJson() const {
++  return folly::dynamic::object
++      ("get_latency", get_latency.toJson())
++      ("multiget_latency", multiget_latency.toJson())
++      ("seek_latency", seek_latency.toJson())
++      ("next_latency", next_latency.toJson())
++      ("get_size", get_size.toJson())
++      ("next_size", next_size.toJson());
++}
++
++static KVHistograms sKVHistograms;
++
++KVHistograms& kvHistograms() {
++  return sKVHistograms;
++}
++#endif
++
++
++
+ using fs::FileType;
+ using fs::FileUtils;
+ 
+@@ -125,12 +220,21 @@ nebula::cpp2::ErrorCode RocksEngine::commitBatchWrite(std::unique_ptr<WriteBatch
+                                                       bool disableWAL,
+                                                       bool sync,
+                                                       bool wait) {
++#ifdef KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::WriteOptions options;
+   options.disableWAL = disableWAL;
+   options.sync = sync;
+   options.no_slowdown = !wait;
+   auto* b = static_cast<RocksWriteBatch*>(batch.get());
+   rocksdb::Status status = db_->Write(options, b->data());
++#ifdef KV_STATS
++  auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++  kvStatsCounters().commit_batch_write_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().commit_batch_write_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++#endif
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else if (!wait && status.IsIncomplete()) {
+@@ -144,12 +248,34 @@ nebula::cpp2::ErrorCode RocksEngine::get(const std::string& key,
+                                          std::string* value,
+                                          const void* snapshot) {
+   memory::MemoryCheckOffGuard guard;
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto start = std::chrono::steady_clock::now();
++#endif
+   rocksdb::ReadOptions options;
+   if (UNLIKELY(snapshot != nullptr)) {
+     options.snapshot = reinterpret_cast<const rocksdb::Snapshot*>(snapshot);
+   }
+   rocksdb::Status status = db_->Get(options, rocksdb::Slice(key), value);
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++#endif
++#ifdef KV_STATS
++  kvStatsCounters().get_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().get_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("get", key, status.ok() ? value->size() : 0);
++#endif
++#ifdef KV_HISTOGRAMS
++  kvHistograms().get_latency.record(elapsed);
++#endif
++
+   if (status.ok()) {
++#ifdef KV_STATS
++    kvStatsCounters().get_found_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().get_bytes.fetch_add(value->size(), std::memory_order_relaxed);
++#endif
++#ifdef KV_HISTOGRAMS
++    kvHistograms().get_size.record(value->size());
++#endif
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else if (status.IsNotFound()) {
+     VLOG(4) << "Get: " << key << " Not Found";
+@@ -163,6 +289,10 @@ nebula::cpp2::ErrorCode RocksEngine::get(const std::string& key,
+ std::vector<Status> RocksEngine::multiGet(const std::vector<std::string>& keys,
+                                           std::vector<std::string>* values) {
+   memory::MemoryCheckOffGuard guard;
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto start = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::ReadOptions options;
+   std::vector<rocksdb::Slice> slices;
+   for (size_t index = 0; index < keys.size(); index++) {
+@@ -170,16 +300,37 @@ std::vector<Status> RocksEngine::multiGet(const std::vector<std::string>& keys,
+   }
+ 
+   auto status = db_->MultiGet(options, slices, values);
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++#endif
++#ifdef KV_STATS
++  kvStatsCounters().multi_get_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().multi_get_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++  kvStatsCounters().multi_get_keys.fetch_add(keys.size(), std::memory_order_relaxed);
++#endif
++#ifdef KV_HISTOGRAMS
++  kvHistograms().multiget_latency.record(elapsed);
++#endif
++
+   std::vector<Status> ret;
+-  std::transform(status.begin(), status.end(), std::back_inserter(ret), [](const auto& s) {
+-    if (s.ok()) {
+-      return Status::OK();
+-    } else if (s.IsNotFound()) {
+-      return Status::KeyNotFound();
++#ifdef KV_STATS
++  uint64_t totalBytes = 0;
++#endif
++  for (size_t i = 0; i < status.size(); i++) {
++    if (status[i].ok()) {
++#ifdef KV_STATS
++      totalBytes += (*values)[i].size();
++#endif
++      ret.emplace_back(Status::OK());
++    } else if (status[i].IsNotFound()) {
++      ret.emplace_back(Status::KeyNotFound());
+     } else {
+-      return Status::Error();
++      ret.emplace_back(Status::Error());
+     }
+-  });
++  }
++#ifdef KV_STATS
++  kvStatsCounters().multi_get_bytes.fetch_add(totalBytes, std::memory_order_relaxed);
++#endif
+   return ret;
+ }
+ 
+@@ -187,6 +338,10 @@ nebula::cpp2::ErrorCode RocksEngine::range(const std::string& start,
+                                            const std::string& end,
+                                            std::unique_ptr<KVIterator>* storageIter) {
+   memory::MemoryCheckOffGuard guard;
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   storageIter->reset(new RocksRangeIter(start, end));
+   rocksdb::ReadOptions options;
+   options.iterate_upper_bound = dynamic_cast<RocksRangeIter*>(storageIter->get())->upperBound();
+@@ -200,6 +355,17 @@ nebula::cpp2::ErrorCode RocksEngine::range(const std::string& start,
+     iter->Seek(rocksdb::Slice(start));
+     dynamic_cast<RocksRangeIter*>(storageIter->get())->reset(std::move(iter));
+   }
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++#endif
++#ifdef KV_STATS
++  kvStatsCounters().range_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().range_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("range", start);
++#endif
++#ifdef KV_HISTOGRAMS
++  kvHistograms().seek_latency.record(kvElapsed);
++#endif
+   return nebula::cpp2::ErrorCode::SUCCEEDED;
+ }
+ 
+@@ -207,13 +373,30 @@ nebula::cpp2::ErrorCode RocksEngine::prefix(const std::string& prefix,
+                                             std::unique_ptr<KVIterator>* storageIter,
+                                             const void* snapshot) {
+   memory::MemoryCheckOffGuard guard;
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
+   // In fact, we don't need to check prefix.size() >= extractorLen_, which is caller's duty to make
+   // sure the prefix bloom filter exists. But this is quite error-prone, so we do a check here.
++
++  nebula::cpp2::ErrorCode ret;
+   if (FLAGS_enable_rocksdb_prefix_filtering && prefix.size() >= extractorLen_) {
+-    return prefixWithExtractor(prefix, snapshot, storageIter);
++    ret = prefixWithExtractor(prefix, snapshot, storageIter);
+   } else {
+-    return prefixWithoutExtractor(prefix, snapshot, storageIter);
+-  }
++    ret = prefixWithoutExtractor(prefix, snapshot, storageIter);
++  }
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++#endif
++#ifdef KV_STATS
++  kvStatsCounters().prefix_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().prefix_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("prefix", prefix);
++#endif
++#ifdef KV_HISTOGRAMS
++  kvHistograms().seek_latency.record(kvElapsed);
++#endif
++  return ret;
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::prefixWithExtractor(const std::string& prefix,
+@@ -258,6 +441,10 @@ nebula::cpp2::ErrorCode RocksEngine::rangeWithPrefix(const std::string& start,
+                                                      const std::string& prefix,
+                                                      std::unique_ptr<KVIterator>* storageIter) {
+   memory::MemoryCheckOffGuard guard;
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   storageIter->reset(new RocksPrefixIter(prefix));
+   rocksdb::ReadOptions options;
+   options.iterate_upper_bound = dynamic_cast<RocksPrefixIter*>(storageIter->get())->upperBound();
+@@ -271,23 +458,56 @@ nebula::cpp2::ErrorCode RocksEngine::rangeWithPrefix(const std::string& start,
+     iter->Seek(rocksdb::Slice(start));
+     dynamic_cast<RocksPrefixIter*>(storageIter->get())->reset(std::move(iter));
+   }
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++#endif
++#ifdef KV_STATS
++  kvStatsCounters().range_with_prefix_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().range_with_prefix_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("range_with_prefix", start + " - " + prefix);
++#endif
++#ifdef KV_HISTOGRAMS
++  kvHistograms().seek_latency.record(kvElapsed);
++#endif
+   return nebula::cpp2::ErrorCode::SUCCEEDED;
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::scan(std::unique_ptr<KVIterator>* storageIter) {
+   memory::MemoryCheckOffGuard guard;
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::ReadOptions options;
+   options.total_order_seek = true;
+   std::unique_ptr<rocksdb::Iterator> iter(db_->NewIterator(options));
+   iter->SeekToFirst();
+   storageIter->reset(new RocksCommonIter(std::move(iter)));
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().scan_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().scan_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("scan", "");
++#endif
+   return nebula::cpp2::ErrorCode::SUCCEEDED;
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::put(std::string key, std::string value) {
+   rocksdb::WriteOptions options;
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   options.disableWAL = FLAGS_rocksdb_disable_wal;
+   rocksdb::Status status = db_->Put(options, key, value);
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().put_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().put_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().put_bytes.fetch_add(key.size() + value.size(), std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("put", key, value.size());
++#endif
++
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else {
+@@ -297,6 +517,10 @@ nebula::cpp2::ErrorCode RocksEngine::put(std::string key, std::string value) {
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::multiPut(std::vector<KV> keyValues) {
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::WriteBatch updates(FLAGS_rocksdb_batch_size);
+   for (size_t i = 0; i < keyValues.size(); i++) {
+     updates.Put(keyValues[i].first, keyValues[i].second);
+@@ -304,6 +528,20 @@ nebula::cpp2::ErrorCode RocksEngine::multiPut(std::vector<KV> keyValues) {
+   rocksdb::WriteOptions options;
+   options.disableWAL = FLAGS_rocksdb_disable_wal;
+   rocksdb::Status status = db_->Write(options, &updates);
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().multi_put_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().multi_put_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().multi_put_keys.fetch_add(keyValues.size(), std::memory_order_relaxed);
++  {
++    uint64_t totalBytes = 0;
++    for (const auto& kv : keyValues) {
++      totalBytes += kv.first.size() + kv.second.size();
++    }
++    kvStatsCounters().multi_put_bytes.fetch_add(totalBytes, std::memory_order_relaxed);
++  }
++#endif
++
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else {
+@@ -313,9 +551,20 @@ nebula::cpp2::ErrorCode RocksEngine::multiPut(std::vector<KV> keyValues) {
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::remove(const std::string& key) {
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::WriteOptions options;
+   options.disableWAL = FLAGS_rocksdb_disable_wal;
+   auto status = db_->Delete(options, key);
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().remove_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().remove_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().remove_bytes.fetch_add(key.size(), std::memory_order_relaxed);
++#endif
++
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else {
+@@ -325,6 +574,10 @@ nebula::cpp2::ErrorCode RocksEngine::remove(const std::string& key) {
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::multiRemove(std::vector<std::string> keys) {
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::WriteBatch deletes(FLAGS_rocksdb_batch_size);
+   for (size_t i = 0; i < keys.size(); i++) {
+     deletes.Delete(keys[i]);
+@@ -332,6 +585,20 @@ nebula::cpp2::ErrorCode RocksEngine::multiRemove(std::vector<std::string> keys)
+   rocksdb::WriteOptions options;
+   options.disableWAL = FLAGS_rocksdb_disable_wal;
+   rocksdb::Status status = db_->Write(options, &deletes);
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().multi_remove_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().multi_remove_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().multi_remove_keys.fetch_add(keys.size(), std::memory_order_relaxed);
++  {
++    uint64_t totalBytes = 0;
++    for (const auto& k : keys) {
++      totalBytes += k.size();
++    }
++    kvStatsCounters().multi_remove_bytes.fetch_add(totalBytes, std::memory_order_relaxed);
++  }
++#endif
++
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else {
+@@ -341,9 +608,20 @@ nebula::cpp2::ErrorCode RocksEngine::multiRemove(std::vector<std::string> keys)
+ }
+ 
+ nebula::cpp2::ErrorCode RocksEngine::removeRange(const std::string& start, const std::string& end) {
++#ifdef KV_STATS
++  auto kvStart = std::chrono::steady_clock::now();
++#endif
++
+   rocksdb::WriteOptions options;
+   options.disableWAL = FLAGS_rocksdb_disable_wal;
+   auto status = db_->DeleteRange(options, db_->DefaultColumnFamily(), start, end);
++#ifdef KV_STATS
++  auto kvElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - kvStart).count();
++  kvStatsCounters().remove_range_count.fetch_add(1, std::memory_order_relaxed);
++  kvStatsCounters().remove_range_latency_ns.fetch_add(kvElapsed, std::memory_order_relaxed);
++  kvStatsCounters().appendTrace("remove_range", start + " - " + end);
++#endif
++
+   if (status.ok()) {
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   } else {
+@@ -360,6 +638,23 @@ std::string RocksEngine::balanceKey(PartitionID partId) {
+   return NebulaKeyUtils::systemBalanceKey(partId);
+ }
+ 
++/**
++ * @brief Adds a new partition to the RocksDB storage engine.
++ *
++ * This method creates a partition entry in the key-value store and initializes
++ * its metadata. If the partition has raft peers that are not all in a normal state,
++ * it stores the peer balance information for later rebalancing operations.
++ *
++ * @param partId The unique identifier of the partition to add.
++ * @param raftPeers A reference to the Peers object containing the raft peers
++ *                  configuration for this partition.
++ *
++ * @note The partition count (partsNum_) is incremented upon successful insertion.
++ *       A CHECK assertion ensures the partition count remains non-negative.
++ *       Balance information is only persisted if not all raft peers are in normal state.
++ *
++ * @see balanceKey(), put(), partsNum_
++ */
+ void RocksEngine::addPart(PartitionID partId, const Peers& raftPeers) {
+   auto ret = put(partKey(partId), "");
+   if (ret == nebula::cpp2::ErrorCode::SUCCEEDED) {
+@@ -469,6 +764,24 @@ int32_t RocksEngine::totalPartsNum() {
+   return partsNum_;
+ }
+ 
++/**
++ * @brief Ingests external SST files into the RocksDB database.
++ *
++ * This function takes a list of SST file paths and optionally verifies their checksums
++ * before ingesting them into the database. If the file list is empty, the operation
++ * succeeds immediately without any action.
++ *
++ * @param files A vector of file paths (SST format) to be ingested into the database.
++ * @param verifyFileChecksum If true, verifies the checksum of each file before ingestion.
++ *                           Defaults to false if not specified.
++ *
++ * @return nebula::cpp2::ErrorCode::SUCCEEDED if the ingestion completed successfully or
++ *         if the files list is empty.
++ *         nebula::cpp2::ErrorCode::E_UNKNOWN if the ingestion failed.
++ *
++ * @note Files are moved rather than copied based on the FLAGS_move_files configuration flag.
++ *       Warning logs are generated if ingestion fails, containing the RocksDB status details.
++ */
+ nebula::cpp2::ErrorCode RocksEngine::ingest(const std::vector<std::string>& files,
+                                             bool verifyFileChecksum) {
+   if (files.empty()) {
+diff --git nebulagraph/nebula/src/kvstore/RocksEngine.h nebulagraph/nebula/src/kvstore/RocksEngine.h
+index 214a3a8ba..a300fd9c4 100644
+--- nebulagraph/nebula/src/kvstore/RocksEngine.h
++++ nebulagraph/nebula/src/kvstore/RocksEngine.h
+@@ -15,13 +15,225 @@
+ 
+ #include "common/base/Base.h"
+ #include "common/utils/NebulaKeyUtils.h"
++#include "common/time/Duration.h"
+ #include "kvstore/KVEngine.h"
+ #include "kvstore/KVIterator.h"
+ #include "kvstore/RocksEngineConfig.h"
+ 
++#ifdef KV_HISTOGRAMS
++#include <folly/dynamic.h>
++#endif
++
+ namespace nebula {
+ namespace kvstore {
+ 
++#ifdef KV_HISTOGRAMS
++struct ResettableHistogram {
++  // Fixed-bucket histogram: bucket i covers [i*width, (i+1)*width).
++  // Last bucket (index num_buckets) is overflow (>= num_buckets * width).
++  uint32_t bucket_width;
++  uint32_t num_buckets;
++  std::atomic<uint64_t> count{0};
++  std::atomic<uint64_t> sum{0};
++  std::atomic<uint64_t> min{UINT64_MAX};
++  std::atomic<uint64_t> max{0};
++  std::unique_ptr<std::atomic<uint64_t>[]> buckets;
++
++  ResettableHistogram(uint32_t width, uint32_t n)
++      : bucket_width(width), num_buckets(n),
++        buckets(new std::atomic<uint64_t>[n + 1]{}) {}
++
++  void record(uint64_t val);
++  void reset();
++  uint64_t percentile(double pct) const;
++  folly::dynamic toJson() const;
++};
++
++struct KVHistograms {
++  // Latency histograms: 1us buckets, 0–10ms (10K buckets)
++  ResettableHistogram get_latency{1, 10000};
++  ResettableHistogram multiget_latency{1, 10000};
++  ResettableHistogram seek_latency{1, 10000};
++  ResettableHistogram next_latency{1, 10000};
++
++  // Size histograms: 10-byte buckets, 0–1MB (100K buckets)
++  ResettableHistogram get_size{10, 100000};
++  ResettableHistogram next_size{10, 100000};
++
++  void reset();
++  folly::dynamic toJson() const;
++};
++
++KVHistograms& kvHistograms();
++#endif
++
++// ---------------------------------------------------------------------------
++// Cumulative atomic counters for per-query KV measurement (#ifdef KV_STATS)
++// ---------------------------------------------------------------------------
++#ifdef KV_STATS
++
++// Per-op key trace entry: {op, key_hex}
++struct KVTraceEntry {
++  std::string op;       // "get", "prefix", "range", "next"
++  std::string key_hex;  // hex-encoded key bytes
++  uint32_t key_size;
++  uint32_t value_size;
++};
++
++struct KVStatsCounters {
++  std::atomic<uint64_t> get_count{0};
++  std::atomic<uint64_t> get_found_count{0};
++  std::atomic<uint64_t> get_latency_ns{0};
++  std::atomic<uint64_t> get_bytes{0};
++
++  std::atomic<uint64_t> multi_get_count{0};
++  std::atomic<uint64_t> multi_get_latency_ns{0};
++  std::atomic<uint64_t> multi_get_keys{0};
++  std::atomic<uint64_t> multi_get_bytes{0};
++
++  std::atomic<uint64_t> put_count{0};
++  std::atomic<uint64_t> put_latency_ns{0};
++  std::atomic<uint64_t> put_bytes{0};
++
++  std::atomic<uint64_t> multi_put_count{0};
++  std::atomic<uint64_t> multi_put_latency_ns{0};
++  std::atomic<uint64_t> multi_put_keys{0};
++  std::atomic<uint64_t> multi_put_bytes{0};
++
++  std::atomic<uint64_t> remove_count{0};
++  std::atomic<uint64_t> remove_latency_ns{0};
++  std::atomic<uint64_t> remove_bytes{0};
++
++  std::atomic<uint64_t> multi_remove_count{0};
++  std::atomic<uint64_t> multi_remove_latency_ns{0};
++  std::atomic<uint64_t> multi_remove_keys{0};
++  std::atomic<uint64_t> multi_remove_bytes{0};
++
++  std::atomic<uint64_t> remove_range_count{0};
++  std::atomic<uint64_t> remove_range_latency_ns{0};
++
++  std::atomic<uint64_t> range_count{0};
++  std::atomic<uint64_t> range_latency_ns{0};
++
++  std::atomic<uint64_t> prefix_count{0};
++  std::atomic<uint64_t> prefix_latency_ns{0};
++
++  std::atomic<uint64_t> range_with_prefix_count{0};
++  std::atomic<uint64_t> range_with_prefix_latency_ns{0};
++
++  std::atomic<uint64_t> scan_count{0};
++  std::atomic<uint64_t> scan_latency_ns{0};
++
++  std::atomic<uint64_t> commit_batch_write_count{0};
++  std::atomic<uint64_t> commit_batch_write_latency_ns{0};
++
++  std::atomic<uint64_t> iterator_next_count{0};
++  std::atomic<uint64_t> iterator_next_latency_ns{0};
++  std::atomic<uint64_t> iterator_next_bytes{0};
++
++  std::atomic<uint64_t> iterator_prev_count{0};
++  std::atomic<uint64_t> iterator_prev_latency_ns{0};
++  std::atomic<uint64_t> iterator_prev_bytes{0};
++
++  std::atomic<uint64_t> wb_put_count{0};
++  std::atomic<uint64_t> wb_remove_count{0};
++  std::atomic<uint64_t> wb_remove_range_count{0};
++
++  void reset() {
++    get_count.store(0, std::memory_order_relaxed);
++    get_found_count.store(0, std::memory_order_relaxed);
++    get_latency_ns.store(0, std::memory_order_relaxed);
++    get_bytes.store(0, std::memory_order_relaxed);
++    multi_get_count.store(0, std::memory_order_relaxed);
++    multi_get_latency_ns.store(0, std::memory_order_relaxed);
++    multi_get_keys.store(0, std::memory_order_relaxed);
++    multi_get_bytes.store(0, std::memory_order_relaxed);
++    put_count.store(0, std::memory_order_relaxed);
++    put_latency_ns.store(0, std::memory_order_relaxed);
++    put_bytes.store(0, std::memory_order_relaxed);
++    multi_put_count.store(0, std::memory_order_relaxed);
++    multi_put_latency_ns.store(0, std::memory_order_relaxed);
++    multi_put_keys.store(0, std::memory_order_relaxed);
++    multi_put_bytes.store(0, std::memory_order_relaxed);
++    remove_count.store(0, std::memory_order_relaxed);
++    remove_latency_ns.store(0, std::memory_order_relaxed);
++    remove_bytes.store(0, std::memory_order_relaxed);
++    multi_remove_count.store(0, std::memory_order_relaxed);
++    multi_remove_latency_ns.store(0, std::memory_order_relaxed);
++    multi_remove_keys.store(0, std::memory_order_relaxed);
++    multi_remove_bytes.store(0, std::memory_order_relaxed);
++    remove_range_count.store(0, std::memory_order_relaxed);
++    remove_range_latency_ns.store(0, std::memory_order_relaxed);
++    range_count.store(0, std::memory_order_relaxed);
++    range_latency_ns.store(0, std::memory_order_relaxed);
++    prefix_count.store(0, std::memory_order_relaxed);
++    prefix_latency_ns.store(0, std::memory_order_relaxed);
++    range_with_prefix_count.store(0, std::memory_order_relaxed);
++    range_with_prefix_latency_ns.store(0, std::memory_order_relaxed);
++    scan_count.store(0, std::memory_order_relaxed);
++    scan_latency_ns.store(0, std::memory_order_relaxed);
++    commit_batch_write_count.store(0, std::memory_order_relaxed);
++    commit_batch_write_latency_ns.store(0, std::memory_order_relaxed);
++    iterator_next_count.store(0, std::memory_order_relaxed);
++    iterator_next_latency_ns.store(0, std::memory_order_relaxed);
++    iterator_next_bytes.store(0, std::memory_order_relaxed);
++    iterator_prev_count.store(0, std::memory_order_relaxed);
++    iterator_prev_latency_ns.store(0, std::memory_order_relaxed);
++    iterator_prev_bytes.store(0, std::memory_order_relaxed);
++    wb_put_count.store(0, std::memory_order_relaxed);
++    wb_remove_count.store(0, std::memory_order_relaxed);
++    wb_remove_range_count.store(0, std::memory_order_relaxed);
++  }
++
++  // ── KV operation tracing ──────────────────────────────────────
++  // When trace_enabled is true, each Get/prefix/range/next appends an entry.
++  // Toggle via PUT /kvtrace/enable and /kvtrace/disable on storaged.
++  // Overhead when disabled: one bool check per op.
++  std::atomic<bool> trace_enabled{false};
++  std::mutex trace_mutex;
++  std::vector<KVTraceEntry> trace_buffer;
++  // Default cap; overridable at runtime via PUT /kvtrace/enable?max=N.
++  size_t max_trace_entries{100000};
++
++  static std::string toHex(const std::string& raw) {
++    static const char hex[] = "0123456789abcdef";
++    std::string out;
++    out.reserve(raw.size() * 2);
++    for (unsigned char c : raw) {
++      out.push_back(hex[c >> 4]);
++      out.push_back(hex[c & 0x0f]);
++    }
++    return out;
++  }
++
++  void appendTrace(const char* op, const std::string& key, uint32_t valSize = 0) {
++    if (!trace_enabled.load(std::memory_order_relaxed)) return;
++    std::lock_guard<std::mutex> lock(trace_mutex);
++    if (trace_buffer.size() < max_trace_entries) {
++      trace_buffer.push_back({op, toHex(key), static_cast<uint32_t>(key.size()), valSize});
++    }
++  }
++
++  void traceEnable(size_t maxEntries = 100000) {
++    std::lock_guard<std::mutex> lock(trace_mutex);
++    trace_buffer.clear();
++    max_trace_entries = maxEntries;
++    trace_enabled.store(true, std::memory_order_relaxed);
++  }
++
++  void traceDisable() {
++    trace_enabled.store(false, std::memory_order_relaxed);
++  }
++
++  void traceClear() {
++    std::lock_guard<std::mutex> lock(trace_mutex);
++    trace_buffer.clear();
++  }
++};
++
++KVStatsCounters& kvStatsCounters();
++#endif
++
+ /**
+  * @brief Rocksdb range iterator, only scan data in range [start, end)
+  */
+@@ -43,11 +255,44 @@ class RocksRangeIter : public KVIterator {
+   }
+ 
+   void next() override {
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Next();
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++#endif
++#ifdef KV_STATS
++    kvStatsCounters().iterator_next_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_next_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_next_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
++#ifdef KV_HISTOGRAMS
++    kvHistograms().next_latency.record(elapsed);
++    if (valid()) {
++      kvHistograms().next_size.record(iter_->key().size() + iter_->value().size());
++    }
++#endif
+   }
+ 
++  // No KV_HISTOGRAMS recording for prev() — never called by NebulaGraph storage layer
+   void prev() override {
++#ifdef KV_STATS
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Prev();
++#ifdef KV_STATS
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++    kvStatsCounters().iterator_prev_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_prev_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_prev_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
+   }
+ 
+   folly::StringPiece key() const override {
+@@ -101,11 +346,44 @@ class RocksPrefixIter : public KVIterator {
+   }
+ 
+   void next() override {
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Next();
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++#endif
++#ifdef KV_STATS
++    kvStatsCounters().iterator_next_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_next_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_next_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
++#ifdef KV_HISTOGRAMS
++    kvHistograms().next_latency.record(elapsed);
++    if (valid()) {
++      kvHistograms().next_size.record(iter_->key().size() + iter_->value().size());
++    }
++#endif
+   }
+ 
++  // No KV_HISTOGRAMS recording for prev() — never called by NebulaGraph storage layer
+   void prev() override {
++#ifdef KV_STATS
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Prev();
++#ifdef KV_STATS
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++    kvStatsCounters().iterator_prev_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_prev_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_prev_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
+   }
+ 
+   folly::StringPiece key() const override {
+@@ -154,11 +432,44 @@ class RocksCommonIter : public KVIterator {
+   }
+ 
+   void next() override {
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Next();
++#if defined(KV_STATS) || defined(KV_HISTOGRAMS)
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++#endif
++#ifdef KV_STATS
++    kvStatsCounters().iterator_next_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_next_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_next_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
++#ifdef KV_HISTOGRAMS
++    kvHistograms().next_latency.record(elapsed);
++    if (valid()) {
++      kvHistograms().next_size.record(iter_->key().size() + iter_->value().size());
++    }
++#endif
+   }
+ 
++  // No KV_HISTOGRAMS recording for prev() — never called by NebulaGraph storage layer
+   void prev() override {
++#ifdef KV_STATS
++    auto start = std::chrono::steady_clock::now();
++#endif
+     iter_->Prev();
++#ifdef KV_STATS
++    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
++    kvStatsCounters().iterator_prev_count.fetch_add(1, std::memory_order_relaxed);
++    kvStatsCounters().iterator_prev_latency_ns.fetch_add(elapsed, std::memory_order_relaxed);
++    if (valid()) {
++      kvStatsCounters().iterator_prev_bytes.fetch_add(
++          iter_->key().size() + iter_->value().size(), std::memory_order_relaxed);
++    }
++#endif
+   }
+ 
+   folly::StringPiece key() const override {
+@@ -188,6 +499,9 @@ class RocksWriteBatch : public WriteBatch {
+   virtual ~RocksWriteBatch() = default;
+ 
+   nebula::cpp2::ErrorCode put(folly::StringPiece key, folly::StringPiece value) override {
++#ifdef KV_STATS
++    kvStatsCounters().wb_put_count.fetch_add(1, std::memory_order_relaxed);
++#endif
+     if (batch_.Put(toSlice(key), toSlice(value)).ok()) {
+       return nebula::cpp2::ErrorCode::SUCCEEDED;
+     } else {
+@@ -196,6 +510,9 @@ class RocksWriteBatch : public WriteBatch {
+   }
+ 
+   nebula::cpp2::ErrorCode remove(folly::StringPiece key) override {
++#ifdef KV_STATS
++    kvStatsCounters().wb_remove_count.fetch_add(1, std::memory_order_relaxed);
++#endif
+     if (batch_.Delete(toSlice(key)).ok()) {
+       return nebula::cpp2::ErrorCode::SUCCEEDED;
+     } else {
+@@ -205,6 +522,9 @@ class RocksWriteBatch : public WriteBatch {
+ 
+   // Remove all keys in the range [start, end)
+   nebula::cpp2::ErrorCode removeRange(folly::StringPiece start, folly::StringPiece end) override {
++#ifdef KV_STATS
++    kvStatsCounters().wb_remove_range_count.fetch_add(1, std::memory_order_relaxed);
++#endif
+     if (batch_.DeleteRange(toSlice(start), toSlice(end)).ok()) {
+       return nebula::cpp2::ErrorCode::SUCCEEDED;
+     } else {
+diff --git nebulagraph/nebula/src/storage/CMakeLists.txt nebulagraph/nebula/src/storage/CMakeLists.txt
+index e0c29e8d0..e74643e74 100644
+--- nebulagraph/nebula/src/storage/CMakeLists.txt
++++ nebulagraph/nebula/src/storage/CMakeLists.txt
+@@ -73,6 +73,7 @@ nebula_add_library(
+     http/StorageHttpAdminHandler.cpp
+     http/StorageHttpStatsHandler.cpp
+     http/StorageHttpPropertyHandler.cpp
++    http/StorageHttpKVStatsHandler.cpp
+ )
+ 
+ nebula_add_library(
+diff --git nebulagraph/nebula/src/storage/CommonUtils.h nebulagraph/nebula/src/storage/CommonUtils.h
+index 5d8c726bc..3bd8fec65 100644
+--- nebulagraph/nebula/src/storage/CommonUtils.h
++++ nebulagraph/nebula/src/storage/CommonUtils.h
+@@ -246,6 +246,10 @@ struct RuntimeContext {
+   // and some time, this line is just removed from the return result
+   bool filterInvalidResultOut = false;
+ 
++#ifdef KV_PROFILE
++  int64_t kvstoreTime = 0;
++#endif
++
+   ResultStatus resultStat_{ResultStatus::NORMAL};
+ };
+ 
+diff --git nebulagraph/nebula/src/storage/StorageFlags.cpp nebulagraph/nebula/src/storage/StorageFlags.cpp
+index bd100191c..1b3fc4122 100644
+--- nebulagraph/nebula/src/storage/StorageFlags.cpp
++++ nebulagraph/nebula/src/storage/StorageFlags.cpp
+@@ -48,3 +48,9 @@ DEFINE_bool(query_concurrently,
+             "go are supported");
+ 
+ DEFINE_bool(use_vertex_key, false, "whether allow insert or query the vertex key");
++
++#ifdef QUERY_PLAN_DEBUG
++DEFINE_bool(print_query_plan, false, "Print detailed query execution plan");
++DEFINE_bool(print_storage_operations, false, "Print detailed storage operations");
++DEFINE_int32(storage_log_level, 0, "Storage debug log level: 0=off, 1=summary, 2=detailed");
++#endif
+\ No newline at end of file
+diff --git nebulagraph/nebula/src/storage/StorageFlags.h nebulagraph/nebula/src/storage/StorageFlags.h
+index 197f9318c..238fab3b2 100644
+--- nebulagraph/nebula/src/storage/StorageFlags.h
++++ nebulagraph/nebula/src/storage/StorageFlags.h
+@@ -36,4 +36,10 @@ DECLARE_bool(query_concurrently);
+ 
+ DECLARE_bool(use_vertex_key);
+ 
++#ifdef QUERY_PLAN_DEBUG
++DECLARE_bool(print_query_plan);
++DECLARE_bool(print_storage_operations);
++DECLARE_int32(storage_log_level);
++#endif
++
+ #endif  // STORAGE_STORAGEFLAGS_H_
+diff --git nebulagraph/nebula/src/storage/StorageServer.cpp nebulagraph/nebula/src/storage/StorageServer.cpp
+index 228bf7ef2..d99433915 100644
+--- nebulagraph/nebula/src/storage/StorageServer.cpp
++++ nebulagraph/nebula/src/storage/StorageServer.cpp
+@@ -29,6 +29,9 @@
+ #include "storage/http/StorageHttpAdminHandler.h"
+ #include "storage/http/StorageHttpPropertyHandler.h"
+ #include "storage/http/StorageHttpStatsHandler.h"
++#ifdef KV_STATS
++#include "storage/http/StorageHttpKVStatsHandler.h"
++#endif
+ #include "storage/transaction/TransactionManager.h"
+ #include "version/Version.h"
+ #include "webservice/Router.h"
+@@ -140,6 +143,23 @@ bool StorageServer::initWebService() {
+   router.get("/rocksdb_property").handler([this](web::PathParams&&) {
+     return new storage::StorageHttpPropertyHandler(schemaMan_.get(), kvstore_.get());
+   });
++#ifdef KV_STATS
++  router.get("/kvstats").handler([](web::PathParams&&) {
++    return new storage::StorageHttpKVStatsHandler(StorageHttpKVStatsHandler::Action::READ);
++  });
++  router.put("/kvstats/reset").handler([](web::PathParams&&) {
++    return new storage::StorageHttpKVStatsHandler(StorageHttpKVStatsHandler::Action::RESET);
++  });
++  router.put("/kvtrace/enable").handler([](web::PathParams&&) {
++    return new storage::StorageHttpKVStatsHandler(StorageHttpKVStatsHandler::Action::TRACE_ENABLE);
++  });
++  router.put("/kvtrace/disable").handler([](web::PathParams&&) {
++    return new storage::StorageHttpKVStatsHandler(StorageHttpKVStatsHandler::Action::TRACE_DISABLE);
++  });
++  router.get("/kvtrace").handler([](web::PathParams&&) {
++    return new storage::StorageHttpKVStatsHandler(StorageHttpKVStatsHandler::Action::TRACE_READ);
++  });
++#endif
+ 
+ #ifndef BUILD_STANDALONE
+   auto status = webSvc_->start();
+diff --git nebulagraph/nebula/src/storage/exec/EdgeNode.h nebulagraph/nebula/src/storage/exec/EdgeNode.h
+index dc96e55f3..767088ac3 100644
+--- nebulagraph/nebula/src/storage/exec/EdgeNode.h
++++ nebulagraph/nebula/src/storage/exec/EdgeNode.h
+@@ -133,7 +133,23 @@ class FetchEdgeNode final : public EdgeNode<cpp2::EdgeKey> {
+                                    *edgeKey.edge_type_ref(),
+                                    *edgeKey.ranking_ref(),
+                                    (*edgeKey.dst_ref()).getStr());
++    #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_storage_log_level >= 3) {
++      LOG(INFO) << "FetchEdgeNode::doExecute - Fetching edge "
++              << edgeContext_->edgeNames_[edgeType_]
++              << " for src " << (*edgeKey.src_ref()).getStr()
++              << ", dst " << (*edgeKey.dst_ref()).getStr()
++              << ", ranking " << *edgeKey.ranking_ref()
++              << " in partition " << partId;
++    }
++    #endif
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     ret = context_->env()->kvstore_->get(context_->spaceId(), partId, key_, &val_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     if (ret == nebula::cpp2::ErrorCode::SUCCEEDED) {
+       return doExecute(key_, val_);
+     } else if (ret == nebula::cpp2::ErrorCode::E_KEY_NOT_FOUND) {
+@@ -226,7 +242,20 @@ class SingleEdgeNode final : public EdgeNode<VertexID> {
+             << ", prop size " << props_->size();
+     std::unique_ptr<kvstore::KVIterator> iter;
+     prefix_ = NebulaKeyUtils::edgePrefix(context_->vIdLen(), partId, vId, edgeType_);
++    #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_storage_log_level >= 3) {
++      LOG(INFO) << "SingleEdgeNode::doExecute - Scanning edges "
++            << edgeContext_->edgeNames_[edgeType_]
++            << " for vertex " << vId << " in partition " << partId;
++    }
++    #endif
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     ret = context_->env()->kvstore_->prefix(context_->spaceId(), partId, prefix_, &iter);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     if (ret == nebula::cpp2::ErrorCode::SUCCEEDED && iter && iter->valid()) {
+       if (!skipDecode_) {
+         iter_.reset(new SingleEdgeIterator(context_, std::move(iter), edgeType_, schemas_, &ttl_));
+diff --git nebulagraph/nebula/src/storage/exec/GetPropNode.h nebulagraph/nebula/src/storage/exec/GetPropNode.h
+index a98a5bc05..ea2cdc002 100644
+--- nebulagraph/nebula/src/storage/exec/GetPropNode.h
++++ nebulagraph/nebula/src/storage/exec/GetPropNode.h
+@@ -55,7 +55,19 @@ class GetTagPropNode : public QueryNode<VertexID> {
+         auto kvstore = context_->env()->kvstore_;
+         auto vertexKey = NebulaKeyUtils::vertexKey(context_->vIdLen(), partId, vId);
+         std::string value;
++        #ifdef QUERY_PLAN_DEBUG
++        if (FLAGS_storage_log_level >= 3) {
++            LOG(INFO) << "GetTagPropNode::doExecute - Checking existence of vertex "
++                      << vId << " in partition " << partId << " using vertex key.";
++        }
++        #endif
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
+         ret = kvstore->get(context_->spaceId(), partId, vertexKey, &value);
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         if (ret == nebula::cpp2::ErrorCode::E_KEY_NOT_FOUND) {
+           return nebula::cpp2::ErrorCode::SUCCEEDED;
+         } else if (ret != nebula::cpp2::ErrorCode::SUCCEEDED) {
+@@ -65,7 +77,19 @@ class GetTagPropNode : public QueryNode<VertexID> {
+         // check if vId has any valid tag by prefix scan
+         std::unique_ptr<kvstore::KVIterator> iter;
+         auto tagPrefix = NebulaKeyUtils::tagPrefix(context_->vIdLen(), partId, vId);
++        #ifdef QUERY_PLAN_DEBUG
++        if (FLAGS_storage_log_level >= 3) {
++        LOG(INFO) << "GetTagPropNode::doExecute - Checking existence of vertex "
++                  << vId << " in partition " << partId << " using tag prefix scan.";
++        }
++        #endif
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
+         ret = context_->env()->kvstore_->prefix(context_->spaceId(), partId, tagPrefix, &iter);
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         if (ret != nebula::cpp2::ErrorCode::SUCCEEDED) {
+           return ret;
+         } else if (!iter->valid()) {
+@@ -73,12 +97,19 @@ class GetTagPropNode : public QueryNode<VertexID> {
+         }
+ 
+         bool hasValidTag = false;
+-        for (; iter->valid(); iter->next()) {
++        for (; iter->valid();) {
+           // check if tag schema exists
+           auto key = iter->key();
+           auto tagId = NebulaKeyUtils::getTagId(context_->vIdLen(), key);
+           auto schemaIter = tagContext_->schemas_.find(tagId);
+           if (schemaIter == tagContext_->schemas_.end()) {
++#ifdef KV_PROFILE
++            time::Duration myDur;
++#endif
++            iter->next();
++#ifdef KV_PROFILE
++            context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+             continue;
+           }
+           // check if ttl expired
+@@ -86,12 +117,26 @@ class GetTagPropNode : public QueryNode<VertexID> {
+           RowReaderWrapper reader;
+           reader.reset(*schemas, iter->val());
+           if (!reader) {
++#ifdef KV_PROFILE
++            time::Duration myDur;
++#endif
++            iter->next();
++#ifdef KV_PROFILE
++            context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+             continue;
+           }
+           auto ttl = QueryUtils::getTagTTLInfo(tagContext_, tagId);
+           if (ttl.has_value() &&
+               CommonUtils::checkDataExpiredForTTL(
+                   schemas->back().get(), reader.get(), ttl.value().first, ttl.value().second)) {
++#ifdef KV_PROFILE
++            time::Duration myDur;
++#endif
++            iter->next();
++#ifdef KV_PROFILE
++            context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+             continue;
+           }
+           hasValidTag = true;
+diff --git nebulagraph/nebula/src/storage/exec/IndexEdgeScanNode.cpp nebulagraph/nebula/src/storage/exec/IndexEdgeScanNode.cpp
+index 9eb9fb26c..d81620c99 100644
+--- nebulagraph/nebula/src/storage/exec/IndexEdgeScanNode.cpp
++++ nebulagraph/nebula/src/storage/exec/IndexEdgeScanNode.cpp
+@@ -88,7 +88,14 @@ nebula::cpp2::ErrorCode IndexEdgeScanNode::getBaseData(folly::StringPiece key,
+                                      context_->edgeType_,
+                                      IndexKeyUtils::getIndexRank(vIdLen, key),
+                                      IndexKeyUtils::getIndexDstId(vIdLen, key).str());
+-  return kvstore_->get(context_->spaceId(), partId_, kv.first, &kv.second);
++#ifdef KV_PROFILE
++  time::Duration myDur;
++#endif
++  auto result = kvstore_->get(context_->spaceId(), partId_, kv.first, &kv.second);
++#ifdef KV_PROFILE
++  context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
++  return result;
+ }
+ 
+ Map<std::string, Value> IndexEdgeScanNode::decodeFromBase(const std::string& key,
+diff --git nebulagraph/nebula/src/storage/exec/IndexScanNode.cpp nebulagraph/nebula/src/storage/exec/IndexScanNode.cpp
+index 4742d8a1c..43154dda7 100644
+--- nebulagraph/nebula/src/storage/exec/IndexScanNode.cpp
++++ nebulagraph/nebula/src/storage/exec/IndexScanNode.cpp
+@@ -424,18 +424,38 @@ nebula::cpp2::ErrorCode IndexScanNode::doExecute(PartitionID partId) {
+ }
+ 
+ IndexNode::Result IndexScanNode::doNext() {
+-  for (; iter_ && iter_->valid(); iter_->next()) {
++  for (; iter_ && iter_->valid();) {
+     if (!checkTTL()) {
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
++      iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+       continue;
+     }
+     auto q = path_->qualified(iter_->key());
+     if (q == QualifiedStrategy::INCOMPATIBLE) {
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
++      iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+       continue;
+     }
+     bool compatible = q == QualifiedStrategy::COMPATIBLE;
+     if (compatible && !needAccessBase_) {
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
+       auto key = iter_->key().toString();
+       iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+       Row row = decodeFromIndex(key);
+       return Result(std::move(row));
+     }
+@@ -448,6 +468,13 @@ IndexNode::Result IndexScanNode::doNext() {
+       } else {
+         LOG(FATAL) << "base data not found";
+       }
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
++      iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+       continue;
+     } else {
+       return Result(ret);
+@@ -457,6 +484,13 @@ IndexNode::Result IndexScanNode::doNext() {
+       q = path_->qualified(rowData);
+       CHECK(q != QualifiedStrategy::UNCERTAIN);
+       if (q == QualifiedStrategy::INCOMPATIBLE) {
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
++        iter_->next();
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         continue;
+       }
+     }
+@@ -464,7 +498,13 @@ IndexNode::Result IndexScanNode::doNext() {
+     for (auto& col : requiredColumns_) {
+       row.emplace_back(std::move(rowData.at(col)));
+     }
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     iter_->next();
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     return Result(std::move(row));
+   }
+   return Result();
+@@ -489,10 +529,22 @@ nebula::cpp2::ErrorCode IndexScanNode::resetIter(PartitionID partId) {
+   nebula::cpp2::ErrorCode ret = nebula::cpp2::ErrorCode::SUCCEEDED;
+   if (path_->isRange()) {
+     auto rangePath = dynamic_cast<RangePath*>(path_.get());
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     kvstore_->range(spaceId_, partId, rangePath->getStartKey(), rangePath->getEndKey(), &iter_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+   } else {
+     auto prefixPath = dynamic_cast<PrefixPath*>(path_.get());
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     ret = kvstore_->prefix(spaceId_, partId, prefixPath->getPrefixKey(), &iter_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+   }
+   return ret;
+ }
+diff --git nebulagraph/nebula/src/storage/exec/IndexVertexScanNode.cpp nebulagraph/nebula/src/storage/exec/IndexVertexScanNode.cpp
+index 4dcfd0107..940797041 100644
+--- nebulagraph/nebula/src/storage/exec/IndexVertexScanNode.cpp
++++ nebulagraph/nebula/src/storage/exec/IndexVertexScanNode.cpp
+@@ -58,7 +58,14 @@ nebula::cpp2::ErrorCode IndexVertexScanNode::getBaseData(folly::StringPiece key,
+                                     partId_,
+                                     key.subpiece(key.size() - context_->vIdLen()).toString(),
+                                     context_->tagId_);
+-  return kvstore_->get(context_->spaceId(), partId_, kv.first, &kv.second);
++#ifdef KV_PROFILE
++  time::Duration myDur;
++#endif
++  auto result = kvstore_->get(context_->spaceId(), partId_, kv.first, &kv.second);
++#ifdef KV_PROFILE
++  context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
++  return result;
+ }
+ 
+ Row IndexVertexScanNode::decodeFromIndex(folly::StringPiece key) {
+diff --git nebulagraph/nebula/src/storage/exec/ScanNode.h nebulagraph/nebula/src/storage/exec/ScanNode.h
+index 3fa9f1a94..454a0dfd8 100644
+--- nebulagraph/nebula/src/storage/exec/ScanNode.h
++++ nebulagraph/nebula/src/storage/exec/ScanNode.h
+@@ -69,9 +69,15 @@ class ScanVertexPropNode : public QueryNode<Cursor> {
+       start = cursor;
+     }
+ 
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     std::unique_ptr<kvstore::KVIterator> iter;
+     auto kvRet = context_->env()->kvstore_->rangeWithPrefix(
+         context_->planContext_->spaceId_, partId, start, prefix, &iter, enableReadFollower_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     if (kvRet != nebula::cpp2::ErrorCode::SUCCEEDED) {
+       return kvRet;
+     }
+@@ -81,11 +87,18 @@ class ScanVertexPropNode : public QueryNode<Cursor> {
+     auto isIntId = context_->isIntId();
+     std::string currentVertexId;
+     for (; iter->valid() && static_cast<int64_t>(resultDataSet_->rowSize()) < rowLimit;
+-         iter->next()) {
++        ) {
+       auto key = iter->key();
+       auto tagId = NebulaKeyUtils::getTagId(vIdLen, key);
+       auto tagIdIndex = tagNodesIndex_.find(tagId);
+       if (tagIdIndex == tagNodesIndex_.end()) {
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
++        iter->next();
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         continue;
+       }
+       auto vertexId = NebulaKeyUtils::getVertexId(vIdLen, key);
+@@ -101,6 +114,13 @@ class ScanVertexPropNode : public QueryNode<Cursor> {
+       }
+       auto value = iter->val();
+       tagNodes_[tagIdIndex->second]->doExecute(key.toString(), value.toString());
++#ifdef KV_PROFILE
++      { time::Duration myDur;
++#endif
++      iter->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec(); }
++#endif
+     }  // iterate key
+     if (static_cast<int64_t>(resultDataSet_->rowSize()) < rowLimit) {
+       ret = collectOneRow(isIntId, vIdLen, currentVertexId);
+@@ -243,9 +263,15 @@ class ScanEdgePropNode : public QueryNode<Cursor> {
+       start = cursor;
+     }
+ 
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     std::unique_ptr<kvstore::KVIterator> iter;
+     auto kvRet = context_->env()->kvstore_->rangeWithPrefix(
+         context_->spaceId(), partId, start, prefix, &iter, enableReadFollower_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     if (kvRet != nebula::cpp2::ErrorCode::SUCCEEDED) {
+       return kvRet;
+     }
+@@ -254,14 +280,28 @@ class ScanEdgePropNode : public QueryNode<Cursor> {
+     auto vIdLen = context_->vIdLen();
+     auto isIntId = context_->isIntId();
+     for (; iter->valid() && static_cast<int64_t>(resultDataSet_->rowSize()) < rowLimit;
+-         iter->next()) {
++        ) {
+       auto key = iter->key();
+       if (!NebulaKeyUtils::isEdge(vIdLen, key)) {
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
++        iter->next();
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         continue;
+       }
+       auto edgeType = NebulaKeyUtils::getEdgeType(vIdLen, key);
+       auto edgeNodeIndex = edgeNodesIndex_.find(edgeType);
+       if (edgeNodeIndex == edgeNodesIndex_.end()) {
++#ifdef KV_PROFILE
++        time::Duration myDur;
++#endif
++        iter->next();
++#ifdef KV_PROFILE
++        context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+         continue;
+       }
+       auto value = iter->val();
+@@ -270,6 +310,13 @@ class ScanEdgePropNode : public QueryNode<Cursor> {
+       if (ret != nebula::cpp2::ErrorCode::SUCCEEDED) {
+         return ret;
+       }
++#ifdef KV_PROFILE
++      { time::Duration myDur;
++#endif
++      iter->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec(); }
++#endif
+     }
+ 
+     cpp2::ScanCursor c;
+diff --git nebulagraph/nebula/src/storage/exec/StorageIterator.h nebulagraph/nebula/src/storage/exec/StorageIterator.h
+index d6c7aa6e7..536f2cc82 100644
+--- nebulagraph/nebula/src/storage/exec/StorageIterator.h
++++ nebulagraph/nebula/src/storage/exec/StorageIterator.h
+@@ -87,7 +87,13 @@ class SingleEdgeIterator : public StorageIterator {
+       ttlDuration_ = ttl->value().second;
+     }
+     while (iter_->valid() && !check()) {
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
+       iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     }
+   }
+ 
+@@ -100,7 +106,13 @@ class SingleEdgeIterator : public StorageIterator {
+ 
+   void next() override {
+     do {
++#ifdef KV_PROFILE
++      time::Duration myDur;
++#endif
+       iter_->next();
++#ifdef KV_PROFILE
++      context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+       if (!iter_->valid()) {
+         reader_.reset();
+         break;
+diff --git nebulagraph/nebula/src/storage/exec/TagNode.h nebulagraph/nebula/src/storage/exec/TagNode.h
+index 7dd0ab28e..70cb4ef48 100644
+--- nebulagraph/nebula/src/storage/exec/TagNode.h
++++ nebulagraph/nebula/src/storage/exec/TagNode.h
+@@ -63,10 +63,32 @@ class TagNode final : public IterateNode<VertexID> {
+     VLOG(1) << "partId " << partId << ", vId " << vId << ", tagId " << tagId_ << ", prop size "
+             << props_->size();
+     key_ = NebulaKeyUtils::tagKey(context_->vIdLen(), partId, vId, tagId_);
++
++    #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_storage_log_level >= 3) {
++      LOG(INFO) << "TagNode::doExecute - Attempting to read tag " 
++                << tagContext_->tagNames_[tagId_]
++                << " (ID=" << tagId_ << ") for vertex " << vId 
++                << " in partition " << partId;
++    }
++    #endif
++
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     ret = context_->env()->kvstore_->get(context_->spaceId(), partId, key_, &value_);
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     if (ret == nebula::cpp2::ErrorCode::SUCCEEDED) {
+       return doExecute(key_, value_);
+     } else if (ret == nebula::cpp2::ErrorCode::E_KEY_NOT_FOUND) {
++      #ifdef QUERY_PLAN_DEBUG
++      if (FLAGS_storage_log_level >= 3) {
++        LOG(INFO) << "TagNode - Tag " << tagContext_->tagNames_[tagId_] 
++                  << " NOT FOUND for vertex " << vId << " (expected for some vertices)";
++      }
++      #endif
+       // regard key not found as succeed as well, upper node will handle it
+       return nebula::cpp2::ErrorCode::SUCCEEDED;
+     }
+diff --git nebulagraph/nebula/src/storage/exec/UpdateNode.h nebulagraph/nebula/src/storage/exec/UpdateNode.h
+index ec6765c68..77f1af686 100644
+--- nebulagraph/nebula/src/storage/exec/UpdateNode.h
++++ nebulagraph/nebula/src/storage/exec/UpdateNode.h
+@@ -278,9 +278,15 @@ class UpdateTagNode : public UpdateNode<VertexID> {
+       ret = code;
+       baton.post();
+     };
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     context_->env()->kvstore_->asyncAppendBatch(
+         context_->spaceId(), partId, std::move(batch).value(), callback);
+     baton.wait();
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     return ret;
+   }
+   /**
+@@ -622,9 +628,15 @@ class UpdateEdgeNode : public UpdateNode<cpp2::EdgeKey> {
+       baton.post();
+     };
+ 
++#ifdef KV_PROFILE
++    time::Duration myDur;
++#endif
+     context_->planContext_->env_->kvstore_->asyncAppendBatch(
+         context_->planContext_->spaceId_, partId, std::move(batch).value(), callback);
+     baton.wait();
++#ifdef KV_PROFILE
++    context_->kvstoreTime += myDur.elapsedInUSec();
++#endif
+     return ret;
+   }
+   /**
+diff --git nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.cpp nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.cpp
+new file mode 100644
+index 000000000..1b59c13f6
+--- /dev/null
++++ nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.cpp
+@@ -0,0 +1,171 @@
++/* Copyright (c) 2024 vesoft inc. All rights reserved.
++ *
++ * This source code is licensed under Apache 2.0 License.
++ */
++
++#ifdef KV_STATS
++
++#include "storage/http/StorageHttpKVStatsHandler.h"
++
++#include <proxygen/httpserver/ResponseBuilder.h>
++#include <proxygen/lib/http/ProxygenErrorEnum.h>
++
++#include <folly/json.h>
++
++#include "kvstore/RocksEngine.h"
++
++namespace nebula {
++namespace storage {
++
++using proxygen::HTTPMessage;
++using proxygen::HTTPMethod;
++using proxygen::ProxygenError;
++using proxygen::ResponseBuilder;
++using proxygen::UpgradeProtocol;
++
++void StorageHttpKVStatsHandler::onRequest(std::unique_ptr<HTTPMessage> headers) noexcept {
++  if (action_ == Action::READ) {
++    if (headers->getMethod().value() != HTTPMethod::GET) {
++      resp_ = "Method not allowed. Use GET.";
++      err_ = HttpCode::E_UNSUPPORTED_METHOD;
++      return;
++    }
++    auto& c = kvstore::kvStatsCounters();
++    folly::dynamic obj = folly::dynamic::object
++        ("get_count", c.get_count.load(std::memory_order_relaxed))
++        ("get_found_count", c.get_found_count.load(std::memory_order_relaxed))
++        ("get_latency_ns", c.get_latency_ns.load(std::memory_order_relaxed))
++        ("get_bytes", c.get_bytes.load(std::memory_order_relaxed))
++        ("multi_get_count", c.multi_get_count.load(std::memory_order_relaxed))
++        ("multi_get_latency_ns", c.multi_get_latency_ns.load(std::memory_order_relaxed))
++        ("multi_get_keys", c.multi_get_keys.load(std::memory_order_relaxed))
++        ("multi_get_bytes", c.multi_get_bytes.load(std::memory_order_relaxed))
++        ("put_count", c.put_count.load(std::memory_order_relaxed))
++        ("put_latency_ns", c.put_latency_ns.load(std::memory_order_relaxed))
++        ("put_bytes", c.put_bytes.load(std::memory_order_relaxed))
++        ("multi_put_count", c.multi_put_count.load(std::memory_order_relaxed))
++        ("multi_put_latency_ns", c.multi_put_latency_ns.load(std::memory_order_relaxed))
++        ("multi_put_keys", c.multi_put_keys.load(std::memory_order_relaxed))
++        ("multi_put_bytes", c.multi_put_bytes.load(std::memory_order_relaxed))
++        ("remove_count", c.remove_count.load(std::memory_order_relaxed))
++        ("remove_latency_ns", c.remove_latency_ns.load(std::memory_order_relaxed))
++        ("remove_bytes", c.remove_bytes.load(std::memory_order_relaxed))
++        ("multi_remove_count", c.multi_remove_count.load(std::memory_order_relaxed))
++        ("multi_remove_latency_ns", c.multi_remove_latency_ns.load(std::memory_order_relaxed))
++        ("multi_remove_keys", c.multi_remove_keys.load(std::memory_order_relaxed))
++        ("multi_remove_bytes", c.multi_remove_bytes.load(std::memory_order_relaxed))
++        ("remove_range_count", c.remove_range_count.load(std::memory_order_relaxed))
++        ("remove_range_latency_ns", c.remove_range_latency_ns.load(std::memory_order_relaxed))
++        ("range_count", c.range_count.load(std::memory_order_relaxed))
++        ("range_latency_ns", c.range_latency_ns.load(std::memory_order_relaxed))
++        ("prefix_count", c.prefix_count.load(std::memory_order_relaxed))
++        ("prefix_latency_ns", c.prefix_latency_ns.load(std::memory_order_relaxed))
++        ("range_with_prefix_count", c.range_with_prefix_count.load(std::memory_order_relaxed))
++        ("range_with_prefix_latency_ns", c.range_with_prefix_latency_ns.load(std::memory_order_relaxed))
++        ("scan_count", c.scan_count.load(std::memory_order_relaxed))
++        ("scan_latency_ns", c.scan_latency_ns.load(std::memory_order_relaxed))
++        ("commit_batch_write_count", c.commit_batch_write_count.load(std::memory_order_relaxed))
++        ("commit_batch_write_latency_ns", c.commit_batch_write_latency_ns.load(std::memory_order_relaxed))
++        ("iterator_next_count", c.iterator_next_count.load(std::memory_order_relaxed))
++        ("iterator_next_latency_ns", c.iterator_next_latency_ns.load(std::memory_order_relaxed))
++        ("iterator_next_bytes", c.iterator_next_bytes.load(std::memory_order_relaxed))
++        ("iterator_prev_count", c.iterator_prev_count.load(std::memory_order_relaxed))
++        ("iterator_prev_latency_ns", c.iterator_prev_latency_ns.load(std::memory_order_relaxed))
++        ("iterator_prev_bytes", c.iterator_prev_bytes.load(std::memory_order_relaxed))
++        ("wb_put_count", c.wb_put_count.load(std::memory_order_relaxed))
++        ("wb_remove_count", c.wb_remove_count.load(std::memory_order_relaxed))
++        ("wb_remove_range_count", c.wb_remove_range_count.load(std::memory_order_relaxed));
++#ifdef KV_HISTOGRAMS
++    obj["histograms"] = kvstore::kvHistograms().toJson();
++#endif
++    resp_ = folly::toPrettyJson(obj);
++  } else if (action_ == Action::RESET) {
++    auto method = headers->getMethod().value();
++    if (method != HTTPMethod::PUT && method != HTTPMethod::POST) {
++      resp_ = "Method not allowed. Use PUT or POST.";
++      err_ = HttpCode::E_UNSUPPORTED_METHOD;
++      return;
++    }
++    kvstore::kvStatsCounters().reset();
++#ifdef KV_HISTOGRAMS
++    kvstore::kvHistograms().reset();
++#endif
++    resp_ = "{\"status\":\"ok\"}";
++  } else if (action_ == Action::TRACE_ENABLE) {
++    size_t maxEntries = 100000;  // default when ?max= is absent
++    if (headers->hasQueryParam("max")) {
++      try {
++        maxEntries = std::stoul(headers->getQueryParam("max"));
++      } catch (const std::exception&) {
++        resp_ = "{\"status\":\"error\",\"message\":\"invalid max parameter\"}";
++        err_ = HttpCode::E_ILLEGAL_ARGUMENT;
++        return;
++      }
++    }
++    kvstore::kvStatsCounters().traceEnable(maxEntries);
++    resp_ = "{\"status\":\"ok\",\"message\":\"KV trace enabled\",\"max\":" +
++            std::to_string(maxEntries) + "}";
++  } else if (action_ == Action::TRACE_DISABLE) {
++    kvstore::kvStatsCounters().traceDisable();
++    resp_ = "{\"status\":\"ok\",\"message\":\"KV trace disabled\"}";
++  } else if (action_ == Action::TRACE_READ) {
++    auto& c = kvstore::kvStatsCounters();
++    folly::dynamic arr = folly::dynamic::array;
++    {
++      std::lock_guard<std::mutex> lock(c.trace_mutex);
++      for (const auto& e : c.trace_buffer) {
++        arr.push_back(folly::dynamic::object
++            ("op", e.op)
++            ("key", e.key_hex)
++            ("key_size", e.key_size)
++            ("value_size", e.value_size));
++      }
++    }
++    folly::dynamic obj = folly::dynamic::object
++        ("count", arr.size())
++        ("enabled", c.trace_enabled.load(std::memory_order_relaxed))
++        ("entries", arr);
++    resp_ = folly::toPrettyJson(obj);
++  }
++}
++
++void StorageHttpKVStatsHandler::onBody(std::unique_ptr<folly::IOBuf>) noexcept {
++  // Nothing to do
++}
++
++void StorageHttpKVStatsHandler::onEOM() noexcept {
++  switch (err_) {
++    case HttpCode::E_UNSUPPORTED_METHOD:
++      ResponseBuilder(downstream_).status(405, "Method not allowed").body(resp_).sendWithEOM();
++      return;
++    case HttpCode::E_ILLEGAL_ARGUMENT:
++      ResponseBuilder(downstream_).status(400, "Bad request").body(resp_).sendWithEOM();
++      return;
++    default:
++      break;
++  }
++  ResponseBuilder(downstream_)
++      .status(200, "OK")
++      .header("Content-Type", "application/json")
++      .body(resp_)
++      .sendWithEOM();
++}
++
++void StorageHttpKVStatsHandler::onUpgrade(UpgradeProtocol) noexcept {
++  // Do nothing
++}
++
++void StorageHttpKVStatsHandler::requestComplete() noexcept {
++  delete this;
++}
++
++void StorageHttpKVStatsHandler::onError(ProxygenError error) noexcept {
++  LOG(ERROR) << "Web service StorageHttpKVStatsHandler got error: "
++             << proxygen::getErrorString(error);
++  delete this;
++}
++
++}  // namespace storage
++}  // namespace nebula
++
++#endif  // KV_STATS
+diff --git nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.h nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.h
+new file mode 100644
+index 000000000..296b82e5f
+--- /dev/null
++++ nebulagraph/nebula/src/storage/http/StorageHttpKVStatsHandler.h
+@@ -0,0 +1,48 @@
++/* Copyright (c) 2024 vesoft inc. All rights reserved.
++ *
++ * This source code is licensed under Apache 2.0 License.
++ */
++
++#ifndef STORAGE_HTTP_STORAGEHTTPKVSTATSHANDLER_H_
++#define STORAGE_HTTP_STORAGEHTTPKVSTATSHANDLER_H_
++
++#ifdef KV_STATS
++
++#include <proxygen/httpserver/RequestHandler.h>
++
++#include "common/base/Base.h"
++#include "webservice/Common.h"
++
++namespace nebula {
++namespace storage {
++
++/**
++ * @brief HTTP handler for /kvstats endpoint.
++ *
++ * GET  /kvstats       — returns all cumulative atomic KV counters as flat JSON
++ * PUT  /kvstats/reset — zeros all counters and returns {"status":"ok"}
++ */
++class StorageHttpKVStatsHandler : public proxygen::RequestHandler {
++ public:
++  enum class Action { READ, RESET, TRACE_ENABLE, TRACE_DISABLE, TRACE_READ };
++
++  explicit StorageHttpKVStatsHandler(Action action) : action_(action) {}
++
++  void onRequest(std::unique_ptr<proxygen::HTTPMessage> headers) noexcept override;
++  void onBody(std::unique_ptr<folly::IOBuf> body) noexcept override;
++  void onEOM() noexcept override;
++  void onUpgrade(proxygen::UpgradeProtocol proto) noexcept override;
++  void requestComplete() noexcept override;
++  void onError(proxygen::ProxygenError err) noexcept override;
++
++ private:
++  Action action_;
++  HttpCode err_{HttpCode::SUCCEEDED};
++  std::string resp_;
++};
++
++}  // namespace storage
++}  // namespace nebula
++
++#endif  // KV_STATS
++#endif  // STORAGE_HTTP_STORAGEHTTPKVSTATSHANDLER_H_
+diff --git nebulagraph/nebula/src/storage/query/GetDstBySrcProcessor.cpp nebulagraph/nebula/src/storage/query/GetDstBySrcProcessor.cpp
+index 9c8966206..6da192f81 100644
+--- nebulagraph/nebula/src/storage/query/GetDstBySrcProcessor.cpp
++++ nebulagraph/nebula/src/storage/query/GetDstBySrcProcessor.cpp
+@@ -12,6 +12,8 @@
+ #include "storage/StorageFlags.h"
+ #include "storage/exec/EdgeNode.h"
+ #include "storage/exec/GetDstBySrcNode.h"
++#include "storage/stats/StorageStats.h"
++#include "common/stats/StatsManager.h"
+ 
+ DEFINE_uint64(concurrent_dedup_threshold, 50000000, "concurrent dedup threshold");
+ DEFINE_uint64(max_dedup_threads, 6, "max dedup threads");
+@@ -31,6 +33,29 @@ void GetDstBySrcProcessor::process(const cpp2::GetDstBySrcRequest& req) {
+ }
+ 
+ void GetDstBySrcProcessor::doProcess(const cpp2::GetDstBySrcRequest& req) {
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n=== GetDstBySrc Request ===\n";
++    oss << "Space ID: " << req.get_space_id() << "\n";
++    oss << "Partitions: " << req.get_parts().size() << "\n";
++    
++    size_t totalSrcs = 0;
++    for (const auto& [partId, srcs] : req.get_parts()) {
++      totalSrcs += srcs.size();
++    }
++    oss << "Total source vertices: " << totalSrcs << "\n";
++    
++    oss << "Edge types: " << req.get_edge_types().size() << "\n";
++    if (FLAGS_storage_log_level >= 2) {
++      for (auto edgeType : req.get_edge_types()) {
++        oss << "  Edge type: " << edgeType << "\n";
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   if (req.common_ref().has_value() && req.get_common()->profile_detail_ref().value_or(false)) {
+     profileDetailFlag_ = true;
+     profileDetail("GetDstBySrcProcessorTotal", 0);
+@@ -95,9 +120,15 @@ void GetDstBySrcProcessor::runInSingleThread(const cpp2::GetDstBySrcRequest& req
+     }
+   }
+ 
++#ifdef KV_PROFILE
++  stats::StatsManager::addValue(kKVStoreTotalLatencyUs, contexts_.front().kvstoreTime);
++  stats::StatsManager::addValue(kKVStoreMaxLatencyUs, contexts_.front().kvstoreTime);
+   if (UNLIKELY(profileDetailFlag_)) {
++    this->profileDetail("total_kvstore_time_us", contexts_.front().kvstoreTime);
++    this->profileDetail("max_kvstore_time_us", contexts_.front().kvstoreTime);
+     profilePlan(plan);
+   }
++#endif
+   onProcessFinished();
+   onFinished();
+ }
+@@ -131,6 +162,11 @@ void GetDstBySrcProcessor::runInMultipleThread(const cpp2::GetDstBySrcRequest& r
+         // }
+         // flatResult_.reserve(sum);
+ 
++#ifdef KV_PROFILE
++        int64_t totalKvstoreTime = 0;
++        int64_t maxKvstoreTime = 0;
++#endif
++
+         for (size_t j = 0; j < tries.size(); j++) {
+           if (tries[j].hasException()) {
+             onError();
+@@ -144,8 +180,20 @@ void GetDstBySrcProcessor::runInMultipleThread(const cpp2::GetDstBySrcRequest& r
+               flatResult_.emplace_back(std::move(v));
+             }
+             std::deque<Value>().swap(partResults_[j]);
++#ifdef KV_PROFILE
++            totalKvstoreTime += contexts_[j].kvstoreTime;
++            maxKvstoreTime = std::max(maxKvstoreTime, contexts_[j].kvstoreTime);
++#endif
+           }
+         }
++#ifdef KV_PROFILE
++        stats::StatsManager::addValue(kKVStoreTotalLatencyUs, totalKvstoreTime);
++        stats::StatsManager::addValue(kKVStoreMaxLatencyUs, maxKvstoreTime);
++        if (UNLIKELY(this->profileDetailFlag_)) {
++          this->profileDetail("total_kvstore_time_us", totalKvstoreTime);
++          this->profileDetail("max_kvstore_time_us", maxKvstoreTime);
++        }
++#endif
+ 
+         this->onProcessFinished();
+         this->onFinished();
+diff --git nebulagraph/nebula/src/storage/query/GetNeighborsProcessor.cpp nebulagraph/nebula/src/storage/query/GetNeighborsProcessor.cpp
+index 89f49e0c5..623e496a9 100644
+--- nebulagraph/nebula/src/storage/query/GetNeighborsProcessor.cpp
++++ nebulagraph/nebula/src/storage/query/GetNeighborsProcessor.cpp
+@@ -14,6 +14,9 @@
+ #include "storage/exec/HashJoinNode.h"
+ #include "storage/exec/MultiTagNode.h"
+ #include "storage/exec/TagNode.h"
++#include "storage/stats/StorageStats.h"
++#include "common/stats/StatsManager.h"
++#include <sstream>
+ 
+ namespace nebula {
+ namespace storage {
+@@ -31,6 +34,39 @@ void GetNeighborsProcessor::process(const cpp2::GetNeighborsRequest& req) {
+ 
+ void GetNeighborsProcessor::doProcess(const cpp2::GetNeighborsRequest& req) {
+   spaceId_ = req.get_space_id();
++  
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1 || FLAGS_print_query_plan) {
++    std::ostringstream oss;
++    oss << "\n=== GetNeighbors Request ===\n";
++    oss << "Space ID: " << spaceId_ << "\n";
++    oss << "Partitions: " << req.get_parts().size() << "\n";
++    size_t totalVertices = 0;
++    for (const auto& [partId, vids] : req.get_parts()) {
++      totalVertices += vids.size();
++    }
++    oss << "Total input vertices: " << totalVertices << "\n";
++    
++    if (req.traverse_spec_ref().is_set()) {
++      auto& spec = req.get_traverse_spec();
++      oss << "Traverse spec:\n";
++      
++      if (spec.vertex_props_ref().has_value()) {
++        oss << "  Vertex props: " << spec.get_vertex_props()->size() << " tags\n";
++      }
++      
++      if (spec.edge_props_ref().has_value()) {
++        oss << "  Edge props: " << spec.get_edge_props()->size() << " edge types\n";
++      }
++      
++      if (spec.filter_ref().has_value()) {
++        oss << "  Filter: " << *spec.get_filter() << "\n";
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   auto retCode = getSpaceVidLen(spaceId_);
+   if (retCode != nebula::cpp2::ErrorCode::SUCCEEDED) {
+     for (auto& p : req.get_parts()) {
+@@ -106,7 +142,15 @@ void GetNeighborsProcessor::runInSingleThread(const cpp2::GetNeighborsRequest& r
+       }
+     }
+   }
++#ifdef KV_PROFILE
++  stats::StatsManager::addValue(kKVStoreTotalLatencyUs, contexts_.front().kvstoreTime);
++  stats::StatsManager::addValue(kKVStoreMaxLatencyUs, contexts_.front().kvstoreTime);
++#endif
+   if (UNLIKELY(profileDetailFlag_)) {
++#ifdef KV_PROFILE
++    this->profileDetail("total_kvstore_time_us", contexts_.front().kvstoreTime);
++    this->profileDetail("max_kvstore_time_us", contexts_.front().kvstoreTime);
++#endif
+     profilePlan(plan);
+   }
+   onProcessFinished();
+@@ -137,6 +181,11 @@ void GetNeighborsProcessor::runInMultipleThread(const cpp2::GetNeighborsRequest&
+         memory::MemoryCheckGuard guard;
+         CHECK(!t.hasException());
+         const auto& tries = t.value();
++
++#ifdef KV_PROFILE
++        int64_t totalKvstoreTime = 0;
++        int64_t maxKvstoreTime = 0;
++#endif
+         size_t sum = 0;
+         for (size_t j = 0; j < tries.size(); j++) {
+           if (tries[j].hasException()) {
+@@ -152,8 +201,21 @@ void GetNeighborsProcessor::runInMultipleThread(const cpp2::GetNeighborsRequest&
+             handleErrorCode(code, spaceId_, partId);
+           } else {
+             resultDataSet_.append(std::move(results_[j]));
++#ifdef KV_PROFILE
++            totalKvstoreTime += contexts_[j].kvstoreTime;
++            maxKvstoreTime = std::max(maxKvstoreTime, contexts_[j].kvstoreTime);
++#endif
+           }
+         }
++#ifdef KV_PROFILE
++        stats::StatsManager::addValue(kKVStoreTotalLatencyUs, totalKvstoreTime);
++        stats::StatsManager::addValue(kKVStoreMaxLatencyUs, maxKvstoreTime);
++        if (UNLIKELY(this->profileDetailFlag_)) {
++          this->profileDetail("total_kvstore_time_us", totalKvstoreTime);
++          this->profileDetail("max_kvstore_time_us", maxKvstoreTime);
++        }
++#endif
++
+         this->onProcessFinished();
+         this->onFinished();
+       })
+@@ -239,6 +301,39 @@ StoragePlan<VertexID> GetNeighborsProcessor::buildPlan(RuntimeContext* context,
+                                                                  +--------+
+ 
+   */
++ 
++  #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n--- GetNeighbors Query Plan ---\n";
++    oss << "Space: " << spaceId_ << "\n";
++    oss << "Tags requested: " << tagContext_.propContexts_.size() << "\n";
++    for (const auto& [tagId, ctx] : tagContext_.propContexts_) {
++      oss << "  Tag: " << tagContext_.tagNames_[tagId] 
++          << " (id=" << tagId << ")\n";
++      if (FLAGS_storage_log_level >= 2) {
++        oss << "    Properties (" << ctx.size() << "): ";
++        for (const auto& prop : ctx) {
++          oss << prop.name_ << " ";
++        }
++        oss << "\n";
++      }
++    }
++    oss << "Edges requested: " << edgeContext_.propContexts_.size() << "\n";
++    for (const auto& [edgeType, ctx] : edgeContext_.propContexts_) {
++      oss << "  Edge: " << edgeContext_.edgeNames_[edgeType] 
++          << " (type=" << edgeType << ")\n";
++      if (FLAGS_storage_log_level >= 2) {
++        oss << "    Properties (" << ctx.size() << "): ";
++        for (const auto& prop : ctx) {
++          oss << prop.name_ << " ";
++        }
++        oss << "\n";
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
+   StoragePlan<VertexID> plan;
+   std::vector<TagNode*> tags;
+   for (const auto& tc : tagContext_.propContexts_) {
+@@ -307,6 +402,18 @@ StoragePlan<VertexID> GetNeighborsProcessor::buildPlan(RuntimeContext* context,
+   output->addDependency(upstream);
+   plan.addNode(std::move(output));
+ 
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n--- GetNeighbors Plan Nodes ---\n";
++    auto& nodes = plan.getNodes();
++    for (auto& node : nodes) {
++      oss << "  - " << node->name() << "\n";
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   return plan;
+ }
+ 
+@@ -358,6 +465,25 @@ nebula::cpp2::ErrorCode GetNeighborsProcessor::buildTagContext(const cpp2::Trave
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   }
+   auto returnProps = *req.vertex_props_ref();
++
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_print_query_plan) {
++    std::ostringstream oss;
++    oss << "\n--- Tag Properties Requested ---\n";
++    for (const auto& vProp : returnProps) {
++      auto tagId = vProp.get_tag();
++      auto tagName = this->env_->schemaMan_->toTagName(spaceId_, tagId).value();
++      oss << "Tag: " << tagName << " (id=" << tagId << ")\n";
++      if (vProp.props_ref().is_set()) {
++        for (const auto& prop : *vProp.props_ref()) {
++          oss << "  Property: " << prop << "\n";
++        }
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   auto ret = handleVertexProps(returnProps);
+ 
+   if (ret != nebula::cpp2::ErrorCode::SUCCEEDED) {
+@@ -375,6 +501,25 @@ nebula::cpp2::ErrorCode GetNeighborsProcessor::buildEdgeContext(const cpp2::Trav
+     return nebula::cpp2::ErrorCode::SUCCEEDED;
+   }
+   auto returnProps = *req.edge_props_ref();
++
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_print_query_plan) {
++    std::ostringstream oss;
++    oss << "\n--- Edge Properties Requested ---\n";
++    for (const auto& eProp : returnProps) {
++      auto edgeType = eProp.get_type();
++      auto edgeName = this->env_->schemaMan_->toEdgeName(spaceId_, std::abs(edgeType)).value();
++      oss << "Edge: " << (edgeType > 0 ? "+" : "-") << edgeName << " (type=" << edgeType << ")\n";
++      if (eProp.props_ref().is_set()) {
++        for (const auto& prop : *eProp.props_ref()) { 
++          oss << "  Property: " << prop << "\n";
++        }
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   auto ret = handleEdgeProps(returnProps);
+   if (ret != nebula::cpp2::ErrorCode::SUCCEEDED) {
+     return ret;
+diff --git nebulagraph/nebula/src/storage/query/GetPropProcessor.cpp nebulagraph/nebula/src/storage/query/GetPropProcessor.cpp
+index b5dfaf354..db088c939 100644
+--- nebulagraph/nebula/src/storage/query/GetPropProcessor.cpp
++++ nebulagraph/nebula/src/storage/query/GetPropProcessor.cpp
+@@ -7,6 +7,8 @@
+ 
+ #include "common/memory/MemoryTracker.h"
+ #include "storage/exec/GetPropNode.h"
++#include "storage/stats/StorageStats.h"
++#include "common/stats/StatsManager.h"
+ 
+ namespace nebula {
+ namespace storage {
+@@ -24,6 +26,21 @@ void GetPropProcessor::process(const cpp2::GetPropRequest& req) {
+ 
+ void GetPropProcessor::doProcess(const cpp2::GetPropRequest& req) {
+   spaceId_ = req.get_space_id();
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_print_query_plan) {
++    std::ostringstream oss;
++    oss << "\n=== GetProp Request ===\n";
++    oss << "Space ID: " << spaceId_ << "\n";
++    oss << "Partitions: " << req.get_parts().size() << "\n";
++    size_t totalEntities = 0;
++    for (const auto& [partId, rows] : req.get_parts()) {
++      totalEntities += rows.size();
++    }
++    oss << "Total input entities: " << totalEntities << "\n";
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   // Negative number means no limit
+   const auto rawLimit = req.limit_ref().value_or(-1);
+   limit_ = rawLimit < 0 ? std::numeric_limits<int64_t>::max() : rawLimit;
+@@ -35,6 +52,9 @@ void GetPropProcessor::doProcess(const cpp2::GetPropRequest& req) {
+     onFinished();
+     return;
+   }
++  if (req.common_ref().has_value() && req.get_common()->profile_detail_ref().value_or(false)) {
++    profileDetailFlag_ = true;
++  }
+   this->planContext_ = std::make_unique<PlanContext>(
+       this->env_, spaceId_, this->spaceVidLen_, this->isIntId_, req.common_ref());
+ 
+@@ -58,9 +78,33 @@ void GetPropProcessor::doProcess(const cpp2::GetPropRequest& req) {
+ void GetPropProcessor::runInSingleThread(const cpp2::GetPropRequest& req) {
+   memory::MemoryCheckGuard guard;
+   contexts_.emplace_back(RuntimeContext(planContext_.get()));
++
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_print_query_plan) {
++    std::ostringstream oss;
++    oss << "\n--- GetProp Single Thread Execution ---\n";
++    oss << "Is Edge: " << (isEdge_ ? "true" : "false") << "\n";
++    oss << "Limit per entity: " << limit_ << "\n";
++    LOG(INFO) << oss.str();
++  }
++  #endif
++
+   std::unordered_set<PartitionID> failedParts;
+   if (!isEdge_) {
+     auto plan = buildTagPlan(&contexts_.front(), &resultDataSet_);
++    #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_print_query_plan) {
++      // print plan nodes
++      std::ostringstream oss;
++      auto& nodes = plan.getNodes();
++      oss << "\n--- GetTagProp Plan Nodes ---\n";
++      for (auto& node : nodes) {
++        oss << "  - " << node->name() << "\n";
++      }
++      LOG(INFO) << oss.str();
++    }
++    #endif
++
+     for (const auto& partEntry : req.get_parts()) {
+       auto partId = partEntry.first;
+       for (const auto& row : partEntry.second) {
+@@ -84,6 +128,18 @@ void GetPropProcessor::runInSingleThread(const cpp2::GetPropRequest& req) {
+     }
+   } else {
+     auto plan = buildEdgePlan(&contexts_.front(), &resultDataSet_);
++    #ifdef QUERY_PLAN_DEBUG
++    if (FLAGS_print_query_plan) {
++      std::ostringstream oss;
++      auto& nodes = plan.getNodes();
++      oss << "\n--- GetEdgeProp Plan Nodes ---\n";
++      for (auto& node : nodes) {
++        oss << "  - " << node->name() << "\n";
++      }
++      LOG(INFO) << oss.str();
++    }
++    #endif
++
+     for (const auto& partEntry : req.get_parts()) {
+       auto partId = partEntry.first;
+       for (const auto& row : partEntry.second) {
+@@ -112,6 +168,14 @@ void GetPropProcessor::runInSingleThread(const cpp2::GetPropRequest& req) {
+       }
+     }
+   }
++#ifdef KV_PROFILE
++  stats::StatsManager::addValue(kKVStoreTotalLatencyUs, contexts_.front().kvstoreTime);
++  stats::StatsManager::addValue(kKVStoreMaxLatencyUs, contexts_.front().kvstoreTime);
++  if (UNLIKELY(profileDetailFlag_)) {
++    this->profileDetail("total_kvstore_time_us", contexts_.front().kvstoreTime);
++    this->profileDetail("max_kvstore_time_us", contexts_.front().kvstoreTime);
++  }
++#endif
+   onProcessFinished();
+   onFinished();
+ }
+@@ -136,6 +200,11 @@ void GetPropProcessor::runInMultipleThread(const cpp2::GetPropRequest& req) {
+         memory::MemoryCheckGuard guard;
+         CHECK(!t.hasException());
+         const auto& tries = t.value();
++
++#ifdef KV_PROFILE
++        int64_t totalKvstoreTime = 0;
++        int64_t maxKvstoreTime = 0;
++#endif
+         size_t sum = 0;
+         for (size_t j = 0; j < tries.size(); j++) {
+           if (tries[j].hasException()) {
+@@ -151,8 +220,20 @@ void GetPropProcessor::runInMultipleThread(const cpp2::GetPropRequest& req) {
+             handleErrorCode(code, spaceId_, partId);
+           } else {
+             resultDataSet_.append(std::move(results_[j]));
++#ifdef KV_PROFILE
++            totalKvstoreTime += contexts_[j].kvstoreTime;
++            maxKvstoreTime = std::max(maxKvstoreTime, contexts_[j].kvstoreTime);
++#endif
+           }
+         }
++#ifdef KV_PROFILE
++        stats::StatsManager::addValue(kKVStoreTotalLatencyUs, totalKvstoreTime);
++        stats::StatsManager::addValue(kKVStoreMaxLatencyUs, maxKvstoreTime);
++        if (UNLIKELY(this->profileDetailFlag_)) {
++          this->profileDetail("total_kvstore_time_us", totalKvstoreTime);
++          this->profileDetail("max_kvstore_time_us", maxKvstoreTime);
++        }
++#endif
+         this->onProcessFinished();
+         this->onFinished();
+       })
+@@ -228,6 +309,27 @@ folly::Future<std::pair<nebula::cpp2::ErrorCode, PartitionID>> GetPropProcessor:
+ 
+ StoragePlan<VertexID> GetPropProcessor::buildTagPlan(RuntimeContext* context,
+                                                      nebula::DataSet* result) {
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n--- GetTagProp Plan Structure ---\n";
++    oss << "Tags to fetch: " << tagContext_.propContexts_.size() << "\n";
++    
++    for (const auto& [tagId, propCtxs] : tagContext_.propContexts_) {
++      oss << "  Tag: " << tagContext_.tagNames_[tagId] 
++          << " (ID=" << tagId << ")\n";
++      oss << "    Properties (" << propCtxs.size() << "): ";
++      for (const auto& prop : propCtxs) {
++        oss << prop.name_;
++        if (prop.returned_) oss << "[R]";
++        if (prop.filtered_) oss << "[F]";
++        oss << " ";
++      }
++      oss << "\n";
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif                                            
+   StoragePlan<VertexID> plan;
+   std::vector<TagNode*> tags;
+   for (const auto& tc : tagContext_.propContexts_) {
+@@ -235,6 +337,11 @@ StoragePlan<VertexID> GetPropProcessor::buildTagPlan(RuntimeContext* context,
+     tags.emplace_back(tag.get());
+     plan.addNode(std::move(tag));
+   }
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    LOG(INFO) << "Created " << tags.size() << " TagNode(s) for GetTagProp plan";
++  }
++  #endif
+   auto output = std::make_unique<GetTagPropNode>(
+       context, tags, result, filter_ == nullptr ? nullptr : filter_->clone(), limit_, &tagContext_);
+   for (auto* tag : tags) {
+@@ -246,6 +353,26 @@ StoragePlan<VertexID> GetPropProcessor::buildTagPlan(RuntimeContext* context,
+ 
+ StoragePlan<cpp2::EdgeKey> GetPropProcessor::buildEdgePlan(RuntimeContext* context,
+                                                            nebula::DataSet* result) {
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n--- GetEdgeProp Plan Structure ---\n";
++    oss << "Edges to fetch: " << edgeContext_.propContexts_.size() << "\n";
++    for (const auto& [edgeType, propCtxs] : edgeContext_.propContexts_) {
++      oss << "  Edge: " << edgeContext_.edgeNames_[edgeType] 
++          << " (type=" << edgeType << ")\n";
++      oss << "    Properties (" << propCtxs.size() << "): ";
++      for (const auto& prop : propCtxs) {
++        oss << prop.name_;
++        if (prop.returned_) oss << "[R]";
++        if (prop.filtered_) oss << "[F]";
++        oss << " ";
++      }
++      oss << "\n";
++    }
++    LOG(INFO) << oss.str();
++  }
++  #endif
+   StoragePlan<cpp2::EdgeKey> plan;
+   std::vector<EdgeNode<cpp2::EdgeKey>*> edges;
+   for (const auto& ec : edgeContext_.propContexts_) {
+@@ -253,6 +380,11 @@ StoragePlan<cpp2::EdgeKey> GetPropProcessor::buildEdgePlan(RuntimeContext* conte
+     edges.emplace_back(edge.get());
+     plan.addNode(std::move(edge));
+   }
++  #ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    LOG(INFO) << "Created " << edges.size() << " EdgeNode(s) for GetEdgeProp plan";
++  }
++  #endif
+   auto output = std::make_unique<GetEdgePropNode>(
+       context, edges, result, filter_ == nullptr ? nullptr : filter_->clone(), limit_);
+   for (auto* edge : edges) {
+diff --git nebulagraph/nebula/src/storage/query/ScanEdgeProcessor.cpp nebulagraph/nebula/src/storage/query/ScanEdgeProcessor.cpp
+index 9f971597b..14cd7d5ab 100644
+--- nebulagraph/nebula/src/storage/query/ScanEdgeProcessor.cpp
++++ nebulagraph/nebula/src/storage/query/ScanEdgeProcessor.cpp
+@@ -9,6 +9,8 @@
+ #include "common/utils/NebulaKeyUtils.h"
+ #include "storage/StorageFlags.h"
+ #include "storage/exec/QueryUtils.h"
++#include "storage/stats/StorageStats.h"
++#include "common/stats/StatsManager.h"
+ 
+ namespace nebula {
+ namespace storage {
+@@ -30,6 +32,33 @@ void ScanEdgeProcessor::doProcess(const cpp2::ScanEdgeRequest& req) {
+   // Negative means no limit
+   limit_ = req.get_limit() < 0 ? std::numeric_limits<int64_t>::max() : req.get_limit();
+ 
++#ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n=== ScanEdge Request ===\n";
++    oss << "Space ID: " << spaceId_ << "\n";
++    oss << "Partitions: " << req.get_parts().size() << "\n";
++    oss << "Limit: " << limit_ << "\n";
++    oss << "Read from follower: " << (enableReadFollower_ ? "true" : "false") << "\n";
++    
++    if (req.return_columns_ref().is_set()) {  // ← Changed from has_value()
++      const auto& returnColumns = req.get_return_columns();  // ← This returns a reference, not pointer
++      oss << "Edges to scan: " << returnColumns.size() << "\n";
++      if (FLAGS_storage_log_level >= 2) {
++        for (const auto& eProp : returnColumns) {  // ← Iterate directly (no dereference needed)
++          auto edgeType = eProp.get_type();
++          oss << "  Edge type: " << edgeType;
++          if (eProp.props_ref().is_set()) {  // ← Changed from has_value()
++            oss << " (" << eProp.get_props().size() << " props)";
++          }
++          oss << "\n";
++        }
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++#endif
++
+   auto retCode = getSpaceVidLen(spaceId_);
+   if (retCode != nebula::cpp2::ErrorCode::SUCCEEDED) {
+     for (auto& p : req.get_parts()) {
+@@ -38,6 +67,9 @@ void ScanEdgeProcessor::doProcess(const cpp2::ScanEdgeRequest& req) {
+     onFinished();
+     return;
+   }
++  if (req.common_ref().has_value() && req.get_common()->profile_detail_ref().value_or(false)) {
++    profileDetailFlag_ = true;
++  }
+ 
+   this->planContext_ = std::make_unique<PlanContext>(
+       this->env_, spaceId_, this->spaceVidLen_, this->isIntId_, req.common_ref());
+@@ -168,6 +200,14 @@ void ScanEdgeProcessor::runInSingleThread(const cpp2::ScanEdgeRequest& req) {
+       handleErrorCode(ret, spaceId_, partId);
+     }
+   }
++#ifdef KV_PROFILE
++  stats::StatsManager::addValue(kKVStoreTotalLatencyUs, contexts_.front().kvstoreTime);
++  stats::StatsManager::addValue(kKVStoreMaxLatencyUs, contexts_.front().kvstoreTime);
++  if (UNLIKELY(profileDetailFlag_)) {
++    this->profileDetail("total_kvstore_time_us", contexts_.front().kvstoreTime);
++    this->profileDetail("max_kvstore_time_us", contexts_.front().kvstoreTime);
++  }
++#endif
+   onProcessFinished();
+   onFinished();
+ }
+@@ -200,6 +240,11 @@ void ScanEdgeProcessor::runInMultipleThread(const cpp2::ScanEdgeRequest& req) {
+         memory::MemoryCheckGuard guard;
+         CHECK(!t.hasException());
+         const auto& tries = t.value();
++
++#ifdef KV_PROFILE
++        int64_t totalKvstoreTime = 0;
++        int64_t maxKvstoreTime = 0;
++#endif
+         size_t sum = 0;
+         for (size_t j = 0; j < tries.size(); j++) {
+           if (tries[j].hasException()) {
+@@ -216,8 +261,21 @@ void ScanEdgeProcessor::runInMultipleThread(const cpp2::ScanEdgeRequest& req) {
+           } else {
+             resultDataSet_.append(std::move(results_[j]));
+             cursors_.merge(std::move(cursorsOfPart_[j]));
++#ifdef KV_PROFILE
++            totalKvstoreTime += contexts_[j].kvstoreTime;
++            maxKvstoreTime = std::max(maxKvstoreTime, contexts_[j].kvstoreTime);
++#endif
+           }
+         }
++#ifdef KV_PROFILE
++        stats::StatsManager::addValue(kKVStoreTotalLatencyUs, totalKvstoreTime);
++        stats::StatsManager::addValue(kKVStoreMaxLatencyUs, maxKvstoreTime);
++        if (UNLIKELY(this->profileDetailFlag_)) {
++          this->profileDetail("total_kvstore_time_us", totalKvstoreTime);
++          this->profileDetail("max_kvstore_time_us", maxKvstoreTime);
++        }
++#endif
++
+         this->onProcessFinished();
+         this->onFinished();
+       })
+diff --git nebulagraph/nebula/src/storage/query/ScanVertexProcessor.cpp nebulagraph/nebula/src/storage/query/ScanVertexProcessor.cpp
+index cb5754aa5..373b02262 100644
+--- nebulagraph/nebula/src/storage/query/ScanVertexProcessor.cpp
++++ nebulagraph/nebula/src/storage/query/ScanVertexProcessor.cpp
+@@ -11,6 +11,8 @@
+ #include "common/utils/NebulaKeyUtils.h"
+ #include "storage/StorageFlags.h"
+ #include "storage/exec/QueryUtils.h"
++#include "storage/stats/StorageStats.h"
++#include "common/stats/StatsManager.h"
+ 
+ namespace nebula {
+ namespace storage {
+@@ -32,6 +34,34 @@ void ScanVertexProcessor::doProcess(const cpp2::ScanVertexRequest& req) {
+   limit_ = req.get_limit() < 0 ? std::numeric_limits<int64_t>::max() : req.get_limit();
+   enableReadFollower_ = req.get_enable_read_from_follower();
+ 
++
++#ifdef QUERY_PLAN_DEBUG
++  if (FLAGS_storage_log_level >= 1) {
++    std::ostringstream oss;
++    oss << "\n=== ScanVertex Request ===\n";
++    oss << "Space ID: " << spaceId_ << "\n";
++    oss << "Partitions: " << req.get_parts().size() << "\n";
++    oss << "Limit: " << limit_ << "\n";
++    oss << "Read from follower: " << (enableReadFollower_ ? "true" : "false") << "\n";
++    
++    if (req.return_columns_ref().is_set()) {  // ← Changed from has_value()
++      const auto& returnColumns = req.get_return_columns();  // ← Returns reference, not pointer
++      oss << "Tags to scan: " << returnColumns.size() << "\n";
++      if (FLAGS_storage_log_level >= 2) {
++        for (const auto& vProp : returnColumns) {  // ← Iterate directly (no dereference)
++          auto tagId = vProp.get_tag();
++          oss << "  Tag ID: " << tagId;
++          if (vProp.props_ref().is_set()) {  // ← Changed from has_value()
++            oss << " (" << vProp.get_props().size() << " props)";
++          }
++          oss << "\n";
++        }
++      }
++    }
++    LOG(INFO) << oss.str();
++  }
++#endif
++
+   auto retCode = getSpaceVidLen(spaceId_);
+   if (retCode != nebula::cpp2::ErrorCode::SUCCEEDED) {
+     for (const auto& p : req.get_parts()) {
+@@ -40,6 +70,9 @@ void ScanVertexProcessor::doProcess(const cpp2::ScanVertexRequest& req) {
+     onFinished();
+     return;
+   }
++  if (req.common_ref().has_value() && req.get_common()->profile_detail_ref().value_or(false)) {
++    profileDetailFlag_ = true;
++  }
+ 
+   this->planContext_ = std::make_unique<PlanContext>(
+       this->env_, spaceId_, this->spaceVidLen_, this->isIntId_, req.common_ref());
+@@ -168,6 +201,14 @@ void ScanVertexProcessor::runInSingleThread(const cpp2::ScanVertexRequest& req)
+       handleErrorCode(ret, spaceId_, partId);
+     }
+   }
++#ifdef KV_PROFILE
++  stats::StatsManager::addValue(kKVStoreTotalLatencyUs, contexts_.front().kvstoreTime);
++  stats::StatsManager::addValue(kKVStoreMaxLatencyUs, contexts_.front().kvstoreTime);
++  if (UNLIKELY(profileDetailFlag_)) {
++    this->profileDetail("total_kvstore_time_us", contexts_.front().kvstoreTime);
++    this->profileDetail("max_kvstore_time_us", contexts_.front().kvstoreTime);
++  }
++#endif
+   onProcessFinished();
+   onFinished();
+ }
+@@ -200,6 +241,11 @@ void ScanVertexProcessor::runInMultipleThread(const cpp2::ScanVertexRequest& req
+         memory::MemoryCheckGuard guard;
+         CHECK(!t.hasException());
+         const auto& tries = t.value();
++
++#ifdef KV_PROFILE
++        int64_t totalKvstoreTime = 0;
++        int64_t maxKvstoreTime = 0;
++#endif
+         size_t sum = 0;
+         for (size_t j = 0; j < tries.size(); j++) {
+           if (tries[j].hasException()) {
+@@ -216,8 +262,21 @@ void ScanVertexProcessor::runInMultipleThread(const cpp2::ScanVertexRequest& req
+           } else {
+             resultDataSet_.append(std::move(results_[j]));
+             cursors_.merge(std::move(cursorsOfPart_[j]));
++#ifdef KV_PROFILE
++            totalKvstoreTime += contexts_[j].kvstoreTime;
++            maxKvstoreTime = std::max(maxKvstoreTime, contexts_[j].kvstoreTime);
++#endif
+           }
+         }
++#ifdef KV_PROFILE
++        stats::StatsManager::addValue(kKVStoreTotalLatencyUs, totalKvstoreTime);
++        stats::StatsManager::addValue(kKVStoreMaxLatencyUs, maxKvstoreTime);
++        if (UNLIKELY(this->profileDetailFlag_)) {
++          this->profileDetail("total_kvstore_time_us", totalKvstoreTime);
++          this->profileDetail("max_kvstore_time_us", maxKvstoreTime);
++        }
++#endif
++
+         this->onProcessFinished();
+         this->onFinished();
+       })
+diff --git nebulagraph/nebula/src/storage/stats/StorageStats.cpp nebulagraph/nebula/src/storage/stats/StorageStats.cpp
+index 6e75ab108..2de0b2a45 100644
+--- nebulagraph/nebula/src/storage/stats/StorageStats.cpp
++++ nebulagraph/nebula/src/storage/stats/StorageStats.cpp
+@@ -13,6 +13,10 @@ stats::CounterId kNumVerticesInserted;
+ stats::CounterId kNumEdgesDeleted;
+ stats::CounterId kNumTagsDeleted;
+ stats::CounterId kNumVerticesDeleted;
++#ifdef KV_PROFILE
++stats::CounterId kKVStoreTotalLatencyUs;
++stats::CounterId kKVStoreMaxLatencyUs;
++#endif
+ 
+ void initStorageStats() {
+   kNumEdgesInserted = stats::StatsManager::registerStats("num_edges_inserted", "rate, sum");
+@@ -20,6 +24,10 @@ void initStorageStats() {
+   kNumEdgesDeleted = stats::StatsManager::registerStats("num_edges_deleted", "rate, sum");
+   kNumTagsDeleted = stats::StatsManager::registerStats("num_tags_deleted", "rate, sum");
+   kNumVerticesDeleted = stats::StatsManager::registerStats("num_vertices_deleted", "rate, sum");
++#ifdef KV_PROFILE
++  kKVStoreTotalLatencyUs = stats::StatsManager::registerStats("kvstore_total_latency_us", "sum");
++  kKVStoreMaxLatencyUs = stats::StatsManager::registerStats("kvstore_max_latency_us", "sum");
++#endif
+ 
+ #ifndef BUILD_STANDALONE
+   initMetaClientStats();
+diff --git nebulagraph/nebula/src/storage/stats/StorageStats.h nebulagraph/nebula/src/storage/stats/StorageStats.h
+index 2dee98ed8..11d546bca 100644
+--- nebulagraph/nebula/src/storage/stats/StorageStats.h
++++ nebulagraph/nebula/src/storage/stats/StorageStats.h
+@@ -16,6 +16,11 @@ extern stats::CounterId kNumEdgesDeleted;
+ extern stats::CounterId kNumTagsDeleted;
+ extern stats::CounterId kNumVerticesDeleted;
+ 
++#ifdef KV_PROFILE
++extern stats::CounterId kKVStoreTotalLatencyUs;
++extern stats::CounterId kKVStoreMaxLatencyUs;
++#endif
++
+ /**
+  * @brief Init storage statistic points for storage/meta client/kv
+  *

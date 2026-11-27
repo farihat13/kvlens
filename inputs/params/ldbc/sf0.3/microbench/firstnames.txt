@@ -1,0 +1,4 @@
+firstName|freq|stratum
+Chi|2|p50
+Peter|8|p90
+John|93|max

@@ -1,0 +1,83 @@
+{
+ "about": "Every RocksDB setting a store opens with, and the timed regimes' rules. `rocksdb` is compiled into the C++ evaluator (cpp/kvevaluator/src/store/rocksdb_store.cc reads it; no value is written in the code) and copied into each run record; the values named in `run_flags` are a run's or a store's flag and only defaults here; a run record holds what it used. `compression` is the codec of a store whose name carries none (a store named <name>-<codec> holds that codec); `bloom_bits_per_key` is the whole-key filter's bits per key, one filter for every format (0 builds none). `store_options` and `timed_regimes` are what a timed run must have held (kvevaluator.measure.store_config); a regime with `cold_start` opens the store anew before every timed run. `timed_regimes` and `bounded` are the one registry of cache regimes, for the evaluator's timed runs and the live databases' (store_config.regimes, store_config.regime).",
+ "version": 5,
+ "rocksdb": {
+  "bloom_bits_per_key": 10,
+  "cache_index_and_filter_blocks": true,
+  "index_filter_high_priority": true,
+  "high_pri_pool_ratio": 0.5,
+  "pin_l0_filter_and_index_blocks": false,
+  "partition_bytes": 4096,
+  "pin_top_level_index_and_filter": true,
+  "max_open_files": -1,
+  "keep_log_file_num": 2,
+  "write_buffer_bytes": 67108864,
+  "max_write_buffer_number": 2,
+  "block_cache_bytes": 8589934592,
+  "data_block_bytes": 4096,
+  "compression": "snappy",
+  "index_filter_blocks": "partitioned"
+ },
+ "run_flags": [
+  "block_cache_bytes",
+  "cache_index_and_filter_blocks",
+  "write_buffer_bytes",
+  "max_write_buffer_number",
+  "data_block_bytes"
+ ],
+ "store_options": {
+  "fill_cache": true,
+  "max_auto_readahead_size": 262144,
+  "initial_auto_readahead_size": 8192,
+  "readahead_size": 0,
+  "adaptive_readahead": false,
+  "async_io": false,
+  "disable_auto_compactions": true
+ },
+ "timed_regimes": {
+  "warm": {
+   "perf_level": [
+    0,
+    1,
+    2
+   ]
+  },
+  "cold": {
+   "perf_level": [
+    0,
+    1,
+    2
+   ],
+   "direct_io": true,
+   "cold_start": true
+  },
+  "steady": {
+   "perf_level": [
+    0,
+    1,
+    2
+   ],
+   "direct_io": true,
+   "block_cache_dataset_fraction": 0.1,
+   "dataset_bytes": {
+    "imdb/full": 3880611358,
+    "imdb/sample1pct": 308151639
+   }
+  }
+ },
+ "bounded": {
+  "about": "A variant of warm and cold, named <regime>-bounded (warm-bounded, cold-bounded): steady's block cache with the files read through the OS page cache, the closest to steady that every live database's store can hold (Badger and LMDB map their files and cannot read direct), index and filter blocks outside the block cache (as NebulaGraph and Badger keep them). At cold-bounded the store's files are out of the page cache when a run starts.",
+  "of": [
+   "warm",
+   "cold"
+  ],
+  "block_cache": "steady",
+  "direct_io": false,
+  "cache_index_and_filter_blocks": false
+ },
+ "breakdown": {
+  "perf_level": [
+   3
+  ]
+ }
+}

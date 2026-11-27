@@ -1,0 +1,80 @@
+{
+ "query": "job3a",
+ "aliases": {
+  "k": "keyword",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ]
+ ],
+ "predicates": {
+  "k": [
+   [
+    "like",
+    "k",
+    "keyword",
+    "%sequel%",
+    false
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Norway",
+     "Germany",
+     "Denmark",
+     "Swedish",
+     "Denish",
+     "Norwegian",
+     "German"
+    ]
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2005
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_title",
+   "t",
+   "title"
+  ]
+ ]
+}

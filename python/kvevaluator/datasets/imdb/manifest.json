@@ -1,0 +1,28 @@
+{
+  "name": "imdb",
+  "order": 3,
+  "title": "IMDb, the data of the Join Order Benchmark",
+  "scale_axis": "tag",
+  "scale_dir": "{scale}",
+  "deciding_scale": null,
+  "scales": ["sample1pct", "full"],
+  "schema": "inputs/schemas/imdb/schema.json",
+  "schema_module": "kvevaluator.datasets.imdb.schema",
+  "output_root": "imdb-{mapping}",
+  "records_source": "kvevaluator.datasets.imdb.records",
+  "fetch_module": "kvevaluator.datasets.imdb.fetch",
+  "mapping_module": "kvevaluator.datasets.imdb.mapping",
+  "store_knobs": {
+    "dgraph": {
+      "chunk": 524288
+    }
+  },
+  "capture_key_schema": "python/kvevaluator/benchmarks/job/schema.json",
+  "workload_files": [
+    "inputs/workloads/imdb"
+  ],
+  "measure_peak_gb": {
+    "sample1pct": 1.1,
+    "full": 25
+  }
+}

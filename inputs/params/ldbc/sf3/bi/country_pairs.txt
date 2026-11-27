@@ -1,0 +1,6 @@
+country1|country2|friendships|stratum
+India|China|10952|max-correlated
+Japan|Czech_Republic|152|p90
+Mongolia|Japan|14|p50
+Rwanda|Turkey|1|p10
+Angola|Croatia|1|min-anticorrelated

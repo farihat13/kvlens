@@ -1,0 +1,38 @@
+{
+ "id": "w04",
+ "name": "profile_editing",
+ "title": "Profile editing: property updates + profile reads",
+ "items": [
+  {"family": "writes", "query": "w_upd_plain", "frequency": 100, "params": null},
+  {"family": "microbench", "query": "point7", "frequency": 100, "params": null}
+ ],
+ "expect": "Condensed props; never Chunked props (a 62 KB chunk per update)",
+ "why": "one type, two opposite needs. Reading a whole profile wants Condensed properties (1 GET against 7). Updating lastName wants Split: {sp_upd} written, against a rewritten {cc_upd} row (Condensed) or a {ch_upd} chunk (Chunked). Both needs sit on Person properties, so a mixed layout cannot separate them.",
+ "why_numbers": {
+  "sp_upd": [
+   "run",
+   "write_bytes",
+   "w_upd_plain",
+   "Person props",
+   "props_split_adj_split"
+  ],
+  "cc_upd": [
+   "run",
+   "write_bytes",
+   "w_upd_plain",
+   "Person props",
+   "props_condensed_adj_condensed"
+  ],
+  "ch_upd": [
+   "run",
+   "write_bytes",
+   "w_upd_plain",
+   "Person props",
+   "props_chunked_adj_chunked"
+  ]
+ },
+ "why_scale_free": {
+  "1": "a Condensed row is one key",
+  "7": "a Person declares 7 properties (schema): one key each in Split"
+ }
+}

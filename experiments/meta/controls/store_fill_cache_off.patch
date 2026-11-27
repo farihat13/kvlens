@@ -1,0 +1,17 @@
+diff --git a/cpp/kvevaluator/src/store/rocksdb_store.cc b/cpp/kvevaluator/src/store/rocksdb_store.cc
+index 7a3e11d5..c5688b75 100644
+--- a/cpp/kvevaluator/src/store/rocksdb_store.cc
++++ b/cpp/kvevaluator/src/store/rocksdb_store.cc
+@@ -105,7 +105,11 @@ nlohmann::json StoreOptions::to_json() const {
+           {"rocksdb", rocksdb_record()}};
+ }
+ 
+-rocksdb::ReadOptions read_options() { return rocksdb::ReadOptions(); }
++rocksdb::ReadOptions read_options() {
++  rocksdb::ReadOptions ro;
++  ro.fill_cache = false;   // CONTROL store_fill_cache_off: reads do not fill the block cache
++  return ro;
++}
+ 
+ rocksdb::BlockBasedTableOptions table_options(const StoreOptions& so) {
+   rocksdb::BlockBasedTableOptions t;

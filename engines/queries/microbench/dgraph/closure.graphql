@@ -1,0 +1,20 @@
+# closure -- the whole TagClass subtree under an anchor class, root included.
+# Reads: ~isSubclassOf of every class in the subtree (including the leaves' empty postings);
+#   `uid` is free.
+# Evaluator: queries/nhop.py closure -- read_closure(isSubclassOf, in) level by level until
+#   no new class -> dedup -> one row per class.
+# Same recursion as IC12's descendant tag classes.
+# mb2 lineage: none (new shape).
+# Anchor: Dgraph has no external-key addressing, so the tagclass is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types, so type(tagclass) is what names THE tagclass.
+# answer-path: result
+query q($tagClassId: string) {
+  root as var(func: eq(id, $tagClassId)) @filter(type(tagclass))
+  var(func: uid(root)) @recurse(loop: false) {
+    sub as ~isSubclassOf
+  }
+  result(func: uid(root, sub)) {
+    uid
+  }
+}

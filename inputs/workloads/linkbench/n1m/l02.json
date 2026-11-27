@@ -1,0 +1,52 @@
+{
+ "id": "l02",
+ "name": "lb_reads",
+ "title": "LinkBench's reads only",
+ "items": [
+  {"family": "linkbench", "query": "getnode", "frequency": 12959, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link1", "frequency": 25375, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link2", "frequency": 25253, "params": null},
+  {"family": "linkbench", "query": "countlink_link1", "frequency": 2409, "params": null},
+  {"family": "linkbench", "query": "countlink_link2", "frequency": 2458, "params": null},
+  {"family": "linkbench", "query": "getlink_link1", "frequency": 266, "params": null},
+  {"family": "linkbench", "query": "getlink_link2", "frequency": 274, "params": null}
+ ],
+ "expect": "Condensed props (getNode); adjacency near-tied in ops (short lists), Chunked cheapest only if hubs are sampled, Split/Condensed cheapest in bytes. Mixed == uniform (reads alone never split).",
+ "why": "Reads only: All-Condensed is cheapest in ops and bytes ({cc_ops} ops, {cc_bytes}), in every sensitivity case: 1 GET per node, 1 SEEK per list where Split adds one NEXT per link. With the hub, Condensed/Split pays {nb_more} more ops; without it, much less (sensitivity.csv).",
+ "why_numbers": {
+  "cc_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_condensed"
+  ],
+  "cc_bytes": [
+   "total",
+   "bytes",
+   "props_condensed_adj_condensed"
+  ],
+  "nb_more": [
+   "share",
+   [
+    "diff",
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_split"
+    ],
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_condensed"
+    ]
+   ],
+   [
+    "total",
+    "ops",
+    "props_condensed_adj_condensed"
+   ]
+  ]
+ },
+ "why_scale_free": {
+  "1": "a Condensed row or list is one key"
+ }
+}

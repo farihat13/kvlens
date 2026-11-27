@@ -1,0 +1,103 @@
+{
+  "plan": "hop1_msgs_content",
+  "question": "Given a person, read the content of each of their messages and count them.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "md"
+          },
+          "props": [
+            "content"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "pp"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "c2623ebf2317",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

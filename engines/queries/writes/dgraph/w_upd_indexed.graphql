@@ -1,0 +1,9 @@
+# w_upd_indexed -- write one INDEXED property (firstName, @index(hash)) of one person.
+# Writes: the firstName posting, the old value's index posting (the uid out) and the new value's (the uid in).
+# Evaluator: workloads/writes/microbench/queries.py w_upd_indexed -- update_prop(me_vid, firstName).
+# mb2 lineage: MB82 (same upsert; it found the person by fqid).
+# Anchor: as w_upd_plain (eq(id, ...) with type(person)). A text template: an upsert mutation takes no bound variable.
+{
+  "query": "{ v as var(func: eq(id, $person)) @filter(type(person)) }",
+  "set": { "uid": "uid(v)", "firstName": "WUpd" }
+}

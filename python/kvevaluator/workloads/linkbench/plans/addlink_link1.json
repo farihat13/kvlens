@@ -1,0 +1,101 @@
+{
+  "plan": "addlink_link1",
+  "question": "Add a new link of type 1 between two nodes, with its visibility, version, time and data.",
+  "for": "all formats",
+  "params": {
+    "src": {
+      "type": "id"
+    },
+    "dst": {
+      "type": "id"
+    },
+    "visibility": {
+      "type": "int"
+    },
+    "version": {
+      "type": "int"
+    },
+    "time": {
+      "type": "int"
+    },
+    "data": {
+      "type": "bytes"
+    }
+  },
+  "let": {
+    "s_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "d_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_edge",
+      "etype": "link1",
+      "src": {
+        "let": "s_vid"
+      },
+      "dst": {
+        "let": "d_vid"
+      },
+      "props": {
+        "visibility": {
+          "param": "visibility"
+        },
+        "version": {
+          "param": "version"
+        },
+        "time": {
+          "param": "time"
+        },
+        "data": {
+          "param": "data"
+        }
+      },
+      "src_label": "Node",
+      "dst_label": "Node"
+    }
+  ],
+  "output": "out"
+}

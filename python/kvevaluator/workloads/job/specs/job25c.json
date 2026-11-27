@@ -1,0 +1,199 @@
+{
+ "query": "job25c",
+ "aliases": {
+  "ci": "cast_info",
+  "it1": "info_type",
+  "it2": "info_type",
+  "k": "keyword",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi_idx",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ]
+ ],
+ "predicates": {
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(writer)",
+     "(head writer)",
+     "(written by)",
+     "(story)",
+     "(story editor)"
+    ]
+   ]
+  ],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "genres"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "votes"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "murder",
+     "violence",
+     "blood",
+     "gore",
+     "death",
+     "female-nudity",
+     "hospital"
+    ]
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Horror",
+     "Action",
+     "Sci-Fi",
+     "Thriller",
+     "Crime",
+     "War"
+    ]
+   ]
+  ],
+  "mi_idx": [],
+  "mk": [],
+  "n": [
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "m"
+   ]
+  ],
+  "t": []
+ },
+ "outputs": [
+  [
+   "movie_budget",
+   "mi",
+   "info"
+  ],
+  [
+   "movie_votes",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "male_writer",
+   "n",
+   "name"
+  ],
+  [
+   "violent_movie_title",
+   "t",
+   "title"
+  ]
+ ]
+}

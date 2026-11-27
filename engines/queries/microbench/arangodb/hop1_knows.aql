@@ -1,0 +1,9 @@
+// microbench hop1_knows: the distinct knows-neighbors of a person, both directions (T1).
+// Reads: the knows edge index from the anchor (_from and _to sides); returns each neighbor's
+// _key only (no neighbor property is read).
+// Evaluator: queries/hop.py _hop1("knows", "both", "Person") -- read_neighbors + dedup,
+// count-final (the harness counts the returned keys).
+// mb2 lineage: MB25 (1-hop ANY; mb2 did not deduplicate).
+FOR v IN 1..1 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN v._key

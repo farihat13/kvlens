@@ -1,0 +1,57 @@
+# Q11. Job referral
+#
+# Given a start Person with ID $personId, find that Person’s friends and friends of friends (excluding
+# start Person) who started working in some Company in a given Country with name $countryName,
+# before a given date ($workFromYear).
+#
+# Sort.   workFrom(asc), personId(asc), companyName(asc)
+# Limit.  10
+#
+# Note: Since dgraph can sort only on predicates, not on facets (workFrom is a facet of workAt), the query
+# returns every qualifying (person, company) pair and the client ranks them and keeps 10, like IC4 / IC6.
+# (`orderasc: id, first: 20` would take an arbitrary 20 persons, and walk the whole id index.)
+#
+# Params:
+#   $personId   : int
+#   $countryName : string   # countryName
+#   $workFromYear  : int      # workFromYear (strictly less than)
+query Q11($personId: int, $countryName: string, $workFromYear: int) {
+
+  # Anchor Person and 1..2-hop friends (exclude self; dedup)
+  P  as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { l1a as knows  l1b as ~knows }
+  F1 as var(func: uid(l1a, l1b)) @filter(type(person) AND NOT uid(P))
+  _l2(func: uid(l1a, l1b)) { l2a as knows  l2b as ~knows }
+  F2 as var(func: uid(l2a, l2b)) @filter(type(person) AND NOT uid(P, F1))
+  F  as var(func: uid(F1, F2))
+
+  # target country
+  CTY as var(func: eq(name, $countryName)) @filter(eq(type, "country") AND type(place))
+
+  # Preselect qualifying companies per friend
+  var(func: uid(F)) {
+    QUAL as workAt
+      @facets(lt(workFrom, $workFromYear))
+      @filter( eq(type, "company") AND ( uid_in(isLocatedIn, uid(CTY)) ) )
+  }
+
+  # Friends/foafs who worked in companies located in CTY before $workFromYear
+  results(func: uid(F)) @filter(uid_in(workAt, uid(QUAL))) @normalize {
+    personId: id
+    personFirstName: firstName
+    personLastName: lastName
+
+    # each person's OWN workFrom: QUAL is a set of companies, so without this a person qualifies through a
+    # company someone else joined before the year (the client drops a person left with no company)
+    workAt @filter(uid(QUAL)) @facets(lt(workFrom, $workFromYear)) @facets(workFrom) (orderasc: name) {
+      # companyId: id
+      # companyType: type
+      companyName: name
+      # isLocatedIn {
+      #   companyPlaceName: name
+      #   companyPlaceId: id
+      # }
+      workFrom: workAt @facets(workFrom)
+    }
+  }
+}

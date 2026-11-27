@@ -1,0 +1,143 @@
+# The store-free tests: each passes with no data and no stores, only the built binary (tests/run_fast_tests.py,
+# `just tests-fast`). The lints and the golden checks have recipes of their own.
+# A line that starts with `binary:` runs the C++ binary; `just tests-fast-no-binary` (CI, which builds no binary)
+# skips exactly those. A line that starts with `git:` reads the repo's history; with no .git (a release archive) it is
+# skipped. `python tests/run_fast_tests.py --check-tags` checks the tags against a run with no binary.
+cpp/kvevaluator/tests/check_vid_opaque.py
+binary: tests/unit/check_caps_parity.py
+tests/unit/check_candidate_aliases.py
+git: tests/gates/check_count_equal_successors.py   # the count-equal successors (the reuse ledger's body rows) re-proved
+tests/unit/check_grid_same_picks_successor.py   # the same-picks gate matches an old body to its successor
+tests/unit/check_sf30_reuse_successor.py   # an SF30 row of an old body is reused as its successor's, listed (reused, journal, copied)
+tests/unit/check_prior_runs_reuse.py   # below SF30 a cell takes its unchanged runs from its prior capture (changed param, changed body, removed, invalid now, unclean prior binary), the record's binaries and marks, converter step 15, kvcost measure's tally and run_costs
+tests/unit/check_grid_bodies_store_errors.py   # a store or session error stops a grid_bodies cell (no rows); a plan's error, a timeout, an invalid body stay rows
+tests/unit/check_chain_stage_floor.py   # a stage's case count has a floor, not an exact count
+tests/unit/check_gate_levels.py   # run/gate_levels.py: the levels' paths, the capture key (scratch git repo), every analysis-code file a dropped gate reaches is in FULL_INSIDE_ANALYSIS_CODE, kvcost measure's calls measured or re-derived
+tests/unit/check_compose_cells_row_difference.py   # compose_cells' per-row comparison: a differing result_hash is named, not a ValueError; numbers equal as numbers agree
+tests/unit/check_stale.py   # the one marker scheme for a result made from a moved input
+tests/unit/check_cli_help.py   # each command's --help is its own: its description, the flag a "required but with" names
+tests/unit/check_choose_cell_marks.py   # a pick from a moved input is made and marked, not refused
+tests/unit/check_latency_marks.py   # latency results from a moved input are marked: a reused old-body row, mixed protocols, a moved pick
+tests/unit/check_header_aside.py   # an accumulating CSV of another header is moved aside and marked, not refused
+tests/unit/check_driver_notes.py   # the latency drivers' notes land on the run's records, or one store's only
+tests/unit/check_analysis_marks.py   # an analysis step that meets a moved input (a grouped mix, a retired spec name) goes on, marked
+tests/unit/check_reuse_stale.py   # --reuse-stale keeps a result whose key moved, marked; what cannot stand is still re-measured
+git: tests/unit/check_adoptions.py   # the reuse ledger: a row keeps a result whose key moved (adopted); none: warned, marked stale
+tests/unit/check_cost_cache_size.py   # the mix cost cache's size cap under a rename race
+experiments/layout_choice/check_front_must_equal_reference.py
+experiments/layout_choice/check_write_rocksdb_share.py   # the writes' RocksDB share over KV-timer passes: hand-worked shares, the SE over passes, the I01 share from B's warm-up capture, the passes' identity (planted files)
+git: tests/unit/check_captured_bodies_row_sha.py
+tests/unit/check_of_channels_byte_lanes.py   # of_channels refuses a steps.csv row (byte lanes named <lane>_bytes) instead of counting 0 bytes
+tests/unit/check_latency_steady_layout.py   # the latency readers on the output tree's timings: stores, regimes, ratios over each run's Sp-Co
+tests/unit/check_steady_table.py   # the steady latency table's rule (kvcost.latency.steady_table): equal-share weights, the weighted wall, KV and cost ratios, a missing query refused (synthetic)
+tests/unit/check_steady_timer_passes.py   # the steady pass order (measured pass k: one order on every store), the timer passes (kvtimer perf 2, breakdown perf 3) and the RocksDB share rule (fake server, planted files)
+git: tests/unit/check_compose_install.py
+git: tests/unit/check_build_cache_key.py      # the C++ build cache: its key, its archived paths, the cache location (run/build_cpp.py; no build)
+tests/unit/check_build_cache_eviction.py # the C++ build cache's eviction list: old, unlinked, unlocked entries past the 6 newest (a fake cache; no build)
+tests/unit/check_chase_directions.py     # read_chase over both directions in the Python oracle: out first, in only when out has none; engine twins read both
+tests/unit/check_bi_interested_pairs.py   # BI18's answer size per tag (genparams): the one-walk count equals the per-tag walk and hand counts
+experiments/predict_statistics/check_sampled_picks_missing_query.py   # sampled.py picks: a query a sample cannot cost is named and left out of both sides
+experiments/predict_statistics/check_uniform49_names.py   # uniform49's 49 names round-trip through the one cell-id parser (name -> settings -> name); old spellings and sizes outside the 49 refused
+tests/unit/check_layouts_query_not_costed.py   # predict-accuracy --layouts: a query costed on no layout is named and left out of both sides
+binary: tests/unit/check_predict_stats_schema.py
+tests/unit/check_predict_tier1_top_values.py   # tier 1 keeps the 10 most common values of each indexed property
+binary: tests/unit/check_predict_flat_statistics.py   # a missing degree or date row refuses with its flat form; a tier-2 row that disagrees with tier 1 refuses
+binary: tests/unit/check_predict_burstiness.py   # the ranked walk over a hop's far ends reads burstiness (hand value from graph-stats); a missing entry refuses with its flat form
+binary: tests/unit/check_predict_anchor_far_labels.py   # the anchor's own far-label mix (anchor_far_labels): predicted_anchor reads it, predicted and an older anchor file take the population's
+binary: git: tests/unit/check_predict_assembled_tally.py   # an assembled tally (the library's, and assemble_tally's) equals the direct tally of its spec, its tally_version included
+binary: tests/unit/check_tally_owner_floor.py   # tally --owner-floor: a type below the floor kept whole, one above at P, the floor sample contains the plain one, F = 0 is the plain output
+binary: tests/unit/check_predict_int_range.py   # a range filter on an int property (value_range), on rows of several labels, on an edge property; a missing entry refuses by name
+binary: tests/unit/check_predict_write_flat_statistics.py   # a write step with no degree row for the list it rewrites refuses with its flat form
+tests/unit/check_b_unit_readers.py
+tests/unit/check_cell_names.py
+tests/unit/check_registry.py   # every figure's chain dry-runs and holds only kvcost commands and named study scripts
+tests/unit/check_sizes.py   # one --scale value read the same way everywhere; no tag dataset paired with an LDBC scale
+tests/unit/check_records_key.py
+tests/unit/check_shell_imports.py   # the drivers' python -m modules, snippet imports and script paths resolve (run/*.sh, justfile, experiments/*/run-*.sh)
+tests/unit/check_twin_refusal_text.py   # a refused twin step's text: the format, the step, the op, the reason and a path that exists (store-free; the round's guard runs the stores)
+tests/lint/check_no_python_measurement.py   # no script that writes a result runs plans on the Python store (also in cpp-diff and write-gate; 2 s)
+tests/unit/check_contract_files.py   # the shared data files (inputs/contract) are well formed; Python names no op the table lacks
+tests/unit/check_oracle_op_defaults.py   # the Python oracle's read defaults equal the op table's
+git: tests/unit/check_binary_build_inputs.py   # the stale-binary rule refuses a binary whose compiled-in data files are not HEAD's
+tests/unit/check_release_state.py   # a release archive (RELEASE_COMMIT) is its own state: its own commit passes the dirty and stale rules; no stamp is refused
+binary: tests/unit/check_run_one_args.py   # run_one refuses --param 0, an unknown query, store or body by name, before it builds a store
+binary: tests/unit/check_predict_capture_bodies.py    # an all-bodies capture names the plan in query, the body in body
+binary: tests/unit/check_predict_capture_guard.py     # a predicted capture is one identity: a call that moves an input is refused (unless --fresh)
+binary: tests/unit/check_stats_reuse_key.py           # saved statistics are reused only under the same contract, graph-stats version and declared statistics
+binary: tests/unit/check_predict_insert_far_label.py  # an insert's Condensed list from degree_by_far_label; past the split, a full part or the last
+tests/unit/check_predicted_plan_rule.py      # a predicted capture is picked by the measured rule (pick_body, the 7 read lanes), ties at 12 digits
+tests/unit/check_predict_accuracy_bytes_spread.py   # the accuracy report's bytes are the 7 lanes; the layouts report's spread and gap share
+tests/unit/check_predicted_picks_only.py      # every reader that picks or prices from a predicted capture refuses a picks-only one by name
+tests/unit/check_compare_costs.py             # predict-accuracy's comparison joins on the short name, names one-side layouts, rounds as layouts does, prints n/a
+tests/unit/check_kvcost_weights.py            # --op-weights: one vector reaches the pick and the cost
+tests/unit/check_search_key_frequencies.py    # the mix search result file: a row at other frequencies (equal-share vs the benchmark's own) refused, a mixed file refused
+tests/unit/check_cost_dir.py                  # cost-layouts' one place: <workload>/<count source>/, one level per non-default pick rule, op weights, params
+tests/unit/check_run_time_mix_rows.py   # the run-time table's mix rows: one row gives find and verify; a proven and a two-step row give verify and find; two of one search refused
+tests/unit/check_latency_fewest.py   # measure-latency's timed mix: one fewest row taken; a proven and a two-step row give the proven one; two of one search refused
+tests/unit/check_mix_names_and_byte_limits.py   # mix:<question>/<model> finds its question's one row (the rows file of its settings and sizes, its own search); --byte-limit 1x,2x and 68MB as a list
+tests/unit/check_workload_ids.py   # an id names one workload file per dataset and scale (the one resolver); two files with one id are refused
+tests/unit/check_machine_engine_names.py   # machine-for-timing lists dgraph and its builds (dgraph-kvstats), the Nebula daemons and arangod, not lookalike names (stand-in processes)
+binary: git: tests/unit/check_predict_answer_guards.py     # within 5% and its tie, search-mix --count-source refusals, the tally library refusals
+binary: tests/unit/check_predict_rules.py   # predict mode's 8 cardinality rules, one fixture each, each with its plant
+binary: tests/unit/check_predict_regressions.py   # predict mode's fixed misses (IC4's span, fix D) held at their recorded lanes
+binary: tests/unit/check_meta_store_cache.py     # a meta store is named by its spec hash; an old store found by its recorded spec; the build guard
+binary: tests/gates/check_cpp_vs_python_linkbench.py
+tests/unit/check_figure_dir.py
+binary: tests/gates/check_linkbench_blob_bytes.py
+binary: tests/gates/check_linkbench_getlink_ids.py
+binary: tests/gates/check_store_build_lock.py   # one builder per store: two processes that need one missing store ingest it once (a no-lock control ingests twice)
+tests/unit/check_chunk_size_body_sha.py
+tests/unit/check_size_options.py   # Chunked at another chunk size: --size NAME[=ROOT[:CELL]] found per source, predict --sizes, a sized mix spec read back (synthetic)
+tests/unit/check_bill_bounds.py   # the bill on predicted data: bill_lower / bill_upper from requests and bytes alone, bill_exact refused by name, no sized channel on a bounds vector
+tests/unit/check_chunk_view.py   # the chunk view: a last-chunk touch at target / 2 under half, as captured under measured; a capture without the columns refused on a Chunked cell
+tests/unit/check_compose_cells_write_columns.py   # compose_cells --check reads an older-shape measured writes file through capture_layout.write_rows: rows compared, a planted byte difference found
+binary: tests/unit/check_manifest_schema_path.py
+tests/lint/check_no_type_from_id.py
+tests/unit/check_optimizer_rules.py
+tests/unit/check_solve_dominance.py
+tests/unit/check_solve_tiebreak.py
+tests/unit/check_front_axes.py
+tests/unit/check_no_cost_cache_solve.py --cases 100   # the solve without the cost cache against brute force on planted problems (synthetic)
+tests/unit/check_mix_search_export.py --cases 300   # the mix search's exported cost cache, uniform prices, result rows, specs and trace on the toy example; the trace changes no answer (synthetic)
+binary: tests/unit/check_plan_files.py
+git: tests/unit/check_pick_record.py
+git: tests/unit/check_w16_ic10_stage.py   # the ic10-bodies stage plans from the record's rows alone; its verdict expects the stores it plans
+binary: tests/unit/check_label_inference.py
+tests/unit/check_result_key.py
+tests/unit/check_planir.py
+binary: tests/unit/check_plan_ops_supported.py
+tests/gates/check_write_effects.py
+tests/unit/check_writes_planir.py
+tests/gates/meta/check_record_carry_over.py
+tests/gates/meta/check_record_single_body.py
+tests/unit/selftest.py
+binary: tests/gates/check_capture_kinds.py --offline-only     # its live part reads a counts capture: not here
+tests/unit/check_engine_build_tools.py
+tests/unit/check_engine_ldbc_links.py
+tests/unit/check_engine_once_db.py
+tests/unit/check_timed_regimes.py   # the cache regimes are one registry (inputs/contract/store_config.json): the evaluator's reader, engines/env.sh and time_queries.py --regime agree on its names and settings (no engine started)
+tests/unit/check_engine_needs.py
+tests/unit/check_engine_patch_rerun.py
+binary: tests/unit/check_sf30_rule.py
+tests/unit/check_grid_pins_replace_scale.py
+tests/unit/check_grid_seven.py   # the seven stores a grid run measures by default (--cells seven/nine), a composed cell's fingerprints from its sources
+tests/unit/check_capture_layout.py
+tests/unit/check_output_tree.py        # one output-tree path shape for every dataset, workload and scale
+binary: tests/unit/check_record_stream_content.py   # a stream's content_sha256: the C++ reader copies it, a tally names its schema; an entry under another schema is refused; an older entry is kept and stamped after a re-dump of the same bytes
+binary: tests/unit/check_counting_versions.py   # the counting versions come from the binary; one rule reads a record from before (measure/counting.py)
+tests/unit/check_held_out_optional.py   # a family with no held-out set (LinkBench, writes) is priced in-sample, not refused
+tests/unit/check_uniform_params.py      # the uniform param set (LDBC_PARAMS=uniform): each query's file, the rows kept but the bound id, its capture rows dir and held-out sibling
+tests/unit/check_query_weighting_tables.py   # sum, geomean and additive solved exactly through per-query costs (synthetic)
+tests/unit/check_equal_share_weights.py   # the equal-share weights file: each frequency 1 / its cost on Sp-Co, the sum form n x the additive one (synthetic)
+tests/unit/check_local_search.py   # the local search keeps the first improving setting in order, no tie, a local optimum (synthetic)
+tests/unit/check_lower_left_front.py   # the lower-left front (kvcost.layout_search.front): in x order, a tie kept once (the first given), the payload carried (synthetic)
+python/kvevaluator/datasets/linkbench/gen_linkbench_params.py --scale n1m --check-tracked   # the tracked mix.json is the one params.sha256.txt lists
+python/kvcost/layout_cost/workloads/make_workloads.py --check   # I01, I02, J01, B01 and L01-L04 (each tracked LinkBench scale) equal their recipe (inputs/workloads/)
+tests/unit/check_failed_runs.py   # a query whose runs failed: failed_runs finds it in the tree's captures and say_failed names it (planted capture)
+tests/unit/check_at_a_time.py   # run_measure.at_a_time: the order, a worker's refusal and stale notes reach the caller, a killed worker is an error
+tests/unit/check_own_query_outputs.py   # a query someone adds: its Plan's question and params_like reach its plan file (one source); search-mix keeps one dir per byte limit, and --out takes every file (stubs)
+tests/unit/check_measure_latency.py   # kvcost measure-latency: the aggregation (median over iterations, mean over params, summed at frequencies), its raw files, the summary's upsert, a layout with no counts refused (planted)
+tests/unit/check_measure_progress.py   # kvcost measure's screen: per-query lines to each call's log, one progress line per kind of call, a failed call's last lines; -v prints all (fake calls)
+tests/unit/check_latency_raw_files.py   # cpplatency's raw-file layout (measure/latency_raw_files.py): a one-body run's shape and a --compare-bodies run's, each refusing the other; steps.py's readers through it (planted)
+tests/unit/check_cpplatency_bodies.py   # cpplatency's one-body rule from its command line: two bodies per query need --compare-bodies (warm and cold), steady and reuse refuse them (no store)
+tests/unit/check_remote_store_model.py   # the remote-store model's clients, ends, latency and throughput on a hand-counted job

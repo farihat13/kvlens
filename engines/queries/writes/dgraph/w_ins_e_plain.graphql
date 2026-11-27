@@ -1,0 +1,9 @@
+# w_ins_e_plain -- insert a knows edge carrying no property, between two persons that are not adjacent.
+# Writes: the source's knows posting and, knows being @reverse, the target's reverse posting.
+# Evaluator: workloads/writes/microbench/queries.py w_ins_e_plain -- insert_edge(knows, src_vid, dst_vid, {}).
+# mb2 lineage: MB85 (same upsert; it found the persons by fqid).
+# Anchor: both persons through eq(id, ...) with type(person), as w_upd_plain. A text template.
+{
+  "query": "{ s as var(func: eq(id, $src)) @filter(type(person)) o as var(func: eq(id, $dst)) @filter(type(person)) }",
+  "set": { "uid": "uid(s)", "knows": [ { "uid": "uid(o)" } ] }
+}

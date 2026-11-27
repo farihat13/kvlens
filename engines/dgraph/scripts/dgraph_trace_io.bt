@@ -1,0 +1,53 @@
+BEGIN
+{
+  printf("timestamp,comm,pid,tid,op,fd,offset,size,filename\n");
+}
+
+tracepoint:syscalls:sys_enter_openat
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,open,%d,0,0,%s\n",
+    nsecs, comm, pid, tid, args->dfd, str(args->filename));
+}
+
+tracepoint:syscalls:sys_enter_pread64
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,read,%d,%ld,%ld,\n",
+    nsecs, comm, pid, tid, args->fd, args->pos, args->count);
+}
+
+tracepoint:syscalls:sys_enter_pwrite64
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,write,%d,%ld,%ld,\n",
+    nsecs, comm, pid, tid, args->fd, args->pos, args->count);
+}
+
+tracepoint:syscalls:sys_enter_mmap
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,mmap,%d,%ld,%ld\n",
+    nsecs, comm, pid, tid, args->fd, args->len, args->off);
+}
+
+tracepoint:syscalls:sys_enter_munmap
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,munmap,0,%ld,0\n",
+    nsecs, comm, pid, tid, args->len);
+}
+
+tracepoint:exceptions:page_fault_user
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,pagefault,0,%lx,0\n",
+    nsecs, comm, pid, tid, args->address);
+}
+
+tracepoint:block:block_rq_issue
+/comm == "dgraph"/
+{
+  printf("%ld,%s,%d,%d,blk%s,%d,%ld,%ld\n",
+    nsecs, comm, pid, tid, args->rwbs, args->dev, args->sector, args->bytes);
+}

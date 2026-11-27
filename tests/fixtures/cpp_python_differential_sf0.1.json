@@ -1,0 +1,30 @@
+{
+ "what": "cross-engine differential evidence, 2026-09-04: the retired python engine's last full sf0.1 optimizer sweeps vs the first cpp-engine sweeps. S/G/N identical per (query,design,format,param,candidate,step); bytes differ by currency (neutral vs realistic) by design. The archive CSVs live in gitignored output/ on a rotating machine -- these digests + row counts are the durable record.",
+ "git_commit": "564ae99f3624a77e5c4c5c2e5e90d8a3c2ba64f2",
+ "files": {
+  "rank_family_raw-python-archive.csv": {
+   "sha256": "3b238b15e2bd8ed263035e1f07b080ce1deecb77a31bcf3b60ccbe2a7473786b",
+   "rows": 75900,
+   "ops_only_sha256": "2b4fdde92203cf5e3176be80605409f1f0ba94669f7fef64ff8ed2fb7889e98c"
+  },
+  "rank_family_raw-label_only-python-archive.csv": {
+   "sha256": "d5964f2a666abc47453938335bc5a776dc64a16464e0344987a1307a1e8cca15",
+   "rows": 33165,
+   "ops_only_sha256": "29dc74bb545ff65750477bffa875f1898b06e1712de69f58dce0d1fed97764a2"
+  },
+  "rank_family_raw.csv": {
+   "sha256": "651baa6d77b3f4f400ac7c7935a17ad062f63e342c51cf387867bff37b528abc",
+   "rows": 75900,
+   "ops_only_sha256": "2b4fdde92203cf5e3176be80605409f1f0ba94669f7fef64ff8ed2fb7889e98c"
+  },
+  "rank_family_raw-label_only.csv": {
+   "sha256": "0c84d856959e7a29359181adeda8ba8e9570a47853f6af83b86e870150b36287",
+   "rows": 33165,
+   "ops_only_sha256": "29dc74bb545ff65750477bffa875f1898b06e1712de69f58dce0d1fed97764a2"
+  }
+ },
+ "ops_identical": {
+  "canonical": true,
+  "label_only": true
+ }
+}

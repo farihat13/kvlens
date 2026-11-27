@@ -1,0 +1,6 @@
+tag|interested|pairs|stratum
+T.I._vs._T.I.P.|8|6|p50
+Innervisions|16|70|p75
+Charles_Gounod|272|21362|p90
+John_Milton|958|348710|p99
+Augustine_of_Hippo|2762|6042826|max

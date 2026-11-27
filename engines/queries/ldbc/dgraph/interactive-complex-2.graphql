@@ -1,0 +1,65 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=3.08
+# Q2. Recent messages by your friends
+#
+# Given a start Person with ID $personId, find the most recent Messages from all of that Person’s
+# friends (friend nodes). Only consider Messages created before the given $maxDate (excluding that
+# day).
+#
+# Sort    message.creationDate(Desc), message.id(Asc.)
+# Limit   20
+# 
+# Params:
+#   $personId  : int       (personId, e.g., 933)
+#   $maxDate  : string     (ISO8601 datetime, e.g., "2010-10-16T12:00:00Z")
+#
+# DEVIATION FROM SPEC:
+# - Each branch returns top 20 due to nGQL limitation where ORDER BY/LIMIT 
+#   after UNION ALL is ignored
+# - Client-side merge required: sorts 40 rows globally and takes final top 20
+# - Ensures correct results even with skewed message type distributions (e.g., 19 posts + 1 comment)
+
+
+query Q2($personId: int, $maxDate: string) {
+  # Anchor person
+  P as var(func: eq(id, $personId)) @filter(type(person))
+
+  # Friend set (KNOWS treated as undirected; exclude self)
+  _n1(func: uid(P)) { 
+    a as knows  
+    b as ~knows 
+  }
+  F as var(func: uid(a, b)) @filter(type(person) AND NOT uid(P))
+
+  # TOP 20 POSTS by friends
+  var(func: uid(F)) {
+    MP as ~hasCreator @filter(type(post) AND lt(creationDate, $maxDate))
+  }
+  
+  posts(func: uid(MP), orderdesc: creationDate, orderasc: id, first: 20) @normalize {
+    hasCreator @filter(type(person)) {
+      friendId: id
+      friendFirstName: firstName
+      friendLastName:  lastName
+    }
+    messageId: id
+    messageContent: content
+    messageImageFile: imageFile
+    messageCreationDate: creationDate
+  }
+
+  # TOP 20 COMMENTS by friends
+  var(func: uid(F)) {
+    MC as ~hasCreator @filter(type(comment) AND lt(creationDate, $maxDate))
+  }
+  
+  comments(func: uid(MC), orderdesc: creationDate, orderasc: id, first: 20) @normalize {
+    hasCreator @filter(type(person)) {
+      friendId: id
+      friendFirstName: firstName
+      friendLastName:  lastName
+    }
+    messageId: id
+    messageContent: content
+    messageCreationDate: creationDate
+  }
+}

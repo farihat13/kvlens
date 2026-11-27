@@ -1,0 +1,9 @@
+// microbench entry_eq: the ids of every person with a given firstName, sorted (NS3).
+// Reads: the Person.firstName persistent index (equality), then each match's _key.
+// Evaluator: queries/entry.py entry_eq -- read_index_eq + id projection, sorted by id;
+// one row per match.
+// mb2 lineage: MB3-4 (MB3 returned p._key unsorted).
+FOR p IN Person
+    FILTER p.firstName == @firstName
+    SORT TO_NUMBER(p._key)
+    RETURN {id: TO_NUMBER(p._key)}

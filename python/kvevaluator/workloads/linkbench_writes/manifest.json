@@ -1,0 +1,29 @@
+{
+  "name": "linkbench_writes",
+  "order": 7,
+  "title": "LinkBench's write request types",
+  "dataset": "linkbench",
+  "kind": "write",
+  "pick_params": "none",
+  "params_module": "kvevaluator.datasets.linkbench.params",
+  "queries_module": "kvevaluator.workloads.linkbench.queries",
+  "plan_dirs": [
+    "linkbench/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ],
+  "queries": [
+    "addlink_link1",
+    "addlink_link2",
+    "updatelink_link1",
+    "updatelink_link2",
+    "deletelink_link1",
+    "deletelink_link2",
+    "addnode",
+    "updatenode",
+    "deletenode"
+  ]
+}

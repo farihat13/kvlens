@@ -1,0 +1,13 @@
+# microbench edge_probe -- does a knows edge exist between two given Persons, either direction?
+# Evaluator: queries/hop.py edge_probe: read_edge_exists (nebula: point GET of the exact edge
+# key, both directions) -> one row {knows: true|false}.
+# One row: the boolean.
+# mb2 lineage: MB55-56 (MATCH, walks the src's neighbourhood), MB155-156 (FETCH, this form).
+# Params: the binder maps (srcId, dstId) to $person1Id, $person2Id.
+# Form: FETCH PROP ON KNOWS = a point read of one edge key; one per direction because the
+# undirected edge is stored once, in an unknown direction. $param note: FETCH does not take a
+# $param as a vid, so each branch pipes the pair in through a one-row YIELD.
+(YIELD $person1Id AS a, $person2Id AS b | FETCH PROP ON KNOWS $-.a -> $-.b YIELD src(edge) AS s
+ UNION ALL
+ YIELD $person1Id AS a, $person2Id AS b | FETCH PROP ON KNOWS $-.b -> $-.a YIELD src(edge) AS s)
+| YIELD count(*) > 0 AS knows

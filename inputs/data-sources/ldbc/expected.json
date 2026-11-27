@@ -1,0 +1,17 @@
+{
+ "_comment": "The recorded time of a whole fetch of one SF (kvevaluator.datasets.ldbc.fetch plan; the download and disk sizes come from archives.json). sf0.1 and sf3: `just fetch-dataset` (sf3: a 0.98 GB download, about 21 MB/s); sf30: inputs/data-sources/ldbc/README.md.",
+ "sfs": {
+  "0.1": {
+   "seconds": 4,
+   "date": "2026-11-19"
+  },
+  "3": {
+   "seconds": 60,
+   "date": "2026-11-19"
+  },
+  "30": {
+   "seconds": 750,
+   "date": "2026-10-27"
+  }
+ }
+}

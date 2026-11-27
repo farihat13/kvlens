@@ -1,0 +1,71 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=11.08
+# Q10. Friend recommendation
+#
+# Given a start Person with ID $personId, find that Person’s friends of friends (foaf) – excluding the
+# start Person and his/her immediate friends –, 
+# who were born on or after the 21st of a given $month(in any year) and before the 22nd of the following month. 
+# Calculate the similarity between eachfriend and the start person, 
+# where commonInterestScore is defined as follows:
+# • common = number of Posts created by friend, such that the Post has a Tag that the start personis interested in
+# • uncommon = number of Posts created by friend, such that the Post has no Tag that the startperson is interested in
+# • commonInterestScore = common - uncommon
+#
+# Sort  commonInterestScore(desc), personId(asc)
+# Limit  10
+#
+# Note: No birthday filtering applied, since birth month could not be extracted from birthday
+# The client is expected to apply birthday filtering on the results based on the month parameter.
+# Approximation: Returning top 20 results from the query, and let the client filter down to top 10 based on birthday filtering.
+# 
+# Params:
+#   $personId : int
+#   $month    : int   (1-12, representing the month for birthday filtering, e.g., 11 for November)
+
+#query Q10_nobday($personId: int, $month: int, $nextMonth: int) {
+query Q10_nobday($personId: int, $month: int) {
+  P as var(func: eq(id, $personId)) @filter(type(person))
+
+  # Find friends of friends (exclude self and immediate friends; dedup)
+  _l1(func: uid(P)) { a as knows  b as ~knows }
+  F1 as var(func: uid(a, b)) @filter(type(person) AND NOT uid(P))
+  _l2(func: uid(a, b)) { c as knows  d as ~knows }
+  F as var(func: uid(c, d)) @filter(type(person) AND NOT uid(P, F1))
+
+  # Filter foafs by birthday in the specified range (21st of $month to 21st of $nextMonth)
+  # var(func: uid(P)) {
+  #   nextMonth as math( ( $month % 12 ) + 1 )
+  # }
+  # F as var(func: uid(F2)) @filter(
+  #   regexp(birthday, concat("^-\\Q", $month, "\\E-(2[1-9]|3[01])")) OR
+  #   regexp(birthday, concat("^-\\Q", val(nextMonth), "\\E-(0[1-9]|1[0-9]|2[01])"))
+  # )
+
+  # Interests of the start person
+  var(func: uid(P)) { IT as hasInterest @filter(type(tag)) }
+
+  # For each foaf, count posts with/without common tags
+  var(func: uid(F)) {
+    pc as count(~hasCreator @filter(type(post))) # total posts by foaf
+  }  
+  var(func: uid(F)) {
+    cpc as count(~hasCreator @filter(type(post) AND uid_in(hasTag, uid(IT)))) # common interest posts by foaf
+  }
+  var(func: uid(F)) {
+    idv as id
+    uncommon as math(pc - cpc) # posts without common interest tags
+    score as math(cpc - uncommon)
+    ord as math(score + ((1e15 - idv) / 1e15))
+  }
+  
+  recs(func: uid(F), orderdesc: val(ord), first: 20) @normalize {
+    personId: id
+    personFirstName: firstName
+    personLastName: lastName
+    personGender: gender
+    birthday: birthday
+    isLocatedIn { personCityName: name }
+    commonPostCount: val(cpc)
+    postCount: val(pc)
+    commonInterestScore: val(score)
+  }
+}

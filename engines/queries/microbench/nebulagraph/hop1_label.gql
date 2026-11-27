@@ -1,0 +1,20 @@
+# microbench hop1_label -- a Person's messages, kept to Posts (a per-candidate type check).
+# Evaluator: queries/hop.py hop1_label: read_neighbors(hasCreator, in) -> dedup ->
+# read_filter_by_label_probe(Post) -> count. Nebula's probe = 1 GET of the Post tag row per
+# candidate. Count-final: one row per Post, the vid only.
+# mb2 lineage: MB39-40 (MATCH), 139-140 (GO | FETCH), 239-240 (INTERSECT with LOOKUP).
+# Form: GO REVERSELY with a destination-tag test in WHERE. `$$.Post.creationDate IS NOT EMPTY`
+# is true only when the message has the Post tag (every Post has a creationDate); it reads the
+# Post tag row of each candidate, which is exactly the probe. The natural alternatives do not
+# work as written on this server:
+#   - MATCH (n:Person)<-[:HAS_CREATOR]-(m:Post) ... RETURN id(m) returns EVERY message: with
+#     graphd's --optimize_appendvertices=true (pinned in runs/etc/nebula-graphd.conf) an
+#     AppendVertices that needs only `_tag` skips its storage call, and its
+#     `Post._tag IS NOT EMPTY` filter with it.
+#   - GO ... | FETCH PROP ON Post $-.m (MB139) also returns every message: FETCH on a tag the
+#     vertex lacks returns a row of EMPTY props when the vertex exists under another tag.
+#   - WHERE "Post" IN tags($$) is correct but reads all 8 tags per candidate (8x the GETs).
+YIELD $personId AS s
+| GO FROM $-.s OVER HAS_CREATOR REVERSELY
+  WHERE $$.Post.creationDate IS NOT EMPTY
+  YIELD DISTINCT src(edge) AS id

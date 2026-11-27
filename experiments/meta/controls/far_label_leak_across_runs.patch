@@ -1,0 +1,28 @@
+diff --git a/cpp/kvevaluator/src/formats/meta/format.cc b/cpp/kvevaluator/src/formats/meta/format.cc
+index fb63470..2a6a960 100644
+--- a/cpp/kvevaluator/src/formats/meta/format.cc
++++ b/cpp/kvevaluator/src/formats/meta/format.cc
+@@ -322,7 +322,15 @@ const Meta::FarIds& Meta::far_ids(const std::string& etype, bool out) const {
+ int Meta::far_label_id(const std::string& etype, bool out, uint8_t code) const {
+   return far_ids(etype, out).of(code);
+ }
++static std::unordered_map<uint64_t, int16_t> leaked_tags;   // CONTROL: labels remembered across runs (a leak)
++static std::mutex leaked_mu;
+ std::optional<std::string> Meta::tag_label(const Value& v) const {
++  if (v.label < 0 && v.is_text()) {   // CONTROL: an untagged value (a vid, or its str) takes a label an earlier run's hop saw
++    std::optional<uint64_t> u = v.is_vid() ? std::optional<uint64_t>(v.as_vid()) : uid_of(v.as_str());
++    std::lock_guard<std::mutex> g(leaked_mu);
++    auto it = u ? leaked_tags.find(*u) : leaked_tags.end();
++    if (it != leaked_tags.end()) { Value t = v; t.label = it->second; return tag_label(t); }
++  }
+   if (v.label < 0) return std::nullopt;
+   for (auto& vd : schema_.vertices())
+     if (vd.id == v.label) return vd.label;
+@@ -348,6 +356,7 @@ Value Meta::nbr_item(const NeighborItems& item, const Value* src_val, uint64_t s
+                      const Value* facets) const {
+   Value d = Value::vid(dst);
+   if (src_val && lid >= 0) d.label = int16_t(lid);   // the hop's far end, on the value itself
++  if (d.label >= 0) { std::lock_guard<std::mutex> g(leaked_mu); leaked_tags[dst] = d.label; }   // CONTROL
+   return item(src_val ? *src_val : Value::vid(su), d, facets);   // the input value: keeps its tag
+ }
+ std::vector<std::string> Meta::props_row_names(const Component& layout, const std::vector<std::string>& props) const {

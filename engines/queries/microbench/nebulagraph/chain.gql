@@ -1,0 +1,18 @@
+# microbench chain -- the root of a message's reply chain: follow REPLY_OF up until it ends
+# (a Post answers itself).
+# Evaluator: queries/nhop.py _chain(None): read_chase(replyOf, out, no cap) -> the last
+# message reached -> its id. One row.
+# mb2 lineage: MB59-60 (REPLY_OF*0..3 ending at (p:Post)).
+# Form: an unbounded variable-length MATCH (Traverse); the root is the farthest message on the
+# chain. size(e) counts the hops without building a path (a named path makes graphd fetch
+# every vertex on it: 16 GETs per vertex measured). Alternatives measured at a depth-2 anchor:
+#   - ...->(p:Post) RETURN id(p) returns EVERY message on the chain (the label check is
+#     skipped under graphd's --optimize_appendvertices=true, see hop1_label.gql);
+#   - ...->(r) WHERE NOT (r)-[:REPLY_OF]->() is correct but re-reads each chain message's
+#     out-edges (S=6 N=4 vs S=3 N=2 here).
+MATCH (m)-[e:REPLY_OF*0..]->(r)
+WHERE id(m) == $messageId
+WITH r, size(e) AS hops
+ORDER BY hops DESC
+LIMIT 1
+RETURN id(r) AS id

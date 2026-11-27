@@ -1,0 +1,11 @@
+# microbench hop1p_knows -- a Person's distinct knows-neighbours (both directions) with
+# id, firstName, lastName.
+# Evaluator: queries/hop.py hop1p_knows: read_neighbors -> dedup -> read_vertex_props([id,
+# firstName, lastName]) -> sort by id. One row per distinct neighbour.
+# mb2 lineage: MB26 (MATCH, both directions, 4 props).
+# Form: GO BIDIRECT with destination props ($$) = GetNeighbors + GetVertices on the distinct
+# neighbours. The id is the vid (free). DISTINCT keeps one row per neighbour. Same cost as
+# GO ... YIELD DISTINCT id($$) | FETCH PROP ON Person. No ORDER BY: see entry_eq.gql.
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS BIDIRECT
+  YIELD DISTINCT id($$) AS id, $$.Person.firstName AS firstName, $$.Person.lastName AS lastName

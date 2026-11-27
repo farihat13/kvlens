@@ -1,0 +1,114 @@
+{
+  "plan": "example_friends",
+  "question": "Given a person, list their friends with each friend's id and name, sorted by id.",
+  "params_like": "ic1",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "example_friends": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id",
+            "firstName",
+            "lastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "example_friends": {
+      "sha": "2ccba29f49b0",
+      "requires": [],
+      "sources": [
+        "example_friends"
+      ]
+    }
+  }
+}

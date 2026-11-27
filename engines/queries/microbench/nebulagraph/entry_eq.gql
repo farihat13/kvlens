@@ -1,0 +1,9 @@
+# microbench entry_eq -- the Persons with a given firstName (indexed equality), their ids.
+# Evaluator: queries/entry.py entry_eq: read_index_eq(Person.firstName) -> dedup ->
+# read_vertex_props([id]) -> sort by id -> project id. One row per match.
+# mb2 lineage: MB3-4.
+# Form: LOOKUP on person_first_name_idx (IndexScan). The id is the vid, so no property is
+# read. Engine note: id(vertex) still costs 1 base-row GET per entry (see
+# entrylabel_person.gql). No ORDER BY: the vid is a string ("person_<id>"), so a sort here
+# would not be the evaluator's int order, and only the answer SET is compared.
+LOOKUP ON Person WHERE Person.firstName == $firstName YIELD id(vertex) AS id

@@ -1,0 +1,27 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=19
+# IS6 - Forum of a message
+#
+# Given a Message with ID $messageId, retrieve the Forum that contains it and the Person that moderates that Forum. 
+# Since Comments are not directly contained in Forums, 
+# for Comments, return theForum containing the original Post in the thread which the Comment is replying to.
+#
+# Params:
+#   $messageId : int  (messageId, can be a Post or a Comment)
+# Results:
+# 1 forum.id ID R
+# 2 forum.title Long String R
+# 3 moderator.id ID R
+# 4 moderator.firstName String R
+# 5 moderator.lastName String R
+
+# DEVIATION FROM SPEC:
+# - Approximation: to match Dgraph's limitation of variable-length path, capped the REPLY_OF traversal to maximum 3 hops.
+
+MATCH (m)-[:REPLY_OF*0..3]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)
+WHERE id(m) == $messageId
+RETURN
+    id(f) AS forumId,
+    f.Forum.title AS forumTitle,
+    id(mod) AS moderatorId,
+    mod.Person.firstName AS moderatorFirstName,
+    mod.Person.lastName AS moderatorLastName

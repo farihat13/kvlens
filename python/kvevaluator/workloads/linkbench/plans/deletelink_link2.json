@@ -1,0 +1,78 @@
+{
+  "plan": "deletelink_link2",
+  "question": "Delete a link of type 2 by marking it hidden, leaving the link in place.",
+  "for": "all formats",
+  "params": {
+    "src": {
+      "type": "id"
+    },
+    "dst": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "s_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "d_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_edge_prop",
+      "etype": "link2",
+      "src": {
+        "let": "s_vid"
+      },
+      "dst": {
+        "let": "d_vid"
+      },
+      "props": {
+        "visibility": 0
+      },
+      "src_label": "Node",
+      "dst_label": "Node"
+    }
+  ],
+  "output": "out"
+}

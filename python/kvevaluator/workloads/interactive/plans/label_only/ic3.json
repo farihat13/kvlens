@@ -1,0 +1,672 @@
+{
+  "plan": "ic3",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "startDate": {
+      "type": "int"
+    },
+    "durationDays": {
+      "type": "int"
+    },
+    "countryXName": {},
+    "countryYName": {}
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "end": {
+      "add": [
+        {
+          "param": "startDate"
+        },
+        {
+          "mul": [
+            {
+              "param": "durationDays"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "a",
+      "op": "read_vertex_by_id",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person"
+    },
+    {
+      "name": "f0",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "a"
+      },
+      "etype": "knows",
+      "dir": "both"
+    },
+    {
+      "name": "f1",
+      "op": "dedup",
+      "items": {
+        "ref": "f0"
+      }
+    },
+    {
+      "name": "f2r",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "f1"
+      },
+      "etype": "knows",
+      "dir": "both"
+    },
+    {
+      "name": "f12",
+      "op": "concat",
+      "a": {
+        "ref": "f1"
+      },
+      "b": {
+        "ref": "f2r"
+      }
+    },
+    {
+      "name": "fd",
+      "op": "dedup",
+      "items": {
+        "ref": "f12"
+      }
+    },
+    {
+      "name": "f",
+      "op": "exclude",
+      "items": {
+        "ref": "fd"
+      },
+      "remove": {
+        "ref": "a"
+      }
+    },
+    {
+      "name": "ctryx_scan",
+      "op": "read_vertices_by_label",
+      "label": "Place"
+    },
+    {
+      "name": "ctryx_pr",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "ctryx_scan"
+      },
+      "props": [
+        "name"
+      ],
+      "label": "Place"
+    },
+    {
+      "name": "ctryx_fx",
+      "op": "filter",
+      "rows": {
+        "ref": "ctryx_pr"
+      },
+      "pred": {
+        "eq": [
+          {
+            "field": "name"
+          },
+          {
+            "param": "countryXName"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ctryx",
+      "op": "pluck",
+      "rows": {
+        "ref": "ctryx_fx"
+      },
+      "field": "_vid"
+    },
+    {
+      "name": "ctryy_scan",
+      "op": "read_vertices_by_label",
+      "label": "Place"
+    },
+    {
+      "name": "ctryy_pr",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "ctryy_scan"
+      },
+      "props": [
+        "name"
+      ],
+      "label": "Place"
+    },
+    {
+      "name": "ctryy_fx",
+      "op": "filter",
+      "rows": {
+        "ref": "ctryy_pr"
+      },
+      "pred": {
+        "eq": [
+          {
+            "field": "name"
+          },
+          {
+            "param": "countryYName"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ctryy",
+      "op": "pluck",
+      "rows": {
+        "ref": "ctryy_fx"
+      },
+      "field": "_vid"
+    },
+    {
+      "name": "ctries",
+      "op": "concat",
+      "a": {
+        "ref": "ctryx"
+      },
+      "b": {
+        "ref": "ctryy"
+      }
+    },
+    {
+      "name": "pcity",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "f"
+      },
+      "etype": "isLocatedIn",
+      "dir": "out",
+      "pairs": true
+    },
+    {
+      "name": "pcity_v",
+      "op": "pluck",
+      "rows": {
+        "ref": "pcity"
+      },
+      "field": "dst"
+    },
+    {
+      "name": "pcity_d",
+      "op": "dedup",
+      "items": {
+        "ref": "pcity_v"
+      }
+    },
+    {
+      "name": "ccountry",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "pcity_d"
+      },
+      "etype": "isPartOf",
+      "dir": "out",
+      "pairs": true
+    },
+    {
+      "name": "bad_city",
+      "op": "filter_in",
+      "rows": {
+        "ref": "ccountry"
+      },
+      "field": "dst",
+      "allowed": {
+        "ref": "ctries"
+      }
+    },
+    {
+      "name": "bad_cityv",
+      "op": "pluck",
+      "rows": {
+        "ref": "bad_city"
+      },
+      "field": "src"
+    },
+    {
+      "name": "bad_ploc",
+      "op": "filter_in",
+      "rows": {
+        "ref": "pcity"
+      },
+      "field": "dst",
+      "allowed": {
+        "ref": "bad_cityv"
+      }
+    },
+    {
+      "name": "bad_person",
+      "op": "pluck",
+      "rows": {
+        "ref": "bad_ploc"
+      },
+      "field": "src"
+    },
+    {
+      "name": "eligible",
+      "op": "exclude",
+      "items": {
+        "ref": "f"
+      },
+      "remove": {
+        "ref": "bad_person"
+      }
+    },
+    {
+      "name": "fmsg",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "eligible"
+      },
+      "etype": "hasCreator",
+      "dir": "in",
+      "pairs": true
+    },
+    {
+      "name": "fmsg_v",
+      "op": "pluck",
+      "rows": {
+        "ref": "fmsg"
+      },
+      "field": "dst"
+    },
+    {
+      "name": "msg_date",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "fmsg_v"
+      },
+      "props": [
+        "creationDate"
+      ],
+      "label": [
+        "Post",
+        "Comment"
+      ]
+    },
+    {
+      "name": "in_win",
+      "op": "filter",
+      "rows": {
+        "ref": "msg_date"
+      },
+      "pred": {
+        "and": [
+          {
+            "le": [
+              {
+                "param": "startDate"
+              },
+              {
+                "field": "creationDate"
+              }
+            ]
+          },
+          {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "let": "end"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "winv",
+      "op": "pluck",
+      "rows": {
+        "ref": "in_win"
+      },
+      "field": "_vid"
+    },
+    {
+      "name": "msg_loc",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "winv"
+      },
+      "etype": "isLocatedIn",
+      "dir": "out",
+      "pairs": true
+    },
+    {
+      "name": "msg_ctry",
+      "op": "rename",
+      "rows": {
+        "ref": "msg_loc"
+      },
+      "names": {
+        "src": "_msg",
+        "dst": "_ctry"
+      }
+    },
+    {
+      "name": "auth_msg",
+      "op": "rename",
+      "rows": {
+        "ref": "fmsg"
+      },
+      "names": {
+        "src": "person",
+        "dst": "_msg2"
+      }
+    },
+    {
+      "name": "in_x",
+      "op": "filter_in",
+      "rows": {
+        "ref": "msg_ctry"
+      },
+      "field": "_ctry",
+      "allowed": {
+        "ref": "ctryx"
+      }
+    },
+    {
+      "name": "in_y",
+      "op": "filter_in",
+      "rows": {
+        "ref": "msg_ctry"
+      },
+      "field": "_ctry",
+      "allowed": {
+        "ref": "ctryy"
+      }
+    },
+    {
+      "name": "join_x",
+      "op": "join",
+      "left": {
+        "ref": "in_x"
+      },
+      "right": {
+        "ref": "auth_msg"
+      },
+      "left_on": "_msg",
+      "right_on": "_msg2"
+    },
+    {
+      "name": "join_y",
+      "op": "join",
+      "left": {
+        "ref": "in_y"
+      },
+      "right": {
+        "ref": "auth_msg"
+      },
+      "left_on": "_msg",
+      "right_on": "_msg2"
+    },
+    {
+      "name": "x_person",
+      "op": "pluck",
+      "rows": {
+        "ref": "join_x"
+      },
+      "field": "person"
+    },
+    {
+      "name": "x_count",
+      "op": "group_count",
+      "items": {
+        "ref": "x_person"
+      }
+    },
+    {
+      "name": "y_person",
+      "op": "pluck",
+      "rows": {
+        "ref": "join_y"
+      },
+      "field": "person"
+    },
+    {
+      "name": "y_count",
+      "op": "group_count",
+      "items": {
+        "ref": "y_person"
+      }
+    },
+    {
+      "name": "x_persons",
+      "op": "pluck",
+      "rows": {
+        "ref": "x_count"
+      },
+      "field": "item"
+    },
+    {
+      "name": "y_persons",
+      "op": "pluck",
+      "rows": {
+        "ref": "y_count"
+      },
+      "field": "item"
+    },
+    {
+      "name": "both",
+      "op": "intersect",
+      "items": {
+        "ref": "x_persons"
+      },
+      "other": {
+        "ref": "y_persons"
+      }
+    },
+    {
+      "name": "x_both",
+      "op": "filter_in",
+      "rows": {
+        "ref": "x_count"
+      },
+      "field": "item",
+      "allowed": {
+        "ref": "both"
+      }
+    },
+    {
+      "name": "x_named",
+      "op": "rename",
+      "rows": {
+        "ref": "x_both"
+      },
+      "names": {
+        "count": "xCount"
+      }
+    },
+    {
+      "name": "y_named",
+      "op": "rename",
+      "rows": {
+        "ref": "y_count"
+      },
+      "names": {
+        "count": "yCount",
+        "item": "_p2"
+      }
+    },
+    {
+      "name": "counts",
+      "op": "join",
+      "left": {
+        "ref": "x_named"
+      },
+      "right": {
+        "ref": "y_named"
+      },
+      "left_on": "item",
+      "right_on": "_p2"
+    },
+    {
+      "name": "summed",
+      "op": "derive",
+      "rows": {
+        "ref": "counts"
+      },
+      "into": "count",
+      "fn": {
+        "add": [
+          {
+            "field": "xCount"
+          },
+          {
+            "field": "yCount"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pid",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "both"
+      },
+      "props": [
+        "id"
+      ],
+      "label": "Person"
+    },
+    {
+      "name": "pid_named",
+      "op": "rename",
+      "rows": {
+        "ref": "pid"
+      },
+      "names": {
+        "id": "personId"
+      }
+    },
+    {
+      "name": "ranked",
+      "op": "join",
+      "left": {
+        "ref": "summed"
+      },
+      "right": {
+        "ref": "pid_named"
+      },
+      "left_on": "item",
+      "right_on": "_vid"
+    },
+    {
+      "name": "top20",
+      "op": "top_k",
+      "rows": {
+        "ref": "ranked"
+      },
+      "keys": [
+        [
+          "count",
+          "desc"
+        ],
+        [
+          "personId",
+          "asc"
+        ]
+      ],
+      "k": 20
+    },
+    {
+      "name": "topv",
+      "op": "pluck",
+      "rows": {
+        "ref": "top20"
+      },
+      "field": "item"
+    },
+    {
+      "name": "names",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "topv"
+      },
+      "props": [
+        "firstName",
+        "lastName"
+      ],
+      "label": "Person"
+    },
+    {
+      "name": "names_r",
+      "op": "rename",
+      "rows": {
+        "ref": "names"
+      },
+      "names": {
+        "firstName": "personFirstName",
+        "lastName": "personLastName"
+      }
+    },
+    {
+      "name": "named",
+      "op": "join",
+      "left": {
+        "ref": "top20"
+      },
+      "right": {
+        "ref": "names_r"
+      },
+      "left_on": "item",
+      "right_on": "_vid"
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "named"
+      },
+      "fields": [
+        "personId",
+        "personFirstName",
+        "personLastName",
+        "xCount",
+        "yCount",
+        "count"
+      ]
+    }
+  ],
+  "output": "out"
+}

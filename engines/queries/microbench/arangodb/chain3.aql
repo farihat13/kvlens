@@ -1,0 +1,17 @@
+// microbench chain3: follow replyOf from a message at most 3 hops (the engines' truncation: on a
+// chain deeper than 3 the answer is the NON-root comment 3 hops up, as in the evaluator).
+// Reads: the message's collection (a Post or Comment primary-index probe -- the edge index is
+// keyed by the collection-qualified id), then the replyOf _from edge index of each message on
+// the chain; returns the last vertex's _key only. BFS emits in depth order, so LAST(walk) is the
+// deepest vertex reached; replyOf has out-degree <= 1, so the walk is a single chain.
+// Evaluator: queries/nhop.py _chain(3) -- read_chase(replyOf, out, max_hops=3), then that
+// vertex's id (key-derived), 1 row.
+// mb2 lineage: MB59-60 (no arango text in mb2); the walk is IS2's replyOf chase.
+LET msg = FIRST(UNION(
+    (FOR p IN Post FILTER p._key == TO_STRING(@messageId) RETURN p._id),
+    (FOR c IN Comment FILTER c._key == TO_STRING(@messageId) RETURN c._id)))
+LET walk = (
+    FOR v IN 0..3 OUTBOUND msg replyOf
+        OPTIONS {order: "bfs"}
+        RETURN v._key)
+RETURN {id: TO_NUMBER(LAST(walk))}

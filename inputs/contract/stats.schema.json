@@ -1,0 +1,231 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "inputs/contract/stats.schema.json",
+ "title": "The statistics predict mode reads",
+ "description": "The statistics of one graph that kvevaluator predict reads to price plans without a store: one JSON file (kvevaluator graph-stats; our builder is python -m kvevaluator.predict.build_stats), with the anchor statistics in a second file read beside it (graph-stats --anchor-out; predict --anchor-stats). Every field is defined by the schema alone: no field names a dataset's labels or edge types, and a dataset declares only what its build passes (--anchor-labels, --date-axis). Nothing here depends on a layout: the statistics of each layout (kvevaluator tally) are a separate input. Check a file with python -m kvevaluator.predict.check_stats; predict refuses a file that lacks a field listed in `required`, and a rule refuses an absent optional field or entry it reads, by name, never a default. Terms. The owner of a list is the vertex whose edges the list stores: the source vertex for an out list, the destination for an in list. Level B is predict mode proper: it estimates from these whole-graph statistics alone, without knowing which vertex a query's parameter names. That vertex is the anchor (for example the person a query starts from). The anchor statistics describe one vertex; only the anchor level (level B plus them) reads them, never level B. A plan file may declare estimate_hints beside its question (size_biased: the edge types whose hop sources were reached through that edge type, so a hop over it takes a neighbour's degree; chase_root_ratio: the hops after a chase that read the chase root's conditional degree). A hint is coarse: it applies to every matching hop in the query. Each field says: x-tier, the kind of statistic (1: a count, one aggregate query; 2: a histogram or a richer statistic; anchor: one vertex's own statistic; file: the file's identity, written by the tool); x-per, what one entry is for; x-need, what in predict reads it; x-missing, what predict does when the field, or one of its entries, is absent; x-recipe, a query that computes it; x-written-by, which of our tools writes it.",
+ "x-contract": 10,
+ "type": "object",
+ "required": ["type_counts", "edge_totals", "distinct_src", "distinct_dst", "ndv", "sizes"],
+ "properties": {
+  "type_counts": {
+   "description": "the number of vertices of each label",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 1, "x-per": "vertex label (every label of the schema)",
+   "x-need": "always", "x-missing": "a label the file names elsewhere (an owners row, an end-label key) but does not count: refused at load; check_stats --schema refuses a file that lacks any label of the schema; any other missing label is refused when a plan reads it",
+   "x-recipe": "MATCH (n:L) RETURN count(n)", "x-written-by": "graph-stats"
+  },
+  "edge_totals": {
+   "description": "the number of edges of each type",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 1, "x-per": "edge type (every edge type of the schema)",
+   "x-need": "always", "x-missing": "an edge type the file names elsewhere but does not count: refused at load; check_stats --schema refuses a file that lacks any edge type of the schema; any other is refused when a plan reads it",
+   "x-recipe": "MATCH ()-[e:E]->() RETURN count(e)", "x-written-by": "graph-stats"
+  },
+  "distinct_src": {
+   "description": "the vertices with at least one out-edge of the type: the owners of its out lists",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 1, "x-per": "edge type",
+   "x-need": "always (a mean degree is edges / owners)", "x-missing": "a missing edge type is refused when a plan reads it",
+   "x-recipe": "MATCH (a)-[:E]->() RETURN count(DISTINCT a)", "x-written-by": "graph-stats"
+  },
+  "distinct_dst": {
+   "description": "the vertices with at least one in-edge of the type: the owners of its in lists",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 1, "x-per": "edge type",
+   "x-need": "always", "x-missing": "a missing edge type is refused when a plan reads it",
+   "x-recipe": "MATCH ()-[:E]->(b) RETURN count(DISTINCT b)", "x-written-by": "graph-stats"
+  },
+  "owners": {
+   "description": "per edge type and direction, the owners of its lists by the owner's label, and their edges: one row per (edge type, direction, owner label) with at least one owner; a label that owns no list of E in that direction has no row (not a row of zeros)",
+   "type": "array", "items": {"type": "object", "required": ["etype", "direction", "owner_label", "owners", "edges"], "properties": {"etype": {"type": "string"}, "direction": {"enum": ["out", "in"]}, "owner_label": {"type": "string"}, "owners": {"type": "number", "minimum": 0}, "edges": {"type": "number", "minimum": 0}}},
+   "x-tier": 1, "x-per": "edge type, direction, owner label",
+   "x-need": "every KV step (predict --plans, --accuracy); a hop whose consumers read its rows as one label (far_label_consumer) keeps that label's rows' share of the far end's edges. The share stands in for the far labels the hop's sources do not hold (LDBC: cities hold no messages): the hop's own rows are scaled, so where the sources' lists really hold several labels its edges read are under by that share", "x-missing": "every KV step is refused, the field named",
+   "x-recipe": "MATCH (a:L)-[:E]->() RETURN count(DISTINCT a), count(*)", "x-written-by": "graph-stats"
+  },
+  "sizes": {
+   "description": "bytes and counts of the graph's content, layout-free: {\"content\": {key: {\"b\": bytes, \"u\": units}}}. Bytes are content bytes: a string's length in characters, an integer 8, a boolean 1, a float 0, a bytes value its raw length, a list or an object the sum of its members. Four kinds of key: prop|L|p, a property of a label: u = the vertices of L with a value for p, b = those values' total bytes (LDBC sf0.1, prop|Person|id: u 1528, b 12224, so 8 B per value); tok|L|p, an indexed property: u = its index tokens (one per vertex of L with a value), b = the tokens' total length, each value written as text (tok|Post|creationDate: u 135701, b 1764113, so 13.0 characters per token, a date in milliseconds); eprop|E, an edge type: u = the edges of E, b = their edge properties' total bytes (eprop|isLocatedIn: u 296227, b 0, no edge properties); esrc|E|L and edst|E|L: the key says label L sits at the source (esrc) or destination (edst) end of E; u = the edges of E with an L vertex at that end, b = 0 (esrc|isLocatedIn|Post: u 135701, b 0). Every property a vertex record carries has a prop key: the declared ones and the dataset's own id (prop|L|id, an int). A missing value is no value: null, or the empty string for a property the dataset schema declares nullable (a store that keeps \"\" for a missing value, as Dgraph does). b may come from a sample (a share of the elements, as PostgreSQL's ANALYZE does): b = the sample's bytes per element times u; the share goes in sizes.sample (0 < share <= 1; absent: every element measured). u is always exact: load checks the per-day and per-value counts against it. Predict reads prop's b and u, the presence of the esrc and edst keys (not their b or u), and the edge type an eprop key names; it does not read tok's b and u.",
+   "type": "object", "required": ["content"], "properties": {"content": {"type": "object", "additionalProperties": {"type": "object", "required": ["b", "u"], "properties": {"b": {"type": "number"}, "u": {"type": "number"}}}}, "sample": {"type": "number", "exclusiveMinimum": 0, "maximum": 1}},
+   "x-tier": 1, "x-per": "label and property; edge type; edge type, end and label",
+   "x-need": "always (the esrc / edst keys give a hop's starting population; prop gives a property read's hits and bytes)", "x-missing": "a missing prop|L|p key is refused by name where a step reads it (graph-stats writes one per declared property, u = 0 when no vertex holds it), and check_stats --schema finds it first; load refuses a file whose edge type has edges but no esrc or edst key",
+   "x-recipe": "count(n.p), sum(size(n.p)) per label (the bytes from a sample); the end labels from the schema", "x-written-by": "graph-stats"
+  },
+  "ndv": {
+   "description": "the distinct values of a property that an equality index read filters on; key L|p",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 1, "x-per": "label and property (each one a plan reads with read_index_eq)",
+   "x-need": "an equality index read (read_index_eq)", "x-missing": "a key the file lacks is refused when a plan reads it",
+   "x-recipe": "MATCH (n:L) RETURN count(DISTINCT n.p) (an approximate count is fine)", "x-written-by": "graph-stats, per indexed property of the schema"
+  },
+  "top_values": {
+   "description": "the most common values of an indexed property, each with its vertices: {\"k\": how many the file keeps, \"holders\": the vertices whose record carries the property (null included: the population ndv counts), \"values\": [[value, vertices], ...] by vertices, then value}; key L|p, as ndv. Tier 2 keeps 1,000 (every value when there are no more), tier 1 the first 10. An equality on an indexed property (an index read; a filter's eq, in, ne) has a listed value's count as its rows, any other value the rest spread evenly: (holders - the listed counts) / (ndv - listed). Several eq, in or ne fields of one label in one filter keep the smallest field's share, not their product: they are taken as correlated (rule value_share_correlated; JOB's info with info_type_id)",
+   "type": "object", "additionalProperties": {"type": "object", "required": ["k", "holders", "values"], "properties": {"k": {"type": "number", "minimum": 1}, "holders": {"type": "number", "minimum": 0}, "values": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2}}}},
+   "x-tier": 1, "x-tier1-k": 10, "x-per": "label and property (each non-date one the schema indexes; no plan reads a date by equality)",
+   "x-need": "an equality on an indexed property: an index read (read_index_eq), a filter's eq, in or ne",
+   "x-missing": "a key the file lacks is refused when a plan reads it. Load refuses holders above the label's type count, a count <= 0, counts summing above the holders, and more values than ndv",
+   "x-recipe": "MATCH (n:L) RETURN n.p, count(*) ORDER BY count(*) DESC LIMIT 10; the holders: MATCH (n:L) RETURN count(n) over the vertices whose record carries p", "x-written-by": "graph-stats, per indexed property of the schema"
+  },
+  "top_degrees": {
+   "description": "per owner label, edge type, direction and indexed property of that label, the values whose vertices own the most edges there: {\"k\": how many the file keeps (10, both tiers), \"owners\": every vertex of the label with an edge of that type and direction, holding the property or not (read only by load's check owner_values <= owners), \"owner_values\": the distinct values of the owners holding the property, \"edges\": the edges of the owners holding the property only, \"values\": [[value, edges], ...] by edges, then value; a value several owners hold sums their edges}; key L|E|dir|p, dir out or in. A hop straight from an equality index read on L reaches a listed value's edges, any other value the rest spread over the other owners' values: (edges - the listed) / (owner_values - listed)",
+   "type": "object", "additionalProperties": {"type": "object", "required": ["k", "owners", "owner_values", "edges", "values"], "properties": {"k": {"type": "number", "minimum": 1}, "owners": {"type": "number", "minimum": 0}, "owner_values": {"type": "number", "minimum": 0}, "edges": {"type": "number", "minimum": 0}, "values": {"type": "array", "items": {"type": "array", "minItems": 2, "maxItems": 2}}}},
+   "x-tier": 1, "x-tier1-k": 10, "x-per": "owner label, edge type, direction and indexed property (every declared end of an edge type, each non-date property the schema indexes on that label)",
+   "x-need": "a hop (read_neighbors, out or in) whose sources are an equality index read (read_index_eq with a value) on the hop's source-side label",
+   "x-missing": "a key the file lacks is refused when a plan reads it. Load refuses owners above the label's type count, owner_values above owners, an edge count <= 0, edges summing above the total, and more values than owner_values",
+   "x-recipe": "MATCH (n:L)-[:E]->() WITH n.p AS v, count(*) AS d RETURN v, d ORDER BY d DESC LIMIT 10 (<-[:E]- for in); owners, owner_values and edges over the vertices with such an edge", "x-written-by": "graph-stats, per declared end and indexed property of the schema"
+  },
+  "value_range": {
+   "description": "the least and greatest value of each int property the schema declares, [least, greatest], or null when no element holds it; key prop|L|p for a vertex label's property, eprop|E|p for an edge type's. A range filter reads the per-value counts (int_values); this is their flat form's span, and null means the filter keeps no row",
+   "type": "object", "additionalProperties": {"type": ["array", "null"], "items": {"type": "number"}, "minItems": 2, "maxItems": 2},
+   "x-tier": 1, "x-per": "int property of a vertex label or an edge type (every one of the schema)",
+   "x-need": "a range filter (lt, le, gt, ge against a value) on an int property: of the rows' one label, of each label of a set of several (weighted by the labels' type counts, a concat's sides' rows, or an unlabelled hop's far-end shares), or of the edges the rows came through; int_values' flat form", "x-missing": "a missing entry is refused by name when a filter reads it; check_stats --schema finds it first. Load refuses a key that is not prop|counted label|property or eprop|counted edge type|property, and a value that is not [least <= greatest] or null",
+   "x-recipe": "MATCH (n:L) RETURN min(n.p), max(n.p); MATCH ()-[e:E]->() RETURN min(e.p), max(e.p)", "x-written-by": "graph-stats"
+  },
+  "int_values": {
+   "description": "the elements per integer value of an int property: {\"first\": the least value, \"counts\": one count per value up to the greatest, 0 where none holds it}, the same form as date_days (per value instead of per day); key prop|L|p or eprop|E|p, as value_range. Written for a property whose values span at most 1,000,000 integers. A range filter's rows are the counts of the values it covers, over the label's type count (or the edge type's edges)",
+   "type": "object", "additionalProperties": {"type": "object", "required": ["first", "counts"], "properties": {"first": {"type": "number"}, "counts": {"type": "array", "items": {"type": "number", "minimum": 0}}}},
+   "x-tier": 2, "x-per": "int property of a vertex label or an edge type",
+   "x-need": "a range filter on an int property (as value_range says)", "x-missing": "refuses; the flat form is an even spread over value_range: first = the least value, one count per value, each the holders / the values. Load refuses an entry that does not run from value_range's least to its greatest, a negative count, a vertex property's counts that do not sum to sizes.content's u, and an edge property's above the edge type's edges",
+   "x-recipe": "MATCH (n:L) WHERE n.p IS NOT NULL RETURN n.p, count(*) ORDER BY n.p", "x-written-by": "graph-stats"
+  },
+  "degree_given_via": {
+   "description": "per label and per ordered pair of its distinct degrees (via, target; each E|dir with dir out, in or both, the label's degree_hist keys): a histogram over the via degree, one row per bucket (degree_hist's buckets): [bucket, vertices, summed via degree, summed target degree]; bucket 0 holds the label's vertices with no via edge and their summed target degree; a row with no vertices may be left out; key L|E|dir>E2|dir2",
+   "type": "object", "additionalProperties": {"type": "array", "items": {"type": "array", "minItems": 4, "maxItems": 4}},
+   "x-tier": 2, "x-per": "label, pair of (edge type, direction)",
+   "x-need": "optional: the vertices a multi-hop read reaches (a vertex reached through edge type A is not an average vertex)", "x-missing": "the whole-graph mean degree (a coarser rule)",
+   "x-recipe": "per vertex both degrees; GROUP BY bucket(degree A) (degree_hist's): count, sum(degree A), sum(degree B)", "x-written-by": "graph-stats"
+  },
+  "degree_hist": {
+   "description": "per label, edge type and direction: the label's vertices by their degree, one row per bucket: [bucket, vertices, summed degree, summed squared degree]; bucket 0 holds the vertices with no such edge; a degree d >= 1 is in bucket floor(log2 d) + 1, its bit length (d = 1 in bucket 1, 2-3 in 2, 4-7 in 3). A row with no vertices may be left out (graph-stats writes bucket 0 always). Rows for every label that owns at least one list of E in that direction (none for a label that owns none); key L|E|dir, dir out, in, or both (out + in, on a label that owns lists in both directions of E)",
+   "type": "object", "additionalProperties": {"type": "array", "items": {"type": "array", "minItems": 4, "maxItems": 4}},
+   "x-tier": 2, "x-per": "label, edge type, direction",
+   "x-need": "a hop over an edge type the plan declares size-biased (a neighbour's degree, sum(d^2) / sum(d); neighbor_degree_ratio may stand in), a write's list read (the size of the endpoint's list: the mean, or the size-biased mean sum(d^2) / sum(d) when the write picks an existing edge's endpoint), and the share of lists past a Condensed split", "x-missing": "refuses; the flat form is every owner at the mean degree, from the owners row: [[0, vertices - owners, 0, 0], [bucket of m, owners, edges, edges * m]], m = edges / owners. Load refuses rows that disagree with tier 1: the vertices against type_counts, the summed degree against edge_totals and the owners row, a sum of squares below (sum d)^2 / owners, a 'both' row whose summed degree is not the label's out plus in, a bucket that is not a whole number. A read of an edge type with edges and no row for any label refuses with the flat rows",
+   "x-recipe": "per vertex its degree (0 included); GROUP BY bucket (0 for degree 0, else floor(log2(degree)) + 1): count, sum(degree), sum(degree^2)", "x-written-by": "graph-stats"
+  },
+  "neighbor_degree_ratio": {
+   "description": "a neighbour's degree over the mean degree: sum(d^2) / sum(d) over edges / owners, for the owners of E's lists in direction dir; key E|dir. 1 is the flat form (every owner at the mean). Not cond_degree: that ratio divides by the mean over every vertex of the end labels, owners or not",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 1},
+   "x-tier": 2, "x-per": "edge type, direction",
+   "x-need": "a hop over an edge type the plan declares size-biased, when degree_hist has no row for it", "x-missing": "refuses (when degree_hist has no row either); the flat form is 1. Load refuses a value below 1 or an edge type edge_totals does not count",
+   "x-recipe": "per owner its degree d: sum(d^2) / sum(d), divided by count(*) / count(DISTINCT owner)", "x-written-by": "none (a user's file; graph-stats writes degree_hist)"
+  },
+  "date_days": {
+   "description": "the vertices per day of a date property; key L|p: {first_day (days since 1970-01-01), counts}; one entry per date property the dataset schema declares on a label, when at least one vertex holds it; a day is the UTC day, floor(milliseconds / 86,400,000)",
+   "type": "object", "additionalProperties": {"type": "object", "required": ["first_day", "counts"]},
+   "x-tier": 2, "x-per": "label, date property",
+   "x-need": "date windows, date-index reads and the ranked date-index walk (their span, populated days and recency), and filters that bound a date property (the date_filter rule)", "x-missing": "refuses; the flat form is an even spread over the property's dates: {first_day: the earliest, counts: one per day to the latest, each u / the days}, u from sizes.content prop|L|p. Load refuses counts whose sum is not that u (exactly: unrounded, or the remainder on one day). A date filter on a property the dataset schema declares a date refuses too; a filter on another field keeps the filter rule",
+   "x-recipe": "MATCH (n:L) RETURN date(n.p), count(*)", "x-written-by": "graph-stats"
+  },
+  "date_axis": {
+   "description": "the labels and date property a date rule reads when its step names none: {labels, prop}; declared by the dataset's build (--date-axis). A user who gives only data declares it from the plans: the labels and date a date window means when it names none (LDBC: the messages, Post and Comment, by creationDate); the labels' order does not matter",
+   "type": "object", "required": ["labels", "prop"],
+   "x-tier": 2, "x-per": "dataset",
+   "x-need": "a date rule whose step names no labels or prop, and a date filter's span without a per-day histogram", "x-missing": "refused by name where a rule needs it",
+   "x-recipe": "-", "x-written-by": "graph-stats"
+  },
+  "forest": {
+   "description": "per edge type whose source labels are all among its destination labels and whose every source has exactly one such edge (a parent pointer): {sources, depth_sum (hops to the chain's root, summed over the sources), source_labels, labels}; every edge type that passes the rule, whether or not a plan chases it (LDBC: replyOf, isSubclassOf, isPartOf)",
+   "type": "object", "additionalProperties": {"type": "object", "required": ["sources", "depth_sum", "source_labels", "labels"]},
+   "x-tier": 2, "x-per": "edge type that is a forest",
+   "x-need": "optional: a chase's depth and a closure's size (1 + the mean depth over the forest's labels)", "x-missing": "a fixed depth (chase) or size (closure)",
+   "x-recipe": "a recursive query over the edge type", "x-written-by": "graph-stats"
+  },
+  "recency": {
+   "description": "per anchor label L, edge type E, direction dir and date property p: for each (E, dir) whose lists L owns and whose far-end labels do not include L and all declare p (LDBC's Person: hasCreator in, hasMember in, hasModerator in, likes out, by creationDate; not knows, whose far end is Person), over the vertices of L with a neighbour there: the days back from the far end's last day to the k-th newest neighbour (k = 1, 10, 20; the far end's span when fewer): {vertices, span, last_day, mean {k}, deciles {k: 11 values}}; span = the far labels' last day - their first day + 1 (both days counted), last_day their last; key L|E|dir|p. Built only for the --anchor-labels labels: it is read only for a bound vertex's neighbours",
+   "type": "object", "additionalProperties": {"type": "object"},
+   "x-tier": 2, "x-per": "anchor label, edge type, direction, date property",
+   "x-need": "optional: the ranked date-index walk over the anchor's neighbours (read_top_k_by_index), at level B (the mean and deciles)", "x-missing": "the uniform walk",
+   "x-recipe": "per anchor vertex, rank its neighbours by p", "x-written-by": "graph-stats"
+  },
+  "burstiness": {
+   "description": "how far a ranked walk down p's date index goes to find an owner's k newest neighbours (k = 20), over how far it goes when the neighbours are spread evenly over the index; key E|dir|p, for each edge type and direction whose far-end labels all hold a sorted index on p. Per owner o of an E list in direction dir (every owner label) with n >= 4k neighbours: crossed = the index entries on days newer than its k-th newest neighbour's day, plus half of that day's; even = min(N, k N / n), N the index's entries; the value is the mean of crossed / even weighted by n, and 1 when no owner has 4k neighbours. It is built at k = 20 and read at the walk's own k. An owner with fewer than 4k is left out: the even spread k N / n is then above N / 4, near all of N as n nears k, so the ratio measures the owner's size (about 0.5 whatever the dates), not where its k-th newest sits. 1 is the flat form (an even spread); above 1, an owner's neighbours are older than the index's newest (a person's messages come in bursts)",
+   "type": "object", "additionalProperties": {"type": "number", "minimum": 0},
+   "x-tier": 2, "x-per": "edge type, direction, date property",
+   "x-need": "the ranked date-index walk (read_top_k_by_index) over the far ends of a hop (its vids reached through read_neighbors and the ops that keep rows), except the anchor's own neighbours when their recency is read: the entries crossed are b k N / candidates. A walk with no hop behind it (a label scan) is the index itself: no entry", "x-missing": "refuses; the flat form is 1. Load refuses a key that is not edge type|out or in|property of a counted edge type, and a value below 0",
+   "x-recipe": "per owner with at least 4k neighbours, rank them by p, newest first; the k-th's day d: count the index entries with p on a day after d, plus half of day d's", "x-written-by": "graph-stats"
+  },
+  "degree_by_far_label": {
+   "description": "the list a new edge from a far-end label grows: key O|E|dir|F, for each declared pair of ends (owner label O, far label F) of edge type E in direction dir (out: O is the source). Value [n, sum]: n the E edges in direction dir between an O and an F vertex; sum the summed degree (O's E list in dir) of the O vertex each of them lands on, sum over owners o of n_F(o) x d(o). sum / n is the list size a new edge from an F vertex meets, an owner drawn by its edges from F (a new Post's isLocatedIn lands on a Country's message list, a new Person's on a City's list). With one declared far label it is degree_hist's sum d^2 / sum d. The flat form (tier 1's, kvevaluator.predict.tier1), from counts alone: n the owners row's edges of O|E|dir split over the far labels it declares in proportion to each one's vertex count (type_counts), every owner at the mean degree m = edges / owners (degree_hist's flat row): [n, n x m]",
+   "type": "object", "additionalProperties": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 2, "maxItems": 2},
+   "x-tier": 2, "x-per": "owner label, edge type, direction, far label",
+   "x-need": "an insert_edge into a Condensed list (the list read and rewritten) whose owner is neither created in the request nor an anchor", "x-missing": "refuses; the flat form is [n, n x m], n the owners row's edges split over the declared far labels by vertex count, m = edges / owners. Load refuses a key that is not owner label|edge type|out or in|far label of a counted edge type, a value that is not [n, sum] with sum >= n, and n summed over an edge type and direction above its edge total",
+   "x-recipe": "per edge (s, t) of E: add 1 to n of s's label|E|out|t's label and of t's label|E|in|s's label, and the degree of s (of t) to their sums, the degrees those of the whole graph", "x-written-by": "graph-stats"
+  },
+  "cond_degree": {
+   "description": "per ordered pair of distinct degrees (via E|dir, target E2|dir2; dir out, in or both), pooled over every label that holds both: over the vertices with a via edge, the target degree's mean weighted by the via degree, sum(via x target) / sum(via), divided by the target's population mean (E2's edges over the vertices of the labels at that end; for both, the out mean plus the in mean), rounded to 4 places; key E|dir>E2|dir2 (no label). For a forest F: chase-root|F>E2|dir2, the target degree of the root each chase from a source of F lands on, weighted by the sources landing on it, over the same population mean; one key per degree that any label of F has. A pair whose via sum or population mean is 0 has no key",
+   "type": "object", "additionalProperties": {"type": "number"},
+   "x-tier": 2, "x-per": "pair of degrees (via, target)",
+   "x-need": "optional: a hop from a set reached through an edge (the frontier's degree); a hop after a chase reads the root's only when the plan declares chase_root_ratio", "x-missing": "the whole-graph mean",
+   "x-recipe": "per vertex its degrees; per (via, target): sum(via x target) / sum(via) over the vertices with a via edge, over the target's edges / the vertices at its end", "x-written-by": "graph-stats"
+  },
+  "anchor_degrees": {
+   "description": "one vertex's degree per edge type and stored direction; key: the vid, then E|dir (non-zero degrees only; a vertex with no edge has an empty entry). Written for every vertex of the labels a plan's bound vertex has (--anchor-labels; LDBC: Person), or for the vids a study's params bind (--anchor-vids; JOB, LinkBench). In the anchor file (--anchor-out), read with predict --anchor-stats",
+   "type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": "number"}},
+   "x-tier": "anchor", "x-per": "vertex",
+   "x-need": "never at level B; only at the anchor level (a write's list sizes for the bound vertex; a read's neighbours of a vid the plan names)", "x-missing": "the vertex is unknown: knows_out / knows_in / person_msgs, else the whole-graph mean",
+   "x-recipe": "-", "x-written-by": "graph-stats --anchor-labels / --anchor-vids (graph_stats.json; kvevaluator predict takes it as --anchor-stats)"
+  },
+  "anchor_recency": {
+   "description": "per recency key, one anchor vertex's own days back to its 1st, 10th and 20th newest neighbour; key: the recency key, then the vid (hex16). A vertex of the anchor labels with no neighbour there has no row and walks the whole span",
+   "type": "object", "additionalProperties": {"type": "object"},
+   "x-tier": "anchor", "x-per": "vertex",
+   "x-need": "never at level B; only at the anchor level", "x-missing": "level B's recency mean and deciles",
+   "x-recipe": "-", "x-written-by": "graph-stats"
+  },
+  "anchor_far_labels": {
+   "description": "one anchor vertex's edges per edge type and stored direction, split by the far end's label; key: the vid, then E|dir, then the far label. Only for an (E, dir) whose far end declares two or more labels (LDBC: a Person's hasCreator in, Posts and Comments). Written for the same vertices as anchor_degrees, in the anchor file",
+   "type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"type": "number"}}},
+   "x-tier": "anchor", "x-per": "vertex",
+   "x-need": "never at level B; only at the anchor level (the label mix of a set read from the bound vertex: which labels' props or lists a step reads)", "x-missing": "the far end's label mix of the whole graph (owners)",
+   "x-recipe": "-", "x-written-by": "graph-stats --anchor-labels / --anchor-vids"
+  },
+  "dataset": {
+   "description": "the dataset's name (--dataset): the statistics' owner, and the key of its extension",
+   "type": ["string", "null"],
+   "x-tier": "file", "x-per": "file",
+   "x-need": "never (identity)", "x-missing": "-",
+   "x-recipe": "written by the tool", "x-written-by": "graph-stats"
+  },
+  "extension": {
+   "description": "a dataset's own fields, keyed by the dataset's name, defined by its own schema (python/kvevaluator/datasets/<name>/statistics/schema.json); kept opaque by every reader. No dataset has one: every field a rule reads is in this contract",
+   "type": "object",
+   "x-tier": 2, "x-per": "dataset",
+   "x-need": "none today: a rule that needs one reads it by name and is refused without it", "x-missing": "-",
+   "x-recipe": "-", "x-written-by": "build_stats"
+  },
+  "provenance": {
+   "description": "the file's identity: schema_hash (the hash of the dataset schema; predict refuses another), sf (the scale; predict refuses another), and how the file was made (the binary, the commit)",
+   "type": "object", "required": ["schema_hash"],
+   "x-tier": "file", "x-per": "file",
+   "x-need": "always (checked against --schema and the request's scale)", "x-missing": "refused (\"none recorded\")",
+   "x-recipe": "written by the tool", "x-written-by": "build_stats"
+  },
+  "schema_hash": {
+   "description": "the schema hash graph-stats wrote (predict refuses another)",
+   "type": "string",
+   "x-tier": "file", "x-per": "file",
+   "x-need": "always (checked against --schema and the anchor file's)", "x-missing": "refused (\"none recorded\")",
+   "x-recipe": "written by the tool", "x-written-by": "graph-stats"
+  },
+  "records": {
+   "description": "the record stream graph-stats read",
+   "type": "object",
+   "x-tier": "file", "x-per": "file",
+   "x-need": "never (provenance)", "x-missing": "-",
+   "x-recipe": "written by the tool", "x-written-by": "graph-stats"
+  },
+  "wall_s": {
+   "description": "graph-stats' wall time, in seconds",
+   "type": "number",
+   "x-tier": "file", "x-per": "file",
+   "x-need": "never (provenance)", "x-missing": "-",
+   "x-recipe": "written by the tool", "x-written-by": "graph-stats"
+  },
+  "samples": {
+   "description": "planned, not read yet: a sample of owners (for p% of the owners, each one's full sorted list of target ids per edge type and direction, and its property bytes); it would give the id gaps and id order that the layout statistics need",
+   "type": "object",
+   "x-tier": 2, "x-per": "edge type, direction (sampled owners)",
+   "x-need": "planned: the layout statistics without a full pass", "x-missing": "-",
+   "x-recipe": "MATCH (a)-[:E]->(b) WHERE hash(id(a)) % 100 < p RETURN id(a), collect(id(b))", "x-written-by": "none yet"
+  }
+ },
+ "additionalProperties": false
+}

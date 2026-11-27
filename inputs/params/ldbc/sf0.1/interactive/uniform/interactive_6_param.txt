@@ -1,0 +1,6 @@
+personId|tagName
+32985348834100|Shakira
+4398046511712|Alberto_Fujimori
+32985348833679|Mary_Magdalene
+21990232556141|Augustus
+10995116278981|Philip_K._Dick

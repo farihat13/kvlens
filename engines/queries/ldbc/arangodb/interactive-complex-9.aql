@@ -1,0 +1,21 @@
+// IC9: Recent messages from friends and friends-of-friends
+// Find 20 most recent messages by 1-2 hop friends, before maxDate
+LET startPerson = CONCAT("Person/", @personId)
+
+FOR friend IN 1..2 ANY startPerson knows
+    FILTER friend._id != startPerson
+    COLLECT f = friend INTO groups
+    FOR msg IN 1..1 INBOUND f hasCreator
+        FILTER msg.creationDate < @maxDate
+        SORT msg.creationDate DESC, TO_NUMBER(msg._key) ASC
+        LIMIT 20
+        RETURN {
+            personId: TO_NUMBER(f._key),
+            personFirstName: f.firstName,
+            personLastName: f.lastName,
+            messageId: TO_NUMBER(msg._key),
+            messageContent: IS_SAME_COLLECTION("Post", msg)
+                ? (msg.content != null AND msg.content != "" ? msg.content : msg.imageFile)
+                : msg.content,
+            messageCreationDate: msg.creationDate
+        }

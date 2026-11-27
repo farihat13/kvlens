@@ -1,0 +1,9 @@
+// microbench hop1_hastag: the distinct vertices that carry a tag -- Posts, Comments and Forums
+// (T1, in-edge to a Tag; the evaluator's hasTag etype also holds the Forum->Tag edges).
+// Reads: the hasTag _to edge index from the anchor; returns each tagged vertex's _id only.
+// Evaluator: queries/hop.py _hop1("hasTag", "in", "Tag", "tag") -- read_neighbors + dedup,
+// count-final (the harness counts the returned ids).
+// mb2 lineage: none.
+FOR m IN 1..1 INBOUND CONCAT("Tag/", @tagId) hasTag
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN m._id

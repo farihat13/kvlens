@@ -1,0 +1,11 @@
+# w_upd_plain -- write one NON-indexed property (lastName) of one person.
+# Writes: the person's lastName posting (Dgraph stores one record per predicate: no read-back of the rest).
+# Evaluator: workloads/writes/microbench/queries.py w_upd_plain -- update_prop(me_vid, lastName).
+# mb2 lineage: MB81 (same upsert; it found the person by fqid).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int index (eq(id, ...)),
+#   reads the evaluator does not pay (its anchor vid is given); `id` is shared by all 8 LDBC types, so
+#   type(person) names THE person. A text template: an upsert mutation takes no bound variable.
+{
+  "query": "{ v as var(func: eq(id, $person)) @filter(type(person)) }",
+  "set": { "uid": "uid(v)", "lastName": "WUpd" }
+}

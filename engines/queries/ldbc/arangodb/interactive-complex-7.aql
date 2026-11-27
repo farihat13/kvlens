@@ -1,0 +1,48 @@
+// IC7: Recent likers
+// Find people who liked person's messages, with most recent like info
+// and whether they are a friend (isNew = not friend)
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+// Get all messages by this person
+LET myMessages = (
+    FOR msg IN 1..1 INBOUND person hasCreator
+        RETURN msg
+)
+
+// Find likers and their most recent like to one of person's messages
+FOR msg IN myMessages
+    FOR liker, likeEdge IN 1..1 INBOUND msg likes
+        COLLECT l = liker INTO likeInfos = {
+            likeDate: likeEdge.creationDate,
+            msg: msg
+        }
+        // Get the most recent like per liker
+        LET sorted = (
+            FOR info IN likeInfos
+                SORT info.likeDate DESC, TO_NUMBER(info.msg._key) ASC
+                LIMIT 1
+                RETURN info
+        )
+        LET latestLike = sorted[0]
+        LET likedMsg = latestLike.msg
+        // Check if liker is a friend
+        LET isFriend = LENGTH(
+            FOR v IN 1..1 ANY l knows
+                FILTER v._id == person._id
+                LIMIT 1
+                RETURN 1
+        ) > 0
+        SORT latestLike.likeDate DESC, TO_NUMBER(l._key) ASC
+        LIMIT 20
+        RETURN {
+            personId: TO_NUMBER(l._key),
+            personFirstName: l.firstName,
+            personLastName: l.lastName,
+            likeCreationDate: latestLike.likeDate,
+            messageId: TO_NUMBER(likedMsg._key),
+            messageContent: IS_SAME_COLLECTION("Post", likedMsg)
+                ? (likedMsg.content != null AND likedMsg.content != "" ? likedMsg.content : likedMsg.imageFile)
+                : likedMsg.content,
+            minutesLatency: FLOOR((latestLike.likeDate - likedMsg.creationDate) / 60000),
+            isNew: NOT isFriend
+        }

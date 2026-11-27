@@ -1,0 +1,6 @@
+tagClass|country|messagesInClass|personsInCountry|stratum
+Politician|Belarus|1558|23|p50-class-p50-country
+OfficeHolder|Belarus|67030|23|p90-class-p50-country
+Politician|China|1558|508|p50-class-max-country
+OfficeHolder|China|67030|508|p90-class-max-country
+Country|China|184989|508|max-class-max-country

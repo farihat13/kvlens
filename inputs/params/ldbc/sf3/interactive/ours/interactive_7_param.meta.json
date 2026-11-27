@@ -1,0 +1,19 @@
+{
+ "file": "interactive_7_param.txt",
+ "query": "ic7",
+ "generated_by": "python data/gen_ic7_params.py --sf 3 --min-likers 20",
+ "script": "data/gen_ic7_params.py",
+ "source": "$LDBC_SNB_DATA_DIR/sf3/CsvBasic-LongDateFormatter/dynamic",
+ "selection": "persons with >= 20 DISTINCT likers on their authored messages (post+comment hasCreator joined to person_likes_{post,comment}), sorted by personId ascending, first 243 rows (= hosted interactive_7_param.txt row count)",
+ "min_distinct_likers": 20,
+ "row_count": 243,
+ "distinct_liker_count": {
+  "min": 20,
+  "median": 439,
+  "max": 3448
+ },
+ "candidates_ge_threshold": 14405,
+ "date": "2026-09-15",
+ "git_sha": "7ed49dca1726a76e347efee759cf49986ae7e791",
+ "note": "hosted interactive_7_param.txt (LDBC's own params for this graph) picks persons whose messages get no likes -> IC7 empty + short-circuit; this regen fixes that. <data dir>/datasets/ is gitignored, so this tracked copy under the experiment is the source of truth; the loader prefers it."
+}

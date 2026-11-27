@@ -1,0 +1,22 @@
+# chain -- the root post of a message's reply chain: follow replyOf to the end (TM2, unbounded).
+# Reads: replyOf of every message on the chain (including the root post's empty replyOf),
+#   the type(post) check over the chain, then `id` of the root.
+# Evaluator: queries/nhop.py _chain(None) -- read_chase(replyOf, out) to the last vertex (a
+#   post roots itself; the terminal empty read is paid) -> read id -> 1 row.
+# @recurse follows replyOf to any depth; the root is the one post on the chain (every other
+#   message on it is a comment).
+# mb2 lineage: MB59-60 (3-level unroll there; this is the unbounded walk).
+# Anchor: Dgraph has no external-key addressing, so the message is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (message 5443 collides with a tag and an organisation
+#   5443), so type(post) OR type(comment) is what names THE message.
+# answer-path: result
+query q($messageId: string) {
+  m as var(func: eq(id, $messageId)) @filter(type(post) OR type(comment))
+  var(func: uid(m)) @recurse(loop: false) {
+    up as replyOf
+  }
+  result(func: uid(m, up)) @filter(type(post)) {
+    id
+  }
+}

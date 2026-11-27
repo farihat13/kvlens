@@ -1,0 +1,127 @@
+{
+ "query": "job16c",
+ "aliases": {
+  "an": "aka_name",
+  "ci": "cast_info",
+  "cn": "company_name",
+  "k": "keyword",
+  "mc": "movie_companies",
+  "mk": "movie_keyword",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "an",
+   "person_id",
+   "n",
+   "id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "company_id",
+   "cn",
+   "id"
+  ],
+  [
+   "an",
+   "person_id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "an": [],
+  "ci": [],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "character-name-in-title"
+   ]
+  ],
+  "mc": [],
+  "mk": [],
+  "n": [],
+  "t": [
+   [
+    "cmp",
+    "<",
+    "t",
+    "episode_nr",
+    100
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "cool_actor_pseudonym",
+   "an",
+   "name"
+  ],
+  [
+   "series_named_after_char",
+   "t",
+   "title"
+  ]
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "id": "w05",
+ "name": "likes_vs_reads",
+ "title": "Add a like vs read a person's posts (the ratio sweep's base workload)",
+ "items": [
+  {"family": "writes", "query": "iu2", "frequency": 1, "params": null},
+  {"family": "microbench", "query": "hop1_posts_props", "frequency": 1, "params": null}
+ ],
+ "expect": "the winner switches from Condensed/Chunked adjacency to Split adjacency as likes grow",
+ "why": "reading a person's posts wants Message properties Chunked ({ch_posts} ops against {cc_posts} Condensed) or Split (fewest bytes); writing a like wants the likes lists Split ({sp_like} against {cc_like}, which a Condensed list also reads first). A mixed layout gives each part its own layout; see the sweep for where the uniform winner flips.",
+ "why_numbers": {
+  "ch_posts": [
+   "run",
+   "ops",
+   "hop1_posts_props",
+   "Message props",
+   "props_chunked_adj_chunked"
+  ],
+  "cc_posts": [
+   "run",
+   "ops",
+   "hop1_posts_props",
+   "Message props",
+   "props_condensed_adj_condensed"
+  ],
+  "sp_like": [
+   "run",
+   "write_bytes",
+   "iu2",
+   "likes lists",
+   "props_split_adj_split"
+  ],
+  "cc_like": [
+   "run",
+   "write_bytes",
+   "iu2",
+   "likes lists",
+   "props_condensed_adj_condensed"
+  ]
+ },
+ "sweep": [
+  "iu2"
+ ]
+}

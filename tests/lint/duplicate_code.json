@@ -1,0 +1,22 @@
+{
+ "counts": {
+  "cpp": 100,
+  "experiments": 17,
+  "kvcost": 35,
+  "kvengines": 844,
+  "kvevaluator": 177
+ },
+ "reasons": [
+  "2026-11-02: first record: the counts at main 18a691c, before the ratchet (cpp 257, kvcost 35, kvengines 844, kvevaluator 181)",
+  "2026-11-02: re-baselined at 68f0944 after the predict freeze (cpp 257, kvcost 35, kvengines 844, kvevaluator 181)",
+  "2026-11-02: the review fixes (2026-11-02) (cpp 231, kvcost 35, kvengines 844, kvevaluator 179)",
+  "2026-11-02: the spec's set-and-restore blocks removed (the spec goes by argument) (cpp 231, kvcost 35, kvengines 844, kvevaluator 155)",
+  "2026-11-02: arangodb/format.h and nebula/format.h declare the same Format overrides in the same order (classify replaced key_role/key_label): 12 lines of interface declarations, no logic (cpp 255, kvcost 35, kvengines 844, kvevaluator 155)",
+  "2026-11-02: edge_exists, chase and the top-k tail written once (formats/common.cc) (cpp 128, kvcost 35, kvengines 844, kvevaluator 155)",
+  "2026-11-03: experiments/ in scope (row 3 of the 11-03 review: a study script failed at import and no check reached experiments/): its counts on db84c144, recorded as the baseline (experiments 19: check_cross_benchmark_numbers.py:348 repeats workloads/designed.py:19) (cpp 100, experiments 19, kvcost 35, kvengines 844, kvevaluator 155)",
+  "2026-11-05: kvevaluator/stale.py's KINDS (a vocabulary of kind -> meaning) and check_cross_benchmark_numbers.py's CONTEXT (doc quotes) share only the shape of a dict of string pairs; no code is shared (cpp 100, experiments 19, kvcost 35, kvengines 844, kvevaluator 175)",
+  "2026-11-16: output tree move: duplicated lines removed (cpp 100, experiments 17, kvcost 35, kvengines 844, kvevaluator 175)",
+  "2026-11-20: stale.KINDS gained one kind (timed_counts_differ); its table of strings matches a table of strings in check_cross_benchmark_numbers.py by shape only (cpp 100, experiments 17, kvcost 35, kvengines 844, kvevaluator 176)",
+  "2026-11-20: stale.KINDS gained no_sudo, the kind run/latency-cells.sh --no-sudo marks; the table matches a table of strings in check_cross_benchmark_numbers.py by shape only (cpp 100, experiments 17, kvcost 35, kvengines 844, kvevaluator 177)"
+ ]
+}

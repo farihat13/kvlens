@@ -1,0 +1,17 @@
+# hop1_hastag -- everything tagged with a tag, via reverse hasTag (T1), counted.
+# Reads: the anchor tag's ~hasTag posting; `uid` is free.
+# Evaluator: queries/hop.py _hop1("hasTag", "in", "Tag", "tag") -> dedup -> count row.
+#   Count-final, so one item per tagged vertex. Both sides include posts, comments AND forums
+#   (the evaluator's hasTag etype covers Forum->Tag too).
+# mb2 lineage: none (new shape).
+# Anchor: Dgraph has no external-key addressing, so the tag is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types, so type(tag) is what names THE tag.
+# answer-path: result.tagged
+query q($tagId: string) {
+  result(func: eq(id, $tagId)) @filter(type(tag)) {
+    tagged: ~hasTag {
+      uid
+    }
+  }
+}

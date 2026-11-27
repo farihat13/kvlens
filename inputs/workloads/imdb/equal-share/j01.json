@@ -1,0 +1,692 @@
+{
+ "id": "j01-equal-share",
+ "name": "j01_equal_share",
+ "title": "Equal-share frequencies of j01 (The Join Order Benchmark, every query once): each query weighted 1 / its measured wops_bytes4k on Sp-Co at imdb full (chunk view half), so each costs 1 on Sp-Co",
+ "equal_share": {
+  "dataset": "imdb",
+  "scale": "full",
+  "model": "wops_bytes4k",
+  "chunk_view": "half",
+  "reference": "props_split_adj_condensed"
+ },
+ "items": [
+  {
+   "family": "job",
+   "query": "job1a",
+   "frequency": 0.0013003692273971794,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job1b",
+   "frequency": 0.0347293468067824,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job1c",
+   "frequency": 0.0018265240907646908,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job1d",
+   "frequency": 0.030281568313177652,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job2a",
+   "frequency": 7.965876689778142e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job2b",
+   "frequency": 8.508510205052091e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job2c",
+   "frequency": 0.13240255030068565,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job2d",
+   "frequency": 6.850624958169792e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job3a",
+   "frequency": 1.1455532512734505e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job3b",
+   "frequency": 0.00017330247220224537,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job3c",
+   "frequency": 4.228475751468826e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job4a",
+   "frequency": 4.438280247229443e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job4b",
+   "frequency": 6.08733498431964e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job4c",
+   "frequency": 2.066521518177589e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job5a",
+   "frequency": 2.1631680230519808e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job5b",
+   "frequency": 1.5193587978925872e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job5c",
+   "frequency": 4.601559419377264e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6a",
+   "frequency": 0.0008704846446211161,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6b",
+   "frequency": 3.28091500023547e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6c",
+   "frequency": 0.015912891835536534,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6d",
+   "frequency": 2.7714338442175572e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6e",
+   "frequency": 0.0008704846446211161,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job6f",
+   "frequency": 2.101764025340917e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job7a",
+   "frequency": 0.00035429480609938305,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job7b",
+   "frequency": 0.0019553632578001713,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job7c",
+   "frequency": 8.564447206370871e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job8a",
+   "frequency": 1.7464517595854778e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job8b",
+   "frequency": 3.559206816065409e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job8c",
+   "frequency": 7.609277914155443e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job8d",
+   "frequency": 1.1075962537062659e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job9a",
+   "frequency": 2.7313854786820926e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job9b",
+   "frequency": 2.7481204765267035e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job9c",
+   "frequency": 2.324179236943484e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job9d",
+   "frequency": 1.1030977205355671e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job10a",
+   "frequency": 7.807667510576658e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job10b",
+   "frequency": 9.916556976376082e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job10c",
+   "frequency": 2.1544460018107435e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job11a",
+   "frequency": 0.00013820321607386542,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job11b",
+   "frequency": 0.00030095250262093923,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job11c",
+   "frequency": 2.8957931398812657e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job11d",
+   "frequency": 1.075916501494326e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job12a",
+   "frequency": 4.717446153252192e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job12b",
+   "frequency": 0.003503927975118005,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job12c",
+   "frequency": 7.64442513871286e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job13a",
+   "frequency": 1.8853186088636642e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job13b",
+   "frequency": 4.384357491806932e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job13c",
+   "frequency": 4.417239712615116e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job13d",
+   "frequency": 2.878522410755087e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job14a",
+   "frequency": 6.168735084765893e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job14b",
+   "frequency": 1.6975688058140773e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job14c",
+   "frequency": 1.686103523005193e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job15a",
+   "frequency": 1.69003053642584e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job15b",
+   "frequency": 0.00015003464188527297,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job15c",
+   "frequency": 1.68371979396933e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job15d",
+   "frequency": 1.5558116284349544e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job16a",
+   "frequency": 2.33097452195246e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job16b",
+   "frequency": 9.689707073504757e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job16c",
+   "frequency": 5.695584487013379e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job16d",
+   "frequency": 6.731637900802819e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17a",
+   "frequency": 1.3363708827904953e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17b",
+   "frequency": 1.0279397908601567e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17c",
+   "frequency": 2.404252118485306e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17d",
+   "frequency": 1.960100900923384e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17e",
+   "frequency": 1.3363708827904953e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job17f",
+   "frequency": 9.711603725999574e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job18a",
+   "frequency": 1.750273055719467e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job18b",
+   "frequency": 2.575844857062277e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job18c",
+   "frequency": 5.599640538652634e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job19a",
+   "frequency": 2.6865736458747867e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job19b",
+   "frequency": 4.408127947275368e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job19c",
+   "frequency": 2.0332755014368675e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job19d",
+   "frequency": 6.440954235874118e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job20a",
+   "frequency": 4.033297387276721e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job20b",
+   "frequency": 8.109885776747782e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job20c",
+   "frequency": 1.0232877947647072e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job21a",
+   "frequency": 0.00012527895058912547,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job21b",
+   "frequency": 0.00014205880822634533,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job21c",
+   "frequency": 0.00010545120423164149,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job22a",
+   "frequency": 8.85463638673387e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job22b",
+   "frequency": 1.5468007601296754e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job22c",
+   "frequency": 2.6046893929110384e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job22d",
+   "frequency": 1.7327753705466405e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job23a",
+   "frequency": 1.6958227731375159e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job23b",
+   "frequency": 2.9850581187215572e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job23c",
+   "frequency": 1.6944057991449104e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job24a",
+   "frequency": 2.0475154935422415e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job24b",
+   "frequency": 0.001169465631523604,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job25a",
+   "frequency": 3.5824102426193622e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job25b",
+   "frequency": 1.0768380532299337e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job25c",
+   "frequency": 8.136103651234096e-07,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job26a",
+   "frequency": 1.4368630303047855e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job26b",
+   "frequency": 4.477409652851668e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job26c",
+   "frequency": 1.0123195267777131e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job27a",
+   "frequency": 0.0001480965147011064,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job27b",
+   "frequency": 0.00017116528540683055,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job27c",
+   "frequency": 0.0001385704670068319,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job28a",
+   "frequency": 7.167067925754753e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job28b",
+   "frequency": 1.1584663492182722e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job28c",
+   "frequency": 5.8102121113300424e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job29a",
+   "frequency": 0.0007936708654826548,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job29b",
+   "frequency": 0.0007943660703537445,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job29c",
+   "frequency": 7.19542685314779e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job30a",
+   "frequency": 3.460600219665898e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job30b",
+   "frequency": 1.3866405691667278e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job30c",
+   "frequency": 1.346865855089569e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job31a",
+   "frequency": 6.207760646837321e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job31b",
+   "frequency": 5.0773402909608234e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job31c",
+   "frequency": 6.122038999417069e-06,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job32a",
+   "frequency": 0.3001884972692814,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job32b",
+   "frequency": 1.679403156334975e-05,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job33a",
+   "frequency": 0.00010678197785500283,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job33b",
+   "frequency": 0.00012202315414374159,
+   "params": null
+  },
+  {
+   "family": "job",
+   "query": "job33c",
+   "frequency": 8.230399190797439e-05,
+   "params": null
+  }
+ ]
+}

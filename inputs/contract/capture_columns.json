@@ -1,0 +1,49 @@
+{"about": "The columns of a grid capture's files and of the step record, each written once as a named group (a response_keys entry is the group of its keys, in order: the column and the response field it reads); a sequence or a file kind is a list of group names. Read by C++ (compiled in) and Python (kvevaluator.contract); the fields: cpp/kvevaluator/src/contract/README.md.",
+ "groups": {
+  "op_counts_read": ["S", "G", "N"],
+  "op_counts_write": ["P", "D"],
+  "op_counts_miss": ["S_miss", "G_miss", "N_miss"],
+  "byte_lanes_hit": ["get_key", "get_value", "scan_key", "scan_value"],
+  "byte_lanes_miss": ["seek_miss_key", "next_miss_key", "get_miss_key"],
+  "byte_lanes_write": ["write_key", "write_value"],
+  "byte_lanes_used": ["used_key", "used_value", "used_write_key", "used_write_value"],
+  "shape": ["kind", "rows", "out_bytes"],
+  "codec": ["decode_ns", "decompress_ns", "chunks_decoded"],
+  "decoded": ["decode_requests", "fields_decoded", "decoded_kvbytes", "keys_crossed"],
+  "input": ["rows_in", "rows_in_labelled"],
+  "fetch": ["get_fetch_4k", "range_fetch_4k", "get_store_blocks", "range_store_blocks"],
+  "write_units": ["put_units_1k", "del_units_1k"],
+  "round_trips": ["round_trips", "round_trips_critical", "range_pages_extra", "rt_levels"],
+  "clock": ["wall_ns"],
+  "run_head": ["sf", "cell", "query", "param_idx", "body", "measure_only", "ok", "error"],
+  "run_tail": ["read_bytes", "rows", "result_hash", "answer_key", "body_sha", "run_key", "wall_ns", "measured_as"],
+  "step_keys": ["query", "param_idx", "body", "step_idx", "step", "op"],
+  "part_key": ["part"]
+ },
+ "response_keys": {
+  "hists": {"get_kvpair_hist": "get", "range_read_hist": "range_bytes", "keys_per_range_read": "range_keys",
+            "put_kvpair_hist": "put", "del_kvpair_hist": "del"},
+  "chunks": {"chunk_probes": "probes", "chunks_charged": "charged", "chunk_batches": "batches",
+             "chunks_distinct_max_batch": "distinct_max_batch", "held_chunk_bytes_peak": "held_bytes_peak"},
+  "last_chunk": {"last_chunk_reads": "reads", "last_chunk_read_bytes": "read_bytes",
+                 "last_chunk_read_target_bytes": "read_target", "last_chunk_writes": "writes",
+                 "last_chunk_write_bytes": "write_bytes", "last_chunk_write_base_bytes": "write_base",
+                 "last_chunk_write_target_bytes": "write_target"}
+ },
+ "sequences": {
+  "step_record": ["shape", "op_counts_read", "op_counts_write", "op_counts_miss", "byte_lanes_hit", "byte_lanes_miss",
+                  "byte_lanes_write", "byte_lanes_used", "codec", "decoded", "input", "hists", "fetch", "chunks",
+                  "round_trips", "clock"]
+ },
+ "files": {
+  "counts": ["run_head", "op_counts_read", "op_counts_miss", "byte_lanes_hit", "byte_lanes_miss", "run_tail"],
+  "counts_writes": ["run_head", "op_counts_read", "op_counts_miss", "byte_lanes_hit", "byte_lanes_miss", "run_tail",
+                    "op_counts_write", "byte_lanes_write", "last_chunk"],
+  "steps": ["step_keys", "step_record"],
+  "steps_writes": ["step_keys", "step_record", "last_chunk", "write_units"],
+  "parts": ["step_keys", "part_key", "op_counts_read", "op_counts_miss", "byte_lanes_hit", "byte_lanes_miss", "hists",
+            "fetch", "decoded"],
+  "parts_writes": ["step_keys", "part_key", "op_counts_read", "op_counts_miss", "byte_lanes_hit", "byte_lanes_miss",
+                   "hists", "fetch", "decoded", "op_counts_write", "byte_lanes_write", "last_chunk", "write_units"]
+ }
+}

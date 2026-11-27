@@ -1,0 +1,72 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=19
+# IS6 - Forum of a message
+#
+# Given a Message with ID $messageId, retrieve the Forum that contains it and the Person that moderates that Forum. 
+# Since Comments are not directly contained in Forums, 
+# for Comments, return theForum containing the original Post in the thread which the Comment is replying to.
+#
+# Approximation: Since we can't recurse from comment to original post, this is an approximation
+#
+# Params:
+#   $messageId  : string     (e.g., "933")
+
+# IS6 - Forum of a message
+# Param: $messageId : int  (messageId, can be a Post or a Comment)
+query IS6($messageId: int) {
+  m(func: eq(id, $messageId)) @filter(type(post) OR type(comment)) @normalize {
+
+    # Case 0: message is itself a POST
+    selfForum: ~containerOf @filter(type(forum)) {
+      forumId: id
+      forumTitle: title
+      hasModerator @filter(type(person)) {
+        moderatorId: id
+        moderatorFirstName: firstName
+        moderatorLastName:  lastName
+      }
+    }
+
+    # Case 1: message is a COMMENT -> parent is POST
+    p1: replyOf @filter(type(post)) {
+      ~containerOf @filter(type(forum)) {
+        forumId: id
+        forumTitle: title
+        hasModerator @filter(type(person)) {
+          moderatorId: id
+          moderatorFirstName: firstName
+          moderatorLastName:  lastName
+        }
+      }
+    }
+
+    # Case 2: comment -> comment -> POST
+    c1: replyOf @filter(type(comment)) {
+      p2: replyOf @filter(type(post)) {
+        ~containerOf @filter(type(forum)) {
+          forumId: id
+          forumTitle: title
+          hasModerator @filter(type(person)) {
+            moderatorId: id
+            moderatorFirstName: firstName
+            moderatorLastName:  lastName
+          }
+        }
+      }
+
+      # Case 3: comment -> comment -> comment -> POST  (extend if needed)
+      c2: replyOf @filter(type(comment)) {
+        p3: replyOf @filter(type(post)) {
+          ~containerOf @filter(type(forum)) {
+            forumId: id
+            forumTitle: title
+            hasModerator @filter(type(person)) {
+              moderatorId: id
+              moderatorFirstName: firstName
+              moderatorLastName:  lastName
+            }
+          }
+        }
+      }
+    }
+  }
+}

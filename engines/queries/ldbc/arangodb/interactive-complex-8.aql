@@ -1,0 +1,17 @@
+// IC8: Recent replies
+// Find most recent comments that are direct replies to person's messages
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+FOR msg IN 1..1 INBOUND person hasCreator
+    FOR reply IN 1..1 INBOUND msg replyOf
+        FOR replyAuthor IN 1..1 OUTBOUND reply hasCreator
+            SORT reply.creationDate DESC, TO_NUMBER(reply._key) ASC
+            LIMIT 20
+            RETURN {
+                personId: TO_NUMBER(replyAuthor._key),
+                personFirstName: replyAuthor.firstName,
+                personLastName: replyAuthor.lastName,
+                commentCreationDate: reply.creationDate,
+                commentId: TO_NUMBER(reply._key),
+                commentContent: reply.content
+            }

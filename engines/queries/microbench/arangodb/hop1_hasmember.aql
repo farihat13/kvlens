@@ -1,0 +1,8 @@
+// microbench hop1_hasmember: the distinct members of a forum (T1, out-edge from a Forum).
+// Reads: the hasMember _from edge index from the anchor; returns each member's _key only.
+// Evaluator: queries/hop.py _hop1("hasMember", "out", "Forum", "forum") -- read_neighbors +
+// dedup, count-final (the harness counts the returned keys).
+// mb2 lineage: none (no mb2 forum-anchored query).
+FOR p IN 1..1 OUTBOUND CONCAT("Forum/", @forumId) hasMember
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN p._key

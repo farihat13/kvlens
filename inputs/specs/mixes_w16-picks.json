@@ -1,0 +1,205 @@
+{
+ "workload": "i01",
+ "sf": "3",
+ "root": "output/sf3/layout-choice/wops_bytes4k",
+ "grouped_options": false,
+ "reference": "props_condensed_adj_split",
+ "picks": {
+  "0.5": {
+   "B": 0.5,
+   "fits": true,
+   "spec": "w16_b05.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type and direction",
+    "assignment": "containerOf in-lists=split; containerOf out-lists=chunked; hasCreator in-lists=condensed; hasCreator out-lists=split; hasInterest out-lists=condensed; hasMember in-lists=condensed; hasMember out-lists=split; hasModerator in-lists=split; hasModerator out-lists=split; hasTag in-lists=condensed; hasTag out-lists=condensed; hasType in-lists=condensed; isLocatedIn in-lists=split; isLocatedIn out-lists=chunked; isPartOf out-lists=chunked; isSubclassOf in-lists=condensed; knows in-lists=condensed; knows out-lists=condensed; likes in-lists=split; likes out-lists=split; replyOf in-lists=chunked; replyOf out-lists=condensed; studyAt out-lists=condensed; workAt out-lists=chunked; Forum props=condensed; Message props=split; Organisation props=chunked; Person props=condensed; Place props=split; Tag props=split",
+    "ops": 199083497.786,
+    "bytes": 212467919208.8,
+    "ops_vs_ref": 0.24987192620105023,
+    "bytes_vs_ref": 0.4988477426880129,
+    "source": "options.csv"
+   },
+   "best_without_direction": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=condensed; hasInterest lists=condensed; hasMember lists=condensed; hasModerator lists=split; hasTag lists=chunked; hasType lists=condensed; isLocatedIn lists=condensed; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=condensed; likes lists=split; replyOf lists=condensed; studyAt lists=chunked; workAt lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 222418557.74,
+    "bytes": 212149786217.2,
+    "ops_vs_ref": 0.2791600211138221,
+    "bytes_vs_ref": 0.49810080674904755,
+    "fits": true,
+    "ops_x_pick": 1.1172124270143347,
+    "within_10pct": false
+   },
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_condensed",
+    "fits": true,
+    "ops": 611001689.672,
+    "bytes": 101237590995.8,
+    "ops_vs_ref": 0.7668750589993665,
+    "bytes_vs_ref": 0.23769303117143453
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 796742158.324,
+    "bytes": 425917371228.2
+   }
+  },
+  "1": {
+   "B": 1.0,
+   "fits": true,
+   "spec": "w16_b1.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type and direction",
+    "assignment": "containerOf in-lists=split; containerOf out-lists=chunked; hasCreator in-lists=condensed; hasCreator out-lists=split; hasInterest out-lists=condensed; hasMember in-lists=condensed; hasMember out-lists=split; hasModerator in-lists=split; hasModerator out-lists=split; hasTag in-lists=condensed; hasTag out-lists=condensed; hasType in-lists=condensed; isLocatedIn in-lists=split; isLocatedIn out-lists=chunked; isPartOf out-lists=chunked; isSubclassOf in-lists=condensed; knows in-lists=condensed; knows out-lists=condensed; likes in-lists=split; likes out-lists=split; replyOf in-lists=chunked; replyOf out-lists=chunked; studyAt out-lists=chunked; workAt out-lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 107442810.486,
+    "bytes": 421816637402.4,
+    "ops_vs_ref": 0.1348526739340781,
+    "bytes_vs_ref": 0.9903719967702307,
+    "source": "options.csv"
+   },
+   "best_without_direction": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=condensed; hasInterest lists=condensed; hasMember lists=condensed; hasModerator lists=split; hasTag lists=condensed; hasType lists=condensed; isLocatedIn lists=condensed; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=condensed; likes lists=split; replyOf lists=chunked; studyAt lists=chunked; workAt lists=chunked; Forum props=condensed; Message props=condensed; Organisation props=split; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 121631669.22,
+    "bytes": 425826628062.0,
+    "ops_vs_ref": 0.15266126933192575,
+    "bytes_vs_ref": 0.9997869465480163,
+    "fits": true,
+    "ops_x_pick": 1.1320596387028505,
+    "within_10pct": false
+   },
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_chunked_adj_condensed",
+    "fits": true,
+    "ops": 589381467.972,
+    "bytes": 348289842260.4,
+    "ops_vs_ref": 0.7397392767715506,
+    "bytes_vs_ref": 0.8177404017498776
+   },
+   "near_miss_single": {
+    "cell": "props_split_adj_split",
+    "ops": 805650415.24,
+    "bytes": 427434374255.6,
+    "bytes_vs_ref": 1.0035617308188802
+   },
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 796742158.324,
+    "bytes": 425917371228.2
+   }
+  },
+  "2": {
+   "B": 2.0,
+   "fits": true,
+   "spec": "w16_b2.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type and direction",
+    "assignment": "containerOf in-lists=split; containerOf out-lists=chunked; hasCreator in-lists=chunked; hasCreator out-lists=split; hasInterest out-lists=condensed; hasMember in-lists=chunked; hasMember out-lists=split; hasModerator in-lists=split; hasModerator out-lists=split; hasTag in-lists=condensed; hasTag out-lists=chunked; hasType in-lists=condensed; isLocatedIn in-lists=condensed; isLocatedIn out-lists=chunked; isPartOf out-lists=chunked; isSubclassOf in-lists=condensed; knows in-lists=condensed; knows out-lists=condensed; likes in-lists=chunked; likes out-lists=split; replyOf in-lists=chunked; replyOf out-lists=chunked; studyAt out-lists=chunked; workAt out-lists=chunked; Forum props=condensed; Message props=chunked; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 29471850.212,
+    "bytes": 849976731701.4,
+    "ops_vs_ref": 0.03699044904815379,
+    "bytes_vs_ref": 1.9956376262615396,
+    "source": "options.csv"
+   },
+   "best_without_direction": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=chunked; hasInterest lists=condensed; hasMember lists=condensed; hasModerator lists=split; hasTag lists=chunked; hasType lists=condensed; isLocatedIn lists=chunked; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=condensed; likes lists=chunked; replyOf lists=chunked; studyAt lists=chunked; workAt lists=chunked; Forum props=condensed; Message props=chunked; Organisation props=chunked; Person props=condensed; Place props=chunked; Tag props=chunked",
+    "ops": 35492554.542,
+    "bytes": 828969405295.8,
+    "ops_vs_ref": 0.04454710243607662,
+    "bytes_vs_ref": 1.9463150866688903,
+    "fits": true,
+    "ops_x_pick": 1.2042866086347224,
+    "within_10pct": false
+   },
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_chunked",
+    "fits": true,
+    "ops": 49858887.892,
+    "bytes": 767444464995.6,
+    "ops_vs_ref": 0.06257844821075048,
+    "bytes_vs_ref": 1.801862325508238
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 796742158.324,
+    "bytes": 425917371228.2
+   }
+  },
+  "3": {
+   "B": 3.0,
+   "fits": true,
+   "spec": "w16_b3.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=chunked; hasInterest lists=condensed; hasMember lists=chunked; hasModerator lists=split; hasTag lists=chunked; hasType lists=condensed; isLocatedIn lists=chunked; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=chunked; likes lists=chunked; replyOf lists=chunked; studyAt lists=chunked; workAt lists=chunked; Forum props=condensed; Message props=chunked; Organisation props=chunked; Person props=chunked; Place props=chunked; Tag props=chunked",
+    "ops": 28233541.502,
+    "bytes": 1008583581832.0,
+    "ops_vs_ref": 0.035436233927160485,
+    "bytes_vs_ref": 2.368026405975389,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_chunked_adj_chunked",
+    "fits": true,
+    "ops": 28238666.192,
+    "bytes": 1014496716260.2,
+    "ops_vs_ref": 0.03544266598293469,
+    "bytes_vs_ref": 2.381909696086681
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 796742158.324,
+    "bytes": 425917371228.2
+   }
+  },
+  "5": {
+   "B": 5.0,
+   "fits": true,
+   "spec": "w16_b3.json",
+   "shares_spec_with": "3",
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=chunked; hasCreator lists=chunked; hasInterest lists=condensed; hasMember lists=chunked; hasModerator lists=split; hasTag lists=chunked; hasType lists=condensed; isLocatedIn lists=chunked; isPartOf lists=chunked; isSubclassOf lists=condensed; knows lists=chunked; likes lists=chunked; replyOf lists=chunked; studyAt lists=chunked; workAt lists=chunked; Forum props=condensed; Message props=chunked; Organisation props=chunked; Person props=chunked; Place props=chunked; Tag props=chunked",
+    "ops": 28233541.502,
+    "bytes": 1008583581832.0,
+    "ops_vs_ref": 0.035436233927160485,
+    "bytes_vs_ref": 2.368026405975389,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_chunked_adj_chunked",
+    "fits": true,
+    "ops": 28238666.192,
+    "bytes": 1014496716260.2,
+    "ops_vs_ref": 0.03544266598293469,
+    "bytes_vs_ref": 2.381909696086681
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 796742158.324,
+    "bytes": 425917371228.2
+   }
+  }
+ },
+ "specs": [
+  "w16_b05",
+  "w16_b1",
+  "w16_b2",
+  "w16_b3"
+ ]
+}

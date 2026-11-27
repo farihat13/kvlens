@@ -1,0 +1,6 @@
+tagClass|date|messagesInClass|stratum
+Politician|1304780917275|146432|p50-class
+Thing|1304780917275|984225|p75-class
+Writer|1304780917275|5923051|p90-class
+Country|1304780917275|24193773|max-class
+Country|1318736799089|24193773|max-class-p50date

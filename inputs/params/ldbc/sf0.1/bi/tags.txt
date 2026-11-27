@@ -1,0 +1,6 @@
+tag5|messages5|tag7|messages7|tag8|messages8|startDate|endDate|stratum
+Neat_Neat_Neat|3|Solid_Air|3|Empty_Sky|3|1316779564108|1325419564108|p25
+The_Cactus_Album|7|Youthanasia|7|The_Defamation_of_Strickland_Banks|7|1316779564108|1325419564108|p50
+Not_a_Sinner_Nor_a_Saint|15|Get_Born|15|Just_Push_Play|15|1316779564108|1325419564108|p75
+Ernest_Hemingway|112|Queen_Elizabeth_The_Queen_Mother|112|Alberto_Fujimori|112|1316779564108|1325419564108|p95
+Augustine_of_Hippo|1892|Muammar_Gaddafi|1239|Adolf_Hitler|717|1335586007469|1344226007469|max

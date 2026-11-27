@@ -1,0 +1,5772 @@
+{
+ "plan": "job17e",
+ "question": "Join Order Benchmark query 17e: join 7 IMDb tables (cast_info, company_name, keyword, movie_companies, movie_keyword, name, title) on 9 join conditions, keep the rows that pass 2 filters, and return the smallest value of each of its 1 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_k_by_index"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Company"
+    ]
+   },
+   "plan": "enter_cn_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_k_by_index": {
+   "steps": [
+    {
+     "name": "s01_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "character-name-in-title"
+    },
+    {
+     "name": "s02_k_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_k_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_rows"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s08_mk_src_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s10_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s08_mk_src_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s11_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s10_mc_company_production"
+     }
+    },
+    {
+     "name": "s12_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_mc_dst_col"
+     }
+    },
+    {
+     "name": "s14_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s13_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s15_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s17_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_cn_back_col"
+     }
+    },
+    {
+     "name": "s18_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s17_cn_back_set"
+     }
+    },
+    {
+     "name": "s19_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s20_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_mc_back_col"
+     }
+    },
+    {
+     "name": "s21_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s22_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s24_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s32_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s34_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_director"
+     }
+    },
+    {
+     "name": "s36_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s38_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s39_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s37_ci_all"
+     },
+     "b": {
+      "ref": "s38_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s40_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s41_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s39_ci_all"
+     },
+     "b": {
+      "ref": "s40_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s42_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s43_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_src_col"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s48_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mk_back_col"
+     }
+    },
+    {
+     "name": "s49_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s48_mk_back_set"
+     }
+    },
+    {
+     "name": "s50_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_k_self_final_col"
+     }
+    },
+    {
+     "name": "s52_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_k_self_final_set"
+     }
+    },
+    {
+     "name": "s53_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s54_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s55_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s56_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s55_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s58_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s57_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s59_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s61_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s62_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_ci_final"
+     }
+    },
+    {
+     "name": "s63_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s58_cn_final"
+     }
+    },
+    {
+     "name": "s64_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_k_cut"
+     }
+    },
+    {
+     "name": "s65_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mc_final"
+     }
+    },
+    {
+     "name": "s66_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_mk_final"
+     }
+    },
+    {
+     "name": "s67_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s61_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s68_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s69_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s70_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s61_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s72_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_base"
+     },
+     "right": {
+      "ref": "s74_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s76_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s77_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s77_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s80_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_ci_n_in"
+     },
+     "right": {
+      "ref": "s80_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s83_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_cn_n_in"
+     },
+     "right": {
+      "ref": "s83_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s86_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_k_n_in"
+     },
+     "right": {
+      "ref": "s86_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s89_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_mc_n_in"
+     },
+     "right": {
+      "ref": "s89_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mk_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_scan": {
+   "steps": [
+    {
+     "name": "s01_k_scan",
+     "op": "read_vertices_by_label",
+     "label": "Keyword"
+    },
+    {
+     "name": "s02_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_k_scan"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s03_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "character-name-in-title"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_k_keep"
+     }
+    },
+    {
+     "name": "s05_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_k_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_src_col"
+     }
+    },
+    {
+     "name": "s10_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s09_mk_src_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s11_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s09_mk_src_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s12_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s11_mc_company_production"
+     }
+    },
+    {
+     "name": "s13_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s12_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s14_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s13_mc_dst_col"
+     }
+    },
+    {
+     "name": "s15_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s14_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s16_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s15_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s17_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s16_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s18_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_cn_back_col"
+     }
+    },
+    {
+     "name": "s19_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s12_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_cn_back_set"
+     }
+    },
+    {
+     "name": "s20_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s21_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_mc_back_col"
+     }
+    },
+    {
+     "name": "s22_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s23_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s25_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s27_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s29_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s31_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s33_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s35_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s36_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s34_ci_all"
+     },
+     "b": {
+      "ref": "s35_ci_cast_director"
+     }
+    },
+    {
+     "name": "s37_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s38_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s36_ci_all"
+     },
+     "b": {
+      "ref": "s37_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s39_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_all"
+     },
+     "b": {
+      "ref": "s39_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s41_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s43_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_src_col"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s49_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_mk_back_col"
+     }
+    },
+    {
+     "name": "s50_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s49_mk_back_set"
+     }
+    },
+    {
+     "name": "s51_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_k_self_final_col"
+     }
+    },
+    {
+     "name": "s53_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s47_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_k_self_final_set"
+     }
+    },
+    {
+     "name": "s54_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s56_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s19_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s55_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s57_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s56_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s58_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s57_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s59_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s16_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s58_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s55_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s61_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s62_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s63_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s60_ci_final"
+     }
+    },
+    {
+     "name": "s64_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_cn_final"
+     }
+    },
+    {
+     "name": "s65_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_k_cut"
+     }
+    },
+    {
+     "name": "s66_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_mc_final"
+     }
+    },
+    {
+     "name": "s67_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_mk_final"
+     }
+    },
+    {
+     "name": "s68_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s62_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s69_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s70_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s71_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s62_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_base"
+     },
+     "right": {
+      "ref": "s75_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s81_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s84_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_cn_n_in"
+     },
+     "right": {
+      "ref": "s84_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s87_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_k_n_in"
+     },
+     "right": {
+      "ref": "s87_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s90_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_mc_n_in"
+     },
+     "right": {
+      "ref": "s90_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s92_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s93_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s91_mk_n_in"
+     },
+     "right": {
+      "ref": "s93_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s95_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s69_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s96_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_n_n_in"
+     },
+     "right": {
+      "ref": "s96_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s97_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_k_run",
+     "op": "read_vertices_by_label",
+     "label": "Keyword",
+     "props": [
+      "keyword"
+     ]
+    },
+    {
+     "name": "s02_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_k_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "character-name-in-title"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_keep"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s08_mk_src_set"
+     },
+     "etype": "company_distributor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s10_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s08_mk_src_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s11_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s10_mc_company_production"
+     }
+    },
+    {
+     "name": "s12_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_mc_dst_col"
+     }
+    },
+    {
+     "name": "s14_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s13_mc_dst_set"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s15_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_cn_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s17_cn_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_cn_back_col"
+     }
+    },
+    {
+     "name": "s18_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s17_cn_back_set"
+     }
+    },
+    {
+     "name": "s19_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s20_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_mc_back_col"
+     }
+    },
+    {
+     "name": "s21_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s22_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s24_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s32_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s34_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_director"
+     }
+    },
+    {
+     "name": "s36_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s38_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s39_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s37_ci_all"
+     },
+     "b": {
+      "ref": "s38_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s40_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mc_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s41_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s39_ci_all"
+     },
+     "b": {
+      "ref": "s40_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s42_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s43_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_src_col"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s48_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mk_back_col"
+     }
+    },
+    {
+     "name": "s49_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s48_mk_back_set"
+     }
+    },
+    {
+     "name": "s50_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_k_self_final_col"
+     }
+    },
+    {
+     "name": "s52_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_k_self_final_set"
+     }
+    },
+    {
+     "name": "s53_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s54_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s55_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s56_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s55_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s58_cn_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s57_mc_dst_final_set"
+     }
+    },
+    {
+     "name": "s59_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s61_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s62_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_ci_final"
+     }
+    },
+    {
+     "name": "s63_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s58_cn_final"
+     }
+    },
+    {
+     "name": "s64_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_k_cut"
+     }
+    },
+    {
+     "name": "s65_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mc_final"
+     }
+    },
+    {
+     "name": "s66_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_mk_final"
+     }
+    },
+    {
+     "name": "s67_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s61_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s68_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s69_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s70_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s61_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s72_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_base"
+     },
+     "right": {
+      "ref": "s74_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s76_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s77_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s77_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s80_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_ci_n_in"
+     },
+     "right": {
+      "ref": "s80_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s83_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_cn_n_in"
+     },
+     "right": {
+      "ref": "s83_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s86_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_k_n_in"
+     },
+     "right": {
+      "ref": "s86_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s89_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_mc_n_in"
+     },
+     "right": {
+      "ref": "s89_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mk_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_index": {
+   "steps": [
+    {
+     "name": "s01_cn_ix",
+     "op": "read_index_eq",
+     "label": "Company",
+     "prop": "country_code",
+     "value": "[us]"
+    },
+    {
+     "name": "s02_cn_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_cn_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_rows"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s12_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_mk_dst_col"
+     }
+    },
+    {
+     "name": "s14_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s13_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s15_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "character-name-in-title"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s17_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_k_back_col"
+     }
+    },
+    {
+     "name": "s18_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s17_k_back_set"
+     }
+    },
+    {
+     "name": "s19_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s20_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_mk_back_col"
+     }
+    },
+    {
+     "name": "s21_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s22_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s24_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s32_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s34_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_director"
+     }
+    },
+    {
+     "name": "s36_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s38_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s39_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s37_ci_all"
+     },
+     "b": {
+      "ref": "s38_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s40_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s41_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s39_ci_all"
+     },
+     "b": {
+      "ref": "s40_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s42_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s43_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_src_col"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s48_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mc_back_col"
+     }
+    },
+    {
+     "name": "s49_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s48_mc_back_set"
+     }
+    },
+    {
+     "name": "s50_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s52_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s53_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s54_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s55_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s56_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s55_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s58_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s57_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s59_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s61_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s62_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_ci_final"
+     }
+    },
+    {
+     "name": "s63_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_cn_cut"
+     }
+    },
+    {
+     "name": "s64_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s58_k_final"
+     }
+    },
+    {
+     "name": "s65_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_mc_final"
+     }
+    },
+    {
+     "name": "s66_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mk_final"
+     }
+    },
+    {
+     "name": "s67_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s61_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s68_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s69_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s70_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s61_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s72_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_base"
+     },
+     "right": {
+      "ref": "s74_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s76_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s77_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s77_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s80_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_ci_n_in"
+     },
+     "right": {
+      "ref": "s80_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s83_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_cn_n_in"
+     },
+     "right": {
+      "ref": "s83_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s86_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_k_n_in"
+     },
+     "right": {
+      "ref": "s86_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s89_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_mc_n_in"
+     },
+     "right": {
+      "ref": "s89_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mk_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_scan": {
+   "steps": [
+    {
+     "name": "s01_cn_scan",
+     "op": "read_vertices_by_label",
+     "label": "Company"
+    },
+    {
+     "name": "s02_cn_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_cn_scan"
+     },
+     "props": [
+      "country_code"
+     ],
+     "label": "Company"
+    },
+    {
+     "name": "s03_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_cn_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_cn_keep"
+     }
+    },
+    {
+     "name": "s05_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_cn_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s09_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s08_mc_company_production"
+     }
+    },
+    {
+     "name": "s10_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s11_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_src_col"
+     }
+    },
+    {
+     "name": "s12_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_mc_src_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s12_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s14_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s13_mk_dst_col"
+     }
+    },
+    {
+     "name": "s15_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s14_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s16_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s15_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "character-name-in-title"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s17_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s16_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s18_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_k_back_col"
+     }
+    },
+    {
+     "name": "s19_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s12_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_k_back_set"
+     }
+    },
+    {
+     "name": "s20_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s21_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_mk_back_col"
+     }
+    },
+    {
+     "name": "s22_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s23_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s25_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s27_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s29_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s31_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s33_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s35_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s36_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s34_ci_all"
+     },
+     "b": {
+      "ref": "s35_ci_cast_director"
+     }
+    },
+    {
+     "name": "s37_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s38_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s36_ci_all"
+     },
+     "b": {
+      "ref": "s37_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s39_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s40_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s38_ci_all"
+     },
+     "b": {
+      "ref": "s39_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s41_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s21_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s42_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s40_ci_all"
+     },
+     "b": {
+      "ref": "s41_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s43_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s44_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s43_ci_src_col"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s09_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s49_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_mc_back_col"
+     }
+    },
+    {
+     "name": "s50_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s49_mc_back_set"
+     }
+    },
+    {
+     "name": "s51_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s52_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s53_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s47_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s54_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s56_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s19_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s55_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s57_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s56_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s58_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s57_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s59_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s16_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s58_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s42_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s55_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s61_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s60_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s62_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s61_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s63_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s60_ci_final"
+     }
+    },
+    {
+     "name": "s64_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_cn_cut"
+     }
+    },
+    {
+     "name": "s65_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_k_final"
+     }
+    },
+    {
+     "name": "s66_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_mc_final"
+     }
+    },
+    {
+     "name": "s67_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_mk_final"
+     }
+    },
+    {
+     "name": "s68_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s62_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s69_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s70_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s71_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s62_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_base"
+     },
+     "right": {
+      "ref": "s75_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s81_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s84_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_cn_n_in"
+     },
+     "right": {
+      "ref": "s84_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s87_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_k_n_in"
+     },
+     "right": {
+      "ref": "s87_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s90_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_mc_n_in"
+     },
+     "right": {
+      "ref": "s90_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s92_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s93_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s92_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s94_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s91_mk_n_in"
+     },
+     "right": {
+      "ref": "s93_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s95_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s69_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s96_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s95_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s97_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s94_n_n_in"
+     },
+     "right": {
+      "ref": "s96_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s97_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_cn_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_cn_run",
+     "op": "read_vertices_by_label",
+     "label": "Company",
+     "props": [
+      "country_code"
+     ]
+    },
+    {
+     "name": "s02_cn_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_cn_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "country_code"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "country_code"
+         },
+         {
+          "lit": "[us]"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_cn_keep"
+     }
+    },
+    {
+     "name": "s04_cn_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_cn_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_cn_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_distributor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_distributor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_cn_self_set"
+     },
+     "etype": "company_production",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mc_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_mc_company_distributor"
+     },
+     "b": {
+      "ref": "s07_mc_company_production"
+     }
+    },
+    {
+     "name": "s09_mc_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_src_col"
+     }
+    },
+    {
+     "name": "s11_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s10_mc_src_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s12_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s13_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_mk_dst_col"
+     }
+    },
+    {
+     "name": "s14_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s13_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s15_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "character-name-in-title"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s17_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_k_back_col"
+     }
+    },
+    {
+     "name": "s18_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s17_k_back_set"
+     }
+    },
+    {
+     "name": "s19_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s20_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s19_mk_back_col"
+     }
+    },
+    {
+     "name": "s21_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s22_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s24_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s32_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s34_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_director"
+     }
+    },
+    {
+     "name": "s36_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s38_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s39_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s37_ci_all"
+     },
+     "b": {
+      "ref": "s38_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s40_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s41_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s39_ci_all"
+     },
+     "b": {
+      "ref": "s40_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s42_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s43_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_src_col"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_mc_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_mc_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s48_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_mc_back_col"
+     }
+    },
+    {
+     "name": "s49_cn_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_cn_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s48_mc_back_set"
+     }
+    },
+    {
+     "name": "s50_cn_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_cn_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s51_cn_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_cn_self_final_col"
+     }
+    },
+    {
+     "name": "s52_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s46_mc_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_cn_self_final_set"
+     }
+    },
+    {
+     "name": "s53_mc_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s52_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s54_mc_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s53_mc_src_final_col"
+     }
+    },
+    {
+     "name": "s55_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s18_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s56_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s55_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s57_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s56_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s58_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s57_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s59_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_all"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s60_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s59_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s61_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s60_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s62_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s59_ci_final"
+     }
+    },
+    {
+     "name": "s63_cn_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_cn_cut"
+     }
+    },
+    {
+     "name": "s64_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s58_k_final"
+     }
+    },
+    {
+     "name": "s65_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_mc_final"
+     }
+    },
+    {
+     "name": "s66_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s55_mk_final"
+     }
+    },
+    {
+     "name": "s67_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s61_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s68_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mc_src_final_set"
+     }
+    },
+    {
+     "name": "s69_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s70_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_n_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s61_ci_src_final_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s72_member_in_charnamed_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s71_n_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s73_member_in_charnamed_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_member_in_charnamed_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "member_in_charnamed_movie": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s74_member_in_charnamed_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_member_in_charnamed_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_member_in_charnamed_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s70_base"
+     },
+     "right": {
+      "ref": "s74_member_in_charnamed_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "member_in_charnamed_movie": null
+     }
+    },
+    {
+     "name": "s76_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s77_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_member_in_charnamed_movie_in"
+     },
+     "right": {
+      "ref": "s77_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_cn_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s63_cn_final_n"
+     },
+     "field": "rows_cn"
+    },
+    {
+     "name": "s80_cn_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_cn_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_cn_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_ci_n_in"
+     },
+     "right": {
+      "ref": "s80_cn_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s64_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s83_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_cn_n_in"
+     },
+     "right": {
+      "ref": "s83_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s65_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s86_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_k_n_in"
+     },
+     "right": {
+      "ref": "s86_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s66_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s89_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_mc_n_in"
+     },
+     "right": {
+      "ref": "s89_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s91_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s67_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s92_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s91_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s93_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s90_mk_n_in"
+     },
+     "right": {
+      "ref": "s92_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s94_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s68_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s95_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s94_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s96_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s93_n_n_in"
+     },
+     "right": {
+      "ref": "s95_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s96_t_n_in"
+     },
+     "fields": [
+      "member_in_charnamed_movie",
+      "rows_ci",
+      "rows_cn",
+      "rows_k",
+      "rows_mc",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

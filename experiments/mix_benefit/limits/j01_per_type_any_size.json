@@ -1,0 +1,70 @@
+{
+ "what": "J01's per-type-any-size staircase limits (equal-share weights, inputs/workloads/imdb/equal-share/j01.json): 16 multiples of Sp-Co's bytes under those weights (B: the cap is B x the run's reference bytes, 32643.27), from 0.85x (the fewest-bytes mix found is 0.84x; nothing fits at 0.7x) to 50x (the fewest-wops mix with no limit is at 49.7x); the staircase without the cost cache reads them (no tables: front.caps_of cannot make them)",
+ "source": "kvcost search-mix --byte-limit runs on imdb-rows/full/job-20261104",
+ "limits": [
+  {
+   "B": 0.85,
+   "cap_kind": "B=0.85"
+  },
+  {
+   "B": 0.92,
+   "cap_kind": "B=0.92"
+  },
+  {
+   "B": 1.0,
+   "cap_kind": "B=1"
+  },
+  {
+   "B": 1.25,
+   "cap_kind": "B=1.25"
+  },
+  {
+   "B": 1.5,
+   "cap_kind": "B=1.5"
+  },
+  {
+   "B": 2.0,
+   "cap_kind": "B=2"
+  },
+  {
+   "B": 2.5,
+   "cap_kind": "B=2.5"
+  },
+  {
+   "B": 3.0,
+   "cap_kind": "B=3"
+  },
+  {
+   "B": 4.0,
+   "cap_kind": "B=4"
+  },
+  {
+   "B": 5.0,
+   "cap_kind": "B=5"
+  },
+  {
+   "B": 7.0,
+   "cap_kind": "B=7"
+  },
+  {
+   "B": 10.0,
+   "cap_kind": "B=10"
+  },
+  {
+   "B": 15.0,
+   "cap_kind": "B=15"
+  },
+  {
+   "B": 25.0,
+   "cap_kind": "B=25"
+  },
+  {
+   "B": 35.0,
+   "cap_kind": "B=35"
+  },
+  {
+   "B": 50.0,
+   "cap_kind": "B=50"
+  }
+ ]
+}

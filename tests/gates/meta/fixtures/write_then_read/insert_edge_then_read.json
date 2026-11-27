@@ -1,0 +1,109 @@
+{
+ "plan": "insert_edge_then_read",
+ "for": "the row-order check after a write inside a plan (check_row_order_after_write.py); not a workload plan",
+ "params": {
+  "src": {
+   "type": "int"
+  },
+  "dst": {
+   "type": "int"
+  }
+ },
+ "let": {
+  "src_vid": {
+   "if": [
+    {
+     "is_digit": {
+      "param": "src"
+     }
+    },
+    {
+     "vid": [
+      {
+       "lit": "Person"
+      },
+      {
+       "param": "src"
+      }
+     ]
+    },
+    {
+     "param": "src"
+    }
+   ]
+  },
+  "dst_vid": {
+   "if": [
+    {
+     "is_digit": {
+      "param": "dst"
+     }
+    },
+    {
+     "vid": [
+      {
+       "lit": "Person"
+      },
+      {
+       "param": "dst"
+      }
+     ]
+    },
+    {
+     "param": "dst"
+    }
+   ]
+  }
+ },
+ "steps": [
+  {
+   "name": "w",
+   "op": "insert_edge",
+   "etype": "knows",
+   "src": {
+    "let": "src_vid"
+   },
+   "dst": {
+    "let": "dst_vid"
+   },
+   "props": {},
+   "src_label": "Person",
+   "dst_label": "Person"
+  },
+  {
+   "name": "a",
+   "op": "read_vertex_by_id",
+   "vid": {
+    "let": "src_vid"
+   },
+   "label": "Person"
+  },
+  {
+   "name": "nb_out",
+   "op": "read_neighbors",
+   "srcs": {
+    "ref": "a"
+   },
+   "etype": "knows",
+   "dir": "out"
+  },
+  {
+   "name": "b",
+   "op": "read_vertex_by_id",
+   "vid": {
+    "let": "dst_vid"
+   },
+   "label": "Person"
+  },
+  {
+   "name": "nb_in",
+   "op": "read_neighbors",
+   "srcs": {
+    "ref": "b"
+   },
+   "etype": "knows",
+   "dir": "in"
+  }
+ ],
+ "output": "nb_out"
+}

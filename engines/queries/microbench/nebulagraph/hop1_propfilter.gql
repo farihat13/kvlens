@@ -1,0 +1,13 @@
+# microbench hop1_propfilter -- a Person's distinct knows-neighbours (both directions) created
+# before 2011-01-01 (a neighbour-property filter).
+# Evaluator: queries/hop.py hop1_propfilter: read_neighbors -> dedup -> read_vertex_props(
+# [creationDate]) -> filter creationDate < DATE_CUTOFF -> count. Count-final: one row per
+# kept neighbour, the vid only.
+# DATE_CUTOFF = 1293840000000 is a fixed constant of the shape (_shared.py), not a param.
+# mb2 lineage: MB33-34 (those filtered Comment dates on hasCreator).
+# Form: GO BIDIRECT with a destination-property WHERE (GetNeighbors + GetVertices). Same cost
+# as GO ... | FETCH PROP ON Person $-.v ... | YIELD ... WHERE.
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS BIDIRECT
+  WHERE $$.Person.creationDate < 1293840000000
+  YIELD DISTINCT id($$) AS id

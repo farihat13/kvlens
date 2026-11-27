@@ -1,0 +1,37 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=13.08
+# Q12. Expert search
+# 
+# Person with ID $personId, find the Comments that this Person’s friends made in reply
+# to Posts, considering only those Comments that are direct (single-hop) replies to Posts, not the
+# transitive (multi-hop) ones. 
+# Only consider Posts with a Tag in a given TagClass with name $tagClassName or in a descendent of 
+# that TagClass. Count the number of these reply Comments, and collect the Tags that were attached 
+# to the Posts they replied to, but only collect Tags with the givenTagClass or with a descendant 
+# of that TagClass. Return Persons with at least one reply, the reply count, and the collection of Tags.
+#
+# Params: $personId:int (personId), $tagClassName:string (tagClassName)
+# result
+# 1 friend.id ID R
+# 2 friend.firstName String R
+# 3 friend.lastName String R
+# 4 tagNames {Long String} A5 replyCount 32-bit Integer A
+# sort 
+# 1 replyCount ↓
+# 2 friend.id ↑
+# limit 20
+
+
+MATCH (n:Person)-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(`comment`:`Comment`)-[:REPLY_OF]->(:Post)-[:HAS_TAG]->(`tag`:`Tag`),
+    (`tag`)-[:HAS_TYPE]->(tagClass:TagClass)-[:IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)
+WHERE id(n)==$personId 
+    AND (tagClass.TagClass.name == $tagClassName 
+        OR baseTagClass.TagClass.name == $tagClassName)
+RETURN
+    id(friend) AS friendId,
+    friend.Person.firstName AS friendFirstName,
+    friend.Person.lastName AS friendLastName,
+    collect(DISTINCT `tag`.`Tag`.name) AS tagNames,
+    count(DISTINCT `comment`) AS replyCount,
+    toInteger(split(tostring(id(friend)), "_")[1]) AS friendIdInt
+ORDER BY replyCount DESC, friendIdInt ASC
+LIMIT 20

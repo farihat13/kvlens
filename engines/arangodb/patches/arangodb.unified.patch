@@ -1,0 +1,1847 @@
+diff --git a/arangodb/arangodb-3.12.8/arangod/GeneralServer/GeneralServerFeature.cpp b/arangodb/arangodb-3.12.8/arangod/GeneralServer/GeneralServerFeature.cpp
+index c5ab167ca..e5c513ebe 100644
+--- a/arangodb/arangodb-3.12.8/arangod/GeneralServer/GeneralServerFeature.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/GeneralServer/GeneralServerFeature.cpp
+@@ -76,6 +76,8 @@
+ #include "RestHandler/RestAuthHandler.h"
+ #include "RestHandler/RestAuthReloadHandler.h"
+ #include "RestHandler/RestCompactHandler.h"
++#include "RocksDBEngine/RocksDBRestKVStatsHandler.h"
++#include "RocksDBEngine/RocksDBRestKVTraceHandler.h"
+ #include "RestHandler/RestCursorHandler.h"
+ #include "RestHandler/RestDatabaseHandler.h"
+ #include "RestHandler/RestDebugHandler.h"
+@@ -830,6 +832,18 @@ void GeneralServerFeature::defineRemainingHandlers(
+   f.addHandler("/_admin/compact",
+                RestHandlerCreator<RestCompactHandler>::createNoData, {0, 1});
+ 
++  // /_admin/kvstats — per-query RocksDB KV statistics (arangodb.unified.patch).
++  // Handler returns only the sections compiled in via ARANGO_KV_* flags.
++  f.addPrefixHandler(
++      "/_admin/kvstats",
++      RestHandlerCreator<RocksDBRestKVStatsHandler>::createNoData, {0, 1});
++
++  // /_admin/kvtrace — per-key RocksDB KV trace (arangodb.unified.patch), the
++  // ArangoDB analog of NebulaGraph's /kvtrace. Active only under -DARANGO_KV_STATS.
++  f.addPrefixHandler(
++      "/_admin/kvtrace",
++      RestHandlerCreator<RocksDBRestKVTraceHandler>::createNoData, {0, 1});
++
+   f.addPrefixHandler("/_api/job",
+                      RestHandlerCreator<arangodb::RestJobHandler>::createData<
+                          AsyncJobManager*>,
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/CMakeLists.txt b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/CMakeLists.txt
+index 5972ae566..dc7139bf8 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/CMakeLists.txt
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/CMakeLists.txt
+@@ -45,6 +45,8 @@ add_library(arango_rocksdb STATIC
+   RocksDBReplicationTailing.cpp
+   RocksDBRestCollectionHandler.cpp
+   RocksDBRestHandlers.cpp
++  RocksDBRestKVStatsHandler.cpp
++  RocksDBRestKVTraceHandler.cpp
+   RocksDBRestReplicationHandler.cpp
+   RocksDBRestWalHandler.cpp
+   RocksDBSavePoint.cpp
+@@ -67,11 +69,45 @@ add_library(arango_rocksdb STATIC
+   SimpleRocksDBTransactionState.cpp
+   SortedRowsStorageBackendRocksDB.cpp)
+ 
+-if (USE_V8) 
++if (USE_V8)
+   target_sources(arango_rocksdb PRIVATE
+     RocksDBV8Functions.cpp)
+ endif()
+ 
++# arangodb.unified.patch — KV instrumentation feature flags, named by layer to
++# match NebulaGraph's (so "KV_STATS" means the same engine-wrapper counter on both):
++#   -DARANGO_KV_TICKERS=ON     RocksDB native tickers + native histograms
++#                              (process-global; needs --rocksdb.enable-statistics)
++#   -DARANGO_KV_STATS=ON       engine-wrapper hand counters: get/seek/next/prev
++#                              count + found + time_us + bytes (no runtime flag)
++#   -DARANGO_KV_HISTOGRAMS=ON  engine-wrapper get/seek/next/prev latency histograms
++#                              (requires ARANGO_KV_STATS for the timing)
++# Each turns into a compile definition seen by the /_admin/kvstats handler, the
++# RocksDBEngine counters, and the wrapped read Methods (all in this target).
++foreach(_kvflag ARANGO_KV_TICKERS ARANGO_KV_STATS ARANGO_KV_HISTOGRAMS)
++  if(${_kvflag})
++    # RocksDBEngine.h adds member fields under ARANGO_KV_STATS / ARANGO_KV_HISTOGRAMS,
++    # so the class layout depends on the flags. PUBLIC propagates the define to
++    # targets that *link* arango_rocksdb (StorageEngine, Replication2, Methods, ...).
++    # CAVEAT: a few TUs include RocksDBEngine.h WITHOUT linking arango_rocksdb
++    # (IResearch*, V8Server/v8-vocbase, RestHandler/RestDumpHandler) and so compile
++    # the unflagged layout — a technical ODR mismatch. It is benign today only
++    # because those TUs touch no KV members (just pre-KV accessors like db(), and
++    # out-of-line methods resolved inside arango_rocksdb with the correct layout).
++    # For guaranteed ODR safety, promote these to a global add_compile_definitions()
++    # instead of PUBLIC link propagation.
++    target_compile_definitions(arango_rocksdb PUBLIC ${_kvflag})
++    message(STATUS "arangodb.unified.patch: ${_kvflag} enabled")
++  endif()
++endforeach()
++
++# ARANGO_KV_HISTOGRAMS records into the per-op timing captured by ARANGO_KV_STATS,
++# so it cannot stand alone (matches NebulaGraph's "ENABLE_KV_HISTOGRAMS requires
++# ENABLE_KV_STATS").
++if(ARANGO_KV_HISTOGRAMS AND NOT ARANGO_KV_STATS)
++  message(FATAL_ERROR "ARANGO_KV_HISTOGRAMS=ON requires ARANGO_KV_STATS=ON")
++endif()
++
+ target_link_libraries(arango_rocksdb
+   arango_cache
+   arango_common_rest_handler
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyBaseMethods.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyBaseMethods.cpp
+index eabd02649..dfbd14d16 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyBaseMethods.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyBaseMethods.cpp
+@@ -23,9 +23,11 @@
+ 
+ #include "RocksDBReadOnlyBaseMethods.h"
+ 
++#include "RocksDBEngine/RocksDBEngine.h"
+ #include "RocksDBEngine/RocksDBTransactionState.h"
+ 
+ #include <absl/cleanup/cleanup.h>
++#include <chrono>
+ #include <rocksdb/db.h>
+ #include <rocksdb/status.h>
+ 
+@@ -118,7 +120,18 @@ rocksdb::Status arangodb::RocksDBReadOnlyBaseMethods::SingleGet(
+   };
+   _readOptions.snapshot = snapshot;
+ 
+-  return _db->Get(_readOptions, &family, key, &value);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  auto s = _db->Get(_readOptions, &family, key, &value);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? value.size() : 0u);
++  engine.appendKvTrace("get", key, &family, s.ok() ? value.size() : 0u);
++#endif
++  return s;
+ }
+ 
+ void RocksDBReadOnlyBaseMethods::MultiGet(rocksdb::Snapshot const* snapshot,
+@@ -131,8 +144,30 @@ void RocksDBReadOnlyBaseMethods::MultiGet(rocksdb::Snapshot const* snapshot,
+   ReadOptions ro = _readOptions;
+   ro.snapshot = snapshot;
+ 
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   // Timestamps and multiple ColumnFamilies are not necessary for us
+   _db->MultiGet(ro, &family, count, keys, values, statuses, false);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  uint64_t _kvFound = 0;
++  uint64_t _kvBytes = 0;
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  bool trace = engine.kvTraceEnabled();  // capture once: skip per-key appends when off
++  for (size_t _i = 0; _i < count; ++_i) {
++    if (statuses[_i].ok()) {
++      ++_kvFound;
++      _kvBytes += values[_i].size();
++    }
++    if (trace) {
++      engine.appendKvTrace("get", keys[_i], &family,
++                           statuses[_i].ok() ? values[_i].size() : 0u);
++    }
++  }
++  engine.addRocksdbGetTime(ns, _kvFound, count, _kvBytes);
++#endif
+ }
+ 
+ void RocksDBReadOnlyBaseMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+@@ -141,7 +176,29 @@ void RocksDBReadOnlyBaseMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+                                           rocksdb::PinnableSlice* values,
+                                           rocksdb::Status* statuses,
+                                           ReadOwnWrites) {
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   _db->MultiGet(_readOptions, &family, count, keys, values, statuses, false);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  uint64_t _kvFound = 0;
++  uint64_t _kvBytes = 0;
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  bool trace = engine.kvTraceEnabled();  // capture once: skip per-key appends when off
++  for (size_t _i = 0; _i < count; ++_i) {
++    if (statuses[_i].ok()) {
++      ++_kvFound;
++      _kvBytes += values[_i].size();
++    }
++    if (trace) {
++      engine.appendKvTrace("get", keys[_i], &family,
++                           statuses[_i].ok() ? values[_i].size() : 0u);
++    }
++  }
++  engine.addRocksdbGetTime(ns, _kvFound, count, _kvBytes);
++#endif
+ }
+ 
+ void RocksDBReadOnlyBaseMethods::PutLogData(rocksdb::Slice const& blob) {
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyMethods.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyMethods.cpp
+index e72dfcdd4..318512644 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyMethods.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBReadOnlyMethods.cpp
+@@ -23,8 +23,11 @@
+ 
+ #include "RocksDBReadOnlyMethods.h"
+ 
++#include "RocksDBEngine/RocksDBEngine.h"
+ #include "RocksDBEngine/RocksDBTransactionState.h"
++#include "RocksDBEngine/TimedRocksDBIterator.h"
+ 
++#include <chrono>
+ #include <rocksdb/db.h>
+ 
+ using namespace arangodb;
+@@ -56,7 +59,18 @@ rocksdb::Status RocksDBReadOnlyMethods::Get(rocksdb::ColumnFamilyHandle* cf,
+                                             ReadOwnWrites) {
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_readOptions.snapshot != nullptr);
+-  return _db->Get(_readOptions, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  auto s = _db->Get(_readOptions, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? val->size() : 0u);
++  engine.appendKvTrace("get", key, cf, s.ok() ? val->size() : 0u);
++#endif
++  return s;
+ }
+ 
+ std::unique_ptr<rocksdb::Iterator> RocksDBReadOnlyMethods::NewIterator(
+@@ -68,10 +82,23 @@ std::unique_ptr<rocksdb::Iterator> RocksDBReadOnlyMethods::NewIterator(
+     readOptionsCallback(opts);
+   }
+ 
++#ifdef ARANGO_KV_STATS
++  auto createStart = std::chrono::steady_clock::now();
++#endif
+   std::unique_ptr<rocksdb::Iterator> iterator(_db->NewIterator(opts, cf));
++#ifdef ARANGO_KV_STATS
++  auto createNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - createStart).count();
++#endif
+   if (iterator == nullptr) {
+     THROW_ARANGO_EXCEPTION_MESSAGE(
+         TRI_ERROR_INTERNAL, "invalid iterator in RocksDBReadOnlyMethods");
+   }
++#ifdef ARANGO_KV_STATS
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbIteratorCreateTime(createNs);
++  return std::make_unique<TimedRocksDBIterator>(std::move(iterator), engine, cf);
++#else
+   return iterator;
++#endif
+ }
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBSingleOperationReadOnlyMethods.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBSingleOperationReadOnlyMethods.cpp
+index 70cc6faf0..4e7cd9688 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBSingleOperationReadOnlyMethods.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBSingleOperationReadOnlyMethods.cpp
+@@ -23,8 +23,10 @@
+ 
+ #include "RocksDBSingleOperationReadOnlyMethods.h"
+ 
++#include "RocksDBEngine/RocksDBEngine.h"
+ #include "RocksDBEngine/RocksDBTransactionState.h"
+ 
++#include <chrono>
+ #include <rocksdb/db.h>
+ 
+ using namespace arangodb;
+@@ -47,7 +49,18 @@ rocksdb::Status RocksDBSingleOperationReadOnlyMethods::Get(
+     rocksdb::ColumnFamilyHandle* cf, rocksdb::Slice const& key,
+     rocksdb::PinnableSlice* val, ReadOwnWrites) {
+   TRI_ASSERT(cf != nullptr);
+-  return _db->Get(_readOptions, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  auto s = _db->Get(_readOptions, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? val->size() : 0u);
++  engine.appendKvTrace("get", key, cf, s.ok() ? val->size() : 0u);
++#endif
++  return s;
+ }
+ 
+ std::unique_ptr<rocksdb::Iterator>
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxBaseMethods.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxBaseMethods.cpp
+index 61fa9ab1d..80ef2a52b 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxBaseMethods.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxBaseMethods.cpp
+@@ -26,6 +26,7 @@
+ #include "ApplicationFeatures/ApplicationServer.h"
+ #include "Logger/LogMacros.h"
+ #include "Random/RandomGenerator.h"
++#include "RocksDBEngine/RocksDBEngine.h"
+ #include "RocksDBEngine/RocksDBLogValue.h"
+ #include "RocksDBEngine/RocksDBSettingsManager.h"
+ #include "RocksDBEngine/RocksDBSyncThread.h"
+@@ -33,6 +34,8 @@
+ #include "Statistics/ServerStatistics.h"
+ #include "StorageEngine/EngineSelectorFeature.h"
+ 
++#include <chrono>
++
+ #include <absl/cleanup/cleanup.h>
+ #include <absl/strings/str_cat.h>
+ #include <rocksdb/utilities/write_batch_with_index.h>
+@@ -116,9 +119,17 @@ Result RocksDBTrxBaseMethods::beginTransaction() {
+ }
+ 
+ Result RocksDBTrxBaseMethods::commitTransaction() {
++#ifdef ARANGO_KV_STATS
++  auto _kvStart = std::chrono::steady_clock::now();
++#endif
+   Result result = doCommit();
+   if (result.ok()) {
+     cleanupTransaction();
++#ifdef ARANGO_KV_STATS
++    auto _kvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - _kvStart).count();
++    _state->vocbase().engine<RocksDBEngine>().addRocksdbCommitTime(_kvNs);
++#endif
+   }
+   return result;
+ }
+@@ -198,10 +209,23 @@ rocksdb::Status RocksDBTrxBaseMethods::Get(rocksdb::ColumnFamilyHandle* cf,
+   TRI_ASSERT(cf != nullptr);
+   rocksdb::ReadOptions const& ro = _readOptions;
+   TRI_ASSERT(ro.snapshot != nullptr || _state->options().avoidSnapshot);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  rocksdb::Status s;
+   if (readOwnWrites == ReadOwnWrites::yes) {
+-    return _rocksTransaction->Get(ro, cf, key, val);
+-  }
+-  return _db->Get(ro, cf, key, val);
++    s = _rocksTransaction->Get(ro, cf, key, val);
++  } else {
++    s = _db->Get(ro, cf, key, val);
++  }
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? val->size() : 0u);
++  engine.appendKvTrace("get", key, cf, s.ok() ? val->size() : 0u);
++#endif
++  return s;
+ }
+ 
+ rocksdb::Status RocksDBTrxBaseMethods::GetForUpdate(
+@@ -211,7 +235,17 @@ rocksdb::Status RocksDBTrxBaseMethods::GetForUpdate(
+   TRI_ASSERT(_rocksTransaction);
+   rocksdb::ReadOptions const& ro = _readOptions;
+   TRI_ASSERT(ro.snapshot != nullptr || _state->options().avoidSnapshot);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   rocksdb::Status s = _rocksTransaction->GetForUpdate(ro, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? val->size() : 0u);
++  engine.appendKvTrace("get", key, cf, s.ok() ? val->size() : 0u);
++#endif
+   if (s.ok()) {
+     _memoryTracker.increaseMemoryUsage(
+         lockOverhead(!_state->isOnlyExclusiveTransaction(), key.size()));
+@@ -226,6 +260,9 @@ rocksdb::Status RocksDBTrxBaseMethods::Put(rocksdb::ColumnFamilyHandle* cf,
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_rocksTransaction);
+   std::uint64_t beforeSize = currentWriteBatchSize();
++#ifdef ARANGO_KV_STATS
++  auto _kvStart = std::chrono::steady_clock::now();
++#endif
+   rocksdb::Status s =
+       _rocksTransaction->Put(cf, key.string(), val, assume_tracked);
+   if (s.ok()) {
+@@ -236,6 +273,12 @@ rocksdb::Status RocksDBTrxBaseMethods::Put(rocksdb::ColumnFamilyHandle* cf,
+         lockOverhead(!_state->isOnlyExclusiveTransaction(),
+                      key.string().size()) +
+         indexingOverhead(!_indexingDisabled, key.string().size()));
++#ifdef ARANGO_KV_STATS
++    auto _kvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - _kvStart).count();
++    _state->vocbase().engine<RocksDBEngine>().addRocksdbPutTime(
++        _kvNs, key.string().size() + val.size());
++#endif
+   }
+   return s;
+ }
+@@ -246,6 +289,9 @@ rocksdb::Status RocksDBTrxBaseMethods::PutUntracked(
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_rocksTransaction);
+   std::uint64_t beforeSize = currentWriteBatchSize();
++#ifdef ARANGO_KV_STATS
++  auto _kvStart = std::chrono::steady_clock::now();
++#endif
+   rocksdb::Status s = _rocksTransaction->PutUntracked(cf, key.string(), val);
+   if (s.ok()) {
+     // size of WriteBatch got increased. track memory usage of WriteBatch
+@@ -255,6 +301,12 @@ rocksdb::Status RocksDBTrxBaseMethods::PutUntracked(
+         lockOverhead(!_state->isOnlyExclusiveTransaction(),
+                      key.string().size()) +
+         indexingOverhead(!_indexingDisabled, key.string().size()));
++#ifdef ARANGO_KV_STATS
++    auto _kvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - _kvStart).count();
++    _state->vocbase().engine<RocksDBEngine>().addRocksdbPutTime(
++        _kvNs, key.string().size() + val.size());
++#endif
+   }
+   return s;
+ }
+@@ -264,6 +316,9 @@ rocksdb::Status RocksDBTrxBaseMethods::Delete(rocksdb::ColumnFamilyHandle* cf,
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_rocksTransaction);
+   std::uint64_t beforeSize = currentWriteBatchSize();
++#ifdef ARANGO_KV_STATS
++  auto _kvStart = std::chrono::steady_clock::now();
++#endif
+   rocksdb::Status s = _rocksTransaction->Delete(cf, key.string());
+   if (s.ok()) {
+     // size of WriteBatch got increased. track memory usage of WriteBatch
+@@ -273,6 +328,12 @@ rocksdb::Status RocksDBTrxBaseMethods::Delete(rocksdb::ColumnFamilyHandle* cf,
+         lockOverhead(!_state->isOnlyExclusiveTransaction(),
+                      key.string().size()) +
+         indexingOverhead(!_indexingDisabled, key.string().size()));
++#ifdef ARANGO_KV_STATS
++    auto _kvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - _kvStart).count();
++    _state->vocbase().engine<RocksDBEngine>().addRocksdbDeleteTime(
++        _kvNs, key.string().size());
++#endif
+   }
+   return s;
+ }
+@@ -282,6 +343,9 @@ rocksdb::Status RocksDBTrxBaseMethods::SingleDelete(
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_rocksTransaction);
+   std::uint64_t beforeSize = currentWriteBatchSize();
++#ifdef ARANGO_KV_STATS
++  auto _kvStart = std::chrono::steady_clock::now();
++#endif
+   rocksdb::Status s = _rocksTransaction->SingleDelete(cf, key.string());
+   if (s.ok()) {
+     // size of WriteBatch got increased. track memory usage of WriteBatch
+@@ -291,6 +355,12 @@ rocksdb::Status RocksDBTrxBaseMethods::SingleDelete(
+         lockOverhead(!_state->isOnlyExclusiveTransaction(),
+                      key.string().size()) +
+         indexingOverhead(!_indexingDisabled, key.string().size()));
++#ifdef ARANGO_KV_STATS
++    auto _kvNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - _kvStart).count();
++    _state->vocbase().engine<RocksDBEngine>().addRocksdbDeleteTime(
++        _kvNs, key.string().size());
++#endif
+   }
+   return s;
+ }
+@@ -576,7 +646,18 @@ rocksdb::Status RocksDBTrxBaseMethods::SingleGet(
+   };
+   _readOptions.snapshot = snapshot;
+ 
+-  return _db->Get(_readOptions, &family, key, &value);
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  auto s = _db->Get(_readOptions, &family, key, &value);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? value.size() : 0u);
++  engine.appendKvTrace("get", key, &family, s.ok() ? value.size() : 0u);
++#endif
++  return s;
+ }
+ 
+ void RocksDBTrxBaseMethods::MultiGet(rocksdb::Snapshot const* snapshot,
+@@ -588,8 +669,30 @@ void RocksDBTrxBaseMethods::MultiGet(rocksdb::Snapshot const* snapshot,
+   ReadOptions ro = _readOptions;
+   ro.snapshot = snapshot;
+ 
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   // Timestamps and multiple ColumnFamilies are not necessary for us
+   _db->MultiGet(ro, &family, count, keys, values, statuses, false);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  uint64_t _kvFound = 0;
++  uint64_t _kvBytes = 0;
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  bool trace = engine.kvTraceEnabled();  // capture once: skip per-key appends when off
++  for (size_t _i = 0; _i < count; ++_i) {
++    if (statuses[_i].ok()) {
++      ++_kvFound;
++      _kvBytes += values[_i].size();
++    }
++    if (trace) {
++      engine.appendKvTrace("get", keys[_i], &family,
++                           statuses[_i].ok() ? values[_i].size() : 0u);
++    }
++  }
++  engine.addRocksdbGetTime(ns, _kvFound, count, _kvBytes);
++#endif
+ }
+ 
+ void RocksDBTrxBaseMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+@@ -597,12 +700,34 @@ void RocksDBTrxBaseMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+                                      rocksdb::PinnableSlice* values,
+                                      rocksdb::Status* statuses,
+                                      ReadOwnWrites readOwnWrites) {
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   if (readOwnWrites == ReadOwnWrites::yes) {
+     _rocksTransaction->MultiGet(_readOptions, &family, count, keys, values,
+                                 statuses, false);
+   } else {
+     _db->MultiGet(_readOptions, &family, count, keys, values, statuses, false);
+   }
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  uint64_t _kvFound = 0;
++  uint64_t _kvBytes = 0;
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  bool trace = engine.kvTraceEnabled();  // capture once: skip per-key appends when off
++  for (size_t _i = 0; _i < count; ++_i) {
++    if (statuses[_i].ok()) {
++      ++_kvFound;
++      _kvBytes += values[_i].size();
++    }
++    if (trace) {
++      engine.appendKvTrace("get", keys[_i], &family,
++                           statuses[_i].ok() ? values[_i].size() : 0u);
++    }
++  }
++  engine.addRocksdbGetTime(ns, _kvFound, count, _kvBytes);
++#endif
+ }
+ 
+ size_t RocksDBTrxBaseMethods::currentWriteBatchSize() const noexcept {
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxMethods.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxMethods.cpp
+index 8730972ca..27f1e86b8 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxMethods.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/Methods/RocksDBTrxMethods.cpp
+@@ -27,12 +27,16 @@
+ #include "Logger/LogMacros.h"
+ #include "Metrics/Counter.h"
+ #include "RocksDBEngine/RocksDBColumnFamilyManager.h"
++#include "RocksDBEngine/RocksDBEngine.h"
+ #include "RocksDBEngine/RocksDBLogValue.h"
++#include "RocksDBEngine/TimedRocksDBIterator.h"
+ #include "RocksDBEngine/RocksDBMethodsMemoryTracker.h"
+ #include "RocksDBEngine/RocksDBSettingsManager.h"
+ #include "RocksDBEngine/RocksDBTransactionState.h"
+ #include "Statistics/ServerStatistics.h"
+ 
++#include <chrono>
++
+ #include <rocksdb/utilities/write_batch_with_index.h>
+ 
+ using namespace arangodb;
+@@ -114,13 +118,27 @@ rocksdb::Status RocksDBTrxMethods::Get(rocksdb::ColumnFamilyHandle* cf,
+   TRI_ASSERT(cf != nullptr);
+   TRI_ASSERT(_rocksTransaction);
+   rocksdb::ReadOptions const& ro = _readOptions;
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
++  rocksdb::Status s;
+   if (readOwnWrites == ReadOwnWrites::no) {
+     if (_readWriteBatch) {
+-      return _readWriteBatch->GetFromBatchAndDB(_db, ro, cf, key, val);
++      s = _readWriteBatch->GetFromBatchAndDB(_db, ro, cf, key, val);
++    } else {
++      s = _db->Get(ro, cf, key, val);
+     }
+-    return _db->Get(ro, cf, key, val);
++  } else {
++    s = _rocksTransaction->Get(ro, cf, key, val);
+   }
+-  return _rocksTransaction->Get(ro, cf, key, val);
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbGetTime(ns, s.ok() ? 1u : 0u, 1u, s.ok() ? val->size() : 0u);
++  engine.appendKvTrace("get", key, cf, s.ok() ? val->size() : 0u);
++#endif
++  return s;
+ }
+ 
+ void RocksDBTrxMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+@@ -128,6 +146,9 @@ void RocksDBTrxMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+                                  rocksdb::PinnableSlice* values,
+                                  rocksdb::Status* statuses,
+                                  ReadOwnWrites readOwnWrites) {
++#ifdef ARANGO_KV_STATS
++  auto start = std::chrono::steady_clock::now();
++#endif
+   if (readOwnWrites == ReadOwnWrites::no) {
+     if (_readWriteBatch) {
+       _readWriteBatch->MultiGetFromBatchAndDB(_db, _readOptions, &family, count,
+@@ -140,6 +161,25 @@ void RocksDBTrxMethods::MultiGet(rocksdb::ColumnFamilyHandle& family,
+     _rocksTransaction->MultiGet(_readOptions, &family, count, keys, values,
+                                 statuses, false);
+   }
++#ifdef ARANGO_KV_STATS
++  auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - start).count();
++  uint64_t _kvFound = 0;
++  uint64_t _kvBytes = 0;
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  bool trace = engine.kvTraceEnabled();  // capture once: skip per-key appends when off
++  for (size_t _i = 0; _i < count; ++_i) {
++    if (statuses[_i].ok()) {
++      ++_kvFound;
++      _kvBytes += values[_i].size();
++    }
++    if (trace) {
++      engine.appendKvTrace("get", keys[_i], &family,
++                           statuses[_i].ok() ? values[_i].size() : 0u);
++    }
++  }
++  engine.addRocksdbGetTime(ns, _kvFound, count, _kvBytes);
++#endif
+ }
+ 
+ std::unique_ptr<rocksdb::Iterator> RocksDBTrxMethods::NewIterator(
+@@ -157,6 +197,9 @@ std::unique_ptr<rocksdb::Iterator> RocksDBTrxMethods::NewIterator(
+   }
+ 
+   std::unique_ptr<rocksdb::Iterator> iterator;
++#ifdef ARANGO_KV_STATS
++  auto createStart = std::chrono::steady_clock::now();
++#endif
+   if (opts.readOwnWrites) {
+ #ifdef ARANGODB_ENABLE_MAINTAINER_MODE
+     // Even though the assertion is only evaluated in maintainer mode, it must
+@@ -180,12 +223,22 @@ std::unique_ptr<rocksdb::Iterator> RocksDBTrxMethods::NewIterator(
+       iterator.reset(_db->NewIterator(opts, cf));
+     }
+   }
++#ifdef ARANGO_KV_STATS
++  auto createNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
++      std::chrono::steady_clock::now() - createStart).count();
++#endif
+ 
+   if (iterator == nullptr) {
+     THROW_ARANGO_EXCEPTION_MESSAGE(TRI_ERROR_INTERNAL,
+                                    "invalid iterator in RocksDBTrxMethods");
+   }
++#ifdef ARANGO_KV_STATS
++  auto& engine = _state->vocbase().engine<RocksDBEngine>();
++  engine.addRocksdbIteratorCreateTime(createNs);
++  return std::make_unique<TimedRocksDBIterator>(std::move(iterator), engine, cf);
++#else
+   return iterator;
++#endif
+ }
+ 
+ void RocksDBTrxMethods::cleanupTransaction() {
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.cpp
+index 9a16afaf1..43872ba3f 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.cpp
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.cpp
+@@ -125,8 +125,11 @@
+ #include "Transaction/Manager.h"
+ #include "Transaction/Options.h"
+ #include "Transaction/StandaloneContext.h"
++#include "Indexes/Index.h"                 // kvTraceNameFor: index fieldNames/typeName
++#include "VocBase/LogicalCollection.h"     // kvTraceNameFor: collection name/lookupIndex
+ #include "VocBase/LogicalView.h"
+ #include "VocBase/VocbaseInfo.h"
++#include "VocBase/vocbase.h"               // kvTraceNameFor: lookupCollection
+ #include "VocBase/VocBaseLogManager.h"
+ #include "VocBase/ticks.h"
+ 
+@@ -166,6 +169,25 @@ using namespace arangodb::options;
+ 
+ namespace arangodb {
+ 
++#ifdef ARANGO_KV_STATS
++DECLARE_COUNTER(arangodb_rocksdb_get_time_total_us,
++                "Cumulative microseconds in RocksDB Get/MultiGet/SingleGet");
++DECLARE_COUNTER(arangodb_rocksdb_get_count_total,
++                "Cumulative count of RocksDB Get/MultiGet/SingleGet calls");
++DECLARE_COUNTER(arangodb_rocksdb_seek_time_total_us,
++                "Cumulative microseconds in RocksDB iterator Seek operations");
++DECLARE_COUNTER(arangodb_rocksdb_seek_count_total,
++                "Cumulative count of RocksDB iterator Seek operations");
++DECLARE_COUNTER(arangodb_rocksdb_next_time_total_us,
++                "Cumulative microseconds in RocksDB iterator Next (forward) operations");
++DECLARE_COUNTER(arangodb_rocksdb_next_count_total,
++                "Cumulative count of RocksDB iterator Next (forward) operations");
++DECLARE_COUNTER(arangodb_rocksdb_prev_time_total_us,
++                "Cumulative microseconds in RocksDB iterator Prev (reverse) operations");
++DECLARE_COUNTER(arangodb_rocksdb_prev_count_total,
++                "Cumulative count of RocksDB iterator Prev (reverse) operations");
++#endif
++
+ DECLARE_GAUGE(rocksdb_wal_released_tick_flush, uint64_t,
+               "Released tick for RocksDB WAL deletion (flush-induced)");
+ DECLARE_GAUGE(rocksdb_wal_sequence, uint64_t, "Current RocksDB WAL sequence");
+@@ -332,6 +354,24 @@ RocksDBEngine::RocksDBEngine(
+       _autoFlushCheckInterval(60.0 * 30.0),
+       _autoFlushMinWalFiles(20),
+       _forceLittleEndianKeys(false),
++#ifdef ARANGO_KV_STATS
++      _metricsRocksdbGetTime(
++          metrics.add(arangodb_rocksdb_get_time_total_us{})),
++      _metricsRocksdbGetCount(
++          metrics.add(arangodb_rocksdb_get_count_total{})),
++      _metricsRocksdbSeekTime(
++          metrics.add(arangodb_rocksdb_seek_time_total_us{})),
++      _metricsRocksdbSeekCount(
++          metrics.add(arangodb_rocksdb_seek_count_total{})),
++      _metricsRocksdbNextTime(
++          metrics.add(arangodb_rocksdb_next_time_total_us{})),
++      _metricsRocksdbNextCount(
++          metrics.add(arangodb_rocksdb_next_count_total{})),
++      _metricsRocksdbPrevTime(
++          metrics.add(arangodb_rocksdb_prev_time_total_us{})),
++      _metricsRocksdbPrevCount(
++          metrics.add(arangodb_rocksdb_prev_count_total{})),
++#endif
+       _metricsIndexEstimatorMemoryUsage(
+           metrics.add(arangodb_index_estimates_memory_usage{})),
+       _metricsWalReleasedTickFlush(
+@@ -3492,6 +3532,383 @@ DECLARE_GAUGE(rocksdb_live_blob_file_garbage_size, uint64_t,
+               "rocksdb_live_blob_file_garbage_size");
+ DECLARE_GAUGE(rocksdb_num_blob_files, uint64_t, "rocksdb_num_blob_files");
+ 
++#ifdef ARANGO_KV_STATS
++void RocksDBEngine::addRocksdbGetTime(uint64_t ns, uint64_t foundKeys,
++                                      uint64_t totalKeys, uint64_t bytes) noexcept {
++  _metricsRocksdbGetTime += ns / 1000;  // the Prometheus counters stay in microseconds
++  _metricsRocksdbGetCount += totalKeys;
++  _kvGetTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvGetCount.fetch_add(totalKeys, std::memory_order_relaxed);
++  _kvGetFoundCount.fetch_add(foundKeys, std::memory_order_relaxed);
++  _kvGetBytes.fetch_add(bytes, std::memory_order_relaxed);
++#ifdef ARANGO_KV_HISTOGRAMS
++  _kvGetHist.record(ns / 1000);  // histogram buckets are 1 us wide
++#endif
++}
++
++void RocksDBEngine::addRocksdbSeekTime(uint64_t ns, uint64_t bytes) noexcept {
++  _metricsRocksdbSeekTime += ns / 1000;  // the Prometheus counters stay in microseconds
++  ++_metricsRocksdbSeekCount;
++  _kvSeekTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvSeekCount.fetch_add(1, std::memory_order_relaxed);
++  _kvSeekBytes.fetch_add(bytes, std::memory_order_relaxed);
++#ifdef ARANGO_KV_HISTOGRAMS
++  _kvSeekHist.record(ns / 1000);  // histogram buckets are 1 us wide
++#endif
++}
++
++// Iterator creation: added to the seek time only (no seek_count, no histogram
++// sample, no Prometheus count), so seek_time_ns = creation + positioning.
++void RocksDBEngine::addRocksdbIteratorCreateTime(uint64_t ns) noexcept {
++  _metricsRocksdbSeekTime += ns / 1000;  // the Prometheus counters stay in microseconds
++  _kvSeekTimeNs.fetch_add(ns, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::addRocksdbNextTime(uint64_t ns, uint64_t bytes) noexcept {
++  _metricsRocksdbNextTime += ns / 1000;  // the Prometheus counters stay in microseconds
++  ++_metricsRocksdbNextCount;
++  _kvNextTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvNextCount.fetch_add(1, std::memory_order_relaxed);
++  _kvNextBytes.fetch_add(bytes, std::memory_order_relaxed);
++#ifdef ARANGO_KV_HISTOGRAMS
++  _kvNextHist.record(ns / 1000);  // histogram buckets are 1 us wide
++#endif
++}
++
++// Reverse iteration (Iterator::Prev). Tracked separately from Next so the split
++// mirrors NebulaGraph's iterator_next_* / iterator_prev_* counters; the cross-DB
++// reader folds next+prev into one "rows walked" figure for both engines.
++void RocksDBEngine::addRocksdbPrevTime(uint64_t ns, uint64_t bytes) noexcept {
++  _metricsRocksdbPrevTime += ns / 1000;  // the Prometheus counters stay in microseconds
++  ++_metricsRocksdbPrevCount;
++  _kvPrevTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvPrevCount.fetch_add(1, std::memory_order_relaxed);
++  _kvPrevBytes.fetch_add(bytes, std::memory_order_relaxed);
++#ifdef ARANGO_KV_HISTOGRAMS
++  _kvPrevHist.record(ns / 1000);  // histogram buckets are 1 us wide
++#endif
++}
++
++// Write-side counters (arangodb.unified.patch write parity, 2026-07-02). Unlike the
++// read counters these do not feed Prometheus (the resettable atomics behind /kvstats
++// are all mb2 needs) and have no latency histogram.
++void RocksDBEngine::addRocksdbPutTime(uint64_t ns, uint64_t bytes) noexcept {
++  _kvPutTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvPutCount.fetch_add(1, std::memory_order_relaxed);
++  _kvPutBytes.fetch_add(bytes, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::addRocksdbDeleteTime(uint64_t ns, uint64_t bytes) noexcept {
++  _kvDeleteTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvDeleteCount.fetch_add(1, std::memory_order_relaxed);
++  _kvDeleteBytes.fetch_add(bytes, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::addRocksdbCommitTime(uint64_t ns) noexcept {
++  _kvCommitTimeNs.fetch_add(ns, std::memory_order_relaxed);
++  _kvCommitCount.fetch_add(1, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::getKvStats(VPackBuilder& builder) const noexcept {
++  builder.add("get_count", VPackValue(_kvGetCount.load(std::memory_order_relaxed)));
++  builder.add("get_found_count", VPackValue(_kvGetFoundCount.load(std::memory_order_relaxed)));
++  builder.add("get_time_ns", VPackValue(_kvGetTimeNs.load(std::memory_order_relaxed)));
++  builder.add("get_bytes", VPackValue(_kvGetBytes.load(std::memory_order_relaxed)));
++  builder.add("seek_count", VPackValue(_kvSeekCount.load(std::memory_order_relaxed)));
++  builder.add("seek_time_ns", VPackValue(_kvSeekTimeNs.load(std::memory_order_relaxed)));
++  builder.add("seek_bytes", VPackValue(_kvSeekBytes.load(std::memory_order_relaxed)));
++  builder.add("next_count", VPackValue(_kvNextCount.load(std::memory_order_relaxed)));
++  builder.add("next_time_ns", VPackValue(_kvNextTimeNs.load(std::memory_order_relaxed)));
++  builder.add("next_bytes", VPackValue(_kvNextBytes.load(std::memory_order_relaxed)));
++  builder.add("prev_count", VPackValue(_kvPrevCount.load(std::memory_order_relaxed)));
++  builder.add("prev_time_ns", VPackValue(_kvPrevTimeNs.load(std::memory_order_relaxed)));
++  builder.add("prev_bytes", VPackValue(_kvPrevBytes.load(std::memory_order_relaxed)));
++  // Write-side (arangodb.unified.patch write parity). put = insert/update RocksDB Put;
++  // delete = real RocksDB Delete/SingleDelete; commit = one WriteBatch flush.
++  builder.add("put_count", VPackValue(_kvPutCount.load(std::memory_order_relaxed)));
++  builder.add("put_time_ns", VPackValue(_kvPutTimeNs.load(std::memory_order_relaxed)));
++  builder.add("put_bytes", VPackValue(_kvPutBytes.load(std::memory_order_relaxed)));
++  builder.add("delete_count", VPackValue(_kvDeleteCount.load(std::memory_order_relaxed)));
++  builder.add("delete_time_ns", VPackValue(_kvDeleteTimeNs.load(std::memory_order_relaxed)));
++  builder.add("delete_bytes", VPackValue(_kvDeleteBytes.load(std::memory_order_relaxed)));
++  builder.add("commit_count", VPackValue(_kvCommitCount.load(std::memory_order_relaxed)));
++  builder.add("commit_time_ns", VPackValue(_kvCommitTimeNs.load(std::memory_order_relaxed)));
++}
++
++void RocksDBEngine::resetKvStats() noexcept {
++  _kvGetTimeNs.store(0, std::memory_order_relaxed);
++  _kvGetCount.store(0, std::memory_order_relaxed);
++  _kvGetFoundCount.store(0, std::memory_order_relaxed);
++  _kvGetBytes.store(0, std::memory_order_relaxed);
++  _kvSeekTimeNs.store(0, std::memory_order_relaxed);
++  _kvSeekCount.store(0, std::memory_order_relaxed);
++  _kvSeekBytes.store(0, std::memory_order_relaxed);
++  _kvNextTimeNs.store(0, std::memory_order_relaxed);
++  _kvNextCount.store(0, std::memory_order_relaxed);
++  _kvNextBytes.store(0, std::memory_order_relaxed);
++  _kvPrevTimeNs.store(0, std::memory_order_relaxed);
++  _kvPrevCount.store(0, std::memory_order_relaxed);
++  _kvPrevBytes.store(0, std::memory_order_relaxed);
++  _kvPutTimeNs.store(0, std::memory_order_relaxed);
++  _kvPutCount.store(0, std::memory_order_relaxed);
++  _kvPutBytes.store(0, std::memory_order_relaxed);
++  _kvDeleteTimeNs.store(0, std::memory_order_relaxed);
++  _kvDeleteCount.store(0, std::memory_order_relaxed);
++  _kvDeleteBytes.store(0, std::memory_order_relaxed);
++  _kvCommitTimeNs.store(0, std::memory_order_relaxed);
++  _kvCommitCount.store(0, std::memory_order_relaxed);
++}
++
++// ── KV key trace (arangodb.unified.patch) ──────────────────────────────────
++// The ArangoDB analog of NebulaGraph's storaged /kvtrace. Records one entry per
++// engine-wrapper GET and per iterator SEEK landing key; NEXT/PREV are not traced
++// (counter-only) to keep the buffer bounded, exactly like Nebula traces seek
++// origins rather than every row walked.
++
++namespace {
++// Lowercase-hex encode raw key bytes (matches NebulaGraph's KVStatsCounters::toHex
++// so the Python decoders treat both engines' traces identically).
++std::string kvTraceToHex(rocksdb::Slice const& key) {
++  static char const hex[] = "0123456789abcdef";
++  std::string out;
++  out.reserve(key.size() * 2);
++  for (size_t i = 0; i < key.size(); ++i) {
++    unsigned char c = static_cast<unsigned char>(key.data()[i]);
++    out.push_back(hex[c >> 4]);
++    out.push_back(hex[c & 0x0f]);
++  }
++  return out;
++}
++}  // namespace
++
++void RocksDBEngine::appendKvTrace(char const* op, rocksdb::Slice const& key,
++                                  rocksdb::ColumnFamilyHandle* cf,
++                                  uint32_t valueSize) noexcept {
++  // Fast path: one relaxed load when tracing is off (the common case).
++  if (!_kvTraceEnabled.load(std::memory_order_relaxed)) {
++    return;
++  }
++  // Resolve the column family to its short external name (documents / primary /
++  // edge / vpack / ...). cf may be null for an unscoped handle; label it "unknown".
++  char const* cfName = cf ? RocksDBColumnFamilyManager::name(cf) : "unknown";
++  // This runs on the read path and is noexcept, but push_back / string alloc can
++  // throw std::bad_alloc. Swallow it: dropping a trace entry under memory
++  // pressure is acceptable, terminating arangod is not.
++  try {
++    // Every ArangoDB key begins with the 8-byte objectId; empty keys (an empty-CF
++    // SeekToFirst/Last) have none, so record 0. Resolved to a name at fetch time.
++    uint64_t oid = key.size() >= sizeof(uint64_t) ? RocksDBKey::objectId(key) : 0;
++    std::lock_guard<std::mutex> guard(_kvTraceMutex);
++    if (_kvTrace.size() < _kvTraceMax) {
++      _kvTrace.push_back(KVTraceEntry{op, kvTraceToHex(key), cfName, oid,
++                                      static_cast<uint32_t>(key.size()), valueSize});
++    }
++  } catch (...) {
++  }
++}
++
++// kvTraceEnable / kvTraceClear / kvTraceToVPack take a lock and (for toVPack)
++// build a multi-MB VPack — both can throw (std::system_error, std::bad_alloc).
++// They are called only from the REST handler, never the read path, so they are
++// NOT noexcept: a throw propagates up and the REST framework turns it into a
++// 500, rather than std::terminate. (kvTraceDisable is a lone atomic store, so it
++// stays noexcept.)
++void RocksDBEngine::kvTraceEnable(size_t maxEntries) {
++  std::lock_guard<std::mutex> guard(_kvTraceMutex);
++  _kvTrace.clear();
++  _kvTraceMax = maxEntries;
++  _kvTraceEnabled.store(true, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::kvTraceDisable() noexcept {
++  _kvTraceEnabled.store(false, std::memory_order_relaxed);
++}
++
++void RocksDBEngine::kvTraceClear() {
++  std::lock_guard<std::mutex> guard(_kvTraceMutex);
++  _kvTrace.clear();
++}
++
++void RocksDBEngine::kvTraceToVPack(VPackBuilder& builder) const {
++  // Snapshot the buffer under the trace lock, then resolve names + serialize
++  // WITHOUT it: kvTraceNameFor takes DatabaseFeature/vocbase locks, and we must
++  // never hold _kvTraceMutex while acquiring those (lock-order safety).
++  std::vector<KVTraceEntry> snapshot;
++  bool enabled;
++  size_t cap;
++  {
++    std::lock_guard<std::mutex> guard(_kvTraceMutex);
++    enabled = _kvTraceEnabled.load(std::memory_order_relaxed);
++    cap = _kvTraceMax;
++    snapshot = _kvTrace;  // copy (fetch path, not the read path)
++  }
++
++  builder.add("enabled", VPackValue(enabled));
++  builder.add("count", VPackValue(static_cast<uint64_t>(snapshot.size())));
++  builder.add("max", VPackValue(static_cast<uint64_t>(cap)));
++  builder.add("entries", VPackValue(VPackValueType::Array));
++  // A trace hits the same few collections/indexes thousands of times; resolve
++  // each objectId → name once.
++  std::unordered_map<uint64_t, std::string> nameCache;
++  for (auto const& e : snapshot) {
++    std::string name;
++    if (e.object_id != 0) {
++      auto it = nameCache.find(e.object_id);
++      if (it != nameCache.end()) {
++        name = it->second;
++      } else {
++        // documents keys map to a collection; every other CF is an index.
++        name = kvTraceNameFor(e.object_id, e.cf != "documents");
++        nameCache.emplace(e.object_id, name);
++      }
++    }
++    builder.add(VPackValue(VPackValueType::Object));
++    builder.add("op", VPackValue(e.op));
++    builder.add("key", VPackValue(e.key_hex));
++    builder.add("cf", VPackValue(e.cf));
++    builder.add("object_id", VPackValue(e.object_id));
++    builder.add("name", VPackValue(name));
++    builder.add("key_size", VPackValue(e.key_size));
++    builder.add("value_size", VPackValue(e.value_size));
++    builder.close();
++  }
++  builder.close();  // entries
++}
++
++// Resolve a traced objectId to a human name, at fetch time only. The engine's
++// objectId→collection/index maps give a logical (dbId, collectionId[, indexId]);
++// a DatabaseFeature lookup turns that into "Person" (documents) or
++// "Person.creationDate" (index). Mirrors the objectId→name resolution the WAL
++// tailer does. Empty string if the collection/index has since been dropped.
++std::string RocksDBEngine::kvTraceNameFor(uint64_t objectId, bool isIndex) const {
++  // Best-effort: a dropped collection/index or any lookup error yields an empty
++  // name, never a failed fetch (mirrors the WAL tailer's try/catch around useDatabase).
++  try {
++    auto& df = getDatabaseFeature();
++    if (isIndex) {
++      auto [dbid, cid, iid] = mapObjectToIndex(objectId);
++      if (dbid == 0 || cid.empty()) return {};
++      auto vocbase = df.useDatabase(dbid);
++      if (vocbase == nullptr) return {};
++      auto col = vocbase->lookupCollection(cid);
++      if (col == nullptr) return {};
++      std::string out = col->name();
++      auto idx = col->lookupIndex(iid);
++      if (idx != nullptr) {
++        // Label as collection.field(s), e.g. "Person.creationDate"; fall back to
++        // the index type ("Person.primary") when the index exposes no fields.
++        auto fieldPaths = idx->fieldNames();  // vector<vector<string>>
++        if (!fieldPaths.empty() && !fieldPaths[0].empty()) {
++          out += ".";
++          bool first = true;
++          for (auto const& path : fieldPaths) {
++            for (auto const& part : path) {
++              if (!first) out += ",";
++              first = false;
++              out += part;
++            }
++          }
++        } else {
++          out += ".";
++          out += idx->typeName();
++        }
++      }
++      return out;
++    }
++    auto [dbid, cid] = mapObjectToCollection(objectId);
++    if (dbid == 0 || cid.empty()) return {};
++    auto vocbase = df.useDatabase(dbid);
++    if (vocbase == nullptr) return {};
++    auto col = vocbase->lookupCollection(cid);
++    return col != nullptr ? col->name() : std::string{};
++  } catch (...) {
++    return {};
++  }
++}
++#endif  // ARANGO_KV_STATS
++
++#ifdef ARANGO_KV_HISTOGRAMS
++// Engine-wrapper latency-histogram emission. Emits {count, sum, min, max,
++// p50/p75/p99/p999, bucket_width, num_buckets, overflow_count, buckets} matching
++// Nebula's ResettableHistogram::toJson() bucket shape (see KvLatencyHistogram for
++// the get found/notfound caveat). One KvLatencyHistogram per op kind
++// (get/seek/next/prev; next = forward iteration, prev = reverse).
++void KvLatencyHistogram::toVPack(VPackBuilder& builder) const noexcept {
++  // Walk cumulative bucket counts to find the bucket containing the target rank,
++  // return its upper bound. Lambda over our members.
++  auto pct = [this](double p) -> uint64_t {
++    uint64_t total = count.load(std::memory_order_relaxed);
++    if (total == 0) return 0;
++    uint64_t threshold = static_cast<uint64_t>(total * p);
++    if (threshold == 0) threshold = 1;
++    uint64_t cumulative = 0;
++    for (uint32_t i = 0; i <= kNumBuckets; ++i) {
++      cumulative += buckets[i].load(std::memory_order_relaxed);
++      if (cumulative >= threshold) {
++        return static_cast<uint64_t>(i + 1) * kBucketWidth;
++      }
++    }
++    return static_cast<uint64_t>(kNumBuckets) * kBucketWidth;
++  };
++
++  uint64_t n = count.load(std::memory_order_relaxed);
++  uint64_t minVal = min.load(std::memory_order_relaxed);
++  uint64_t maxVal = max.load(std::memory_order_relaxed);
++  uint64_t overflow = buckets[kNumBuckets].load(std::memory_order_relaxed);
++
++  builder.add("count", VPackValue(n));
++  builder.add("sum", VPackValue(sum.load(std::memory_order_relaxed)));
++  builder.add("min", VPackValue(n > 0 ? minVal : 0));
++  builder.add("max", VPackValue(maxVal));
++  builder.add("p50", VPackValue(pct(0.50)));
++  builder.add("p75", VPackValue(pct(0.75)));
++  builder.add("p99", VPackValue(pct(0.99)));
++  builder.add("p999", VPackValue(pct(0.999)));
++  builder.add("bucket_width", VPackValue(kBucketWidth));
++  builder.add("num_buckets", VPackValue(kNumBuckets));
++  builder.add("overflow_count", VPackValue(overflow));
++  builder.add("buckets", VPackValue(VPackValueType::Array));
++  for (uint32_t i = 0; i <= kNumBuckets; ++i) {
++    uint64_t c = buckets[i].load(std::memory_order_relaxed);
++    if (c == 0) {
++      continue;
++    }
++    builder.add(VPackValue(VPackValueType::Object));
++    builder.add("lo", VPackValue(static_cast<uint64_t>(i) * kBucketWidth));
++    if (i == kNumBuckets) {
++      builder.add("hi", VPackValue(VPackValueType::Null));
++    } else {
++      builder.add("hi", VPackValue(static_cast<uint64_t>(i + 1) * kBucketWidth));
++    }
++    builder.add("count", VPackValue(c));
++    builder.close();
++  }
++  builder.close();  // buckets array
++}
++
++void RocksDBEngine::kvLatencyHistogramsToVPack(VPackBuilder& builder) const noexcept {
++  builder.add("get_latency", VPackValue(VPackValueType::Object));
++  _kvGetHist.toVPack(builder);
++  builder.close();
++  builder.add("seek_latency", VPackValue(VPackValueType::Object));
++  _kvSeekHist.toVPack(builder);
++  builder.close();
++  builder.add("next_latency", VPackValue(VPackValueType::Object));
++  _kvNextHist.toVPack(builder);
++  builder.close();
++  builder.add("prev_latency", VPackValue(VPackValueType::Object));
++  _kvPrevHist.toVPack(builder);
++  builder.close();
++}
++
++void RocksDBEngine::resetKvLatencyHistograms() noexcept {
++  _kvGetHist.reset();
++  _kvSeekHist.reset();
++  _kvNextHist.reset();
++  _kvPrevHist.reset();
++}
++#endif  // ARANGO_KV_HISTOGRAMS
++
+ void RocksDBEngine::getCapabilities(velocypack::Builder& builder) const {
+   // get generic capabilities
+   VPackBuilder main;
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.h b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.h
+index ccc2aa1d8..ce8484aed 100644
+--- a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.h
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBEngine.h
+@@ -27,6 +27,8 @@
+ #include <chrono>
+ #include <deque>
+ #include <map>
++#include <array>
++#include <atomic>
+ #include <memory>
+ #include <mutex>
+ #include <string>
+@@ -160,6 +162,80 @@ struct ICompactKeyRange {
+   virtual void compactRange(RocksDBKeyBounds bounds) = 0;
+ };
+ 
++#ifdef ARANGO_KV_HISTOGRAMS
++// arangodb.unified.patch — a small resettable latency histogram for the
++// engine-wrapper KV ops (GET/SEEK/NEXT). RocksDB ships no per-op micros that the
++// wrapper layer can attribute, so we keep our own, one instance per op kind. The
++// JSON shape (count/sum/min/max/percentiles + {lo,hi,count} buckets) follows
++// NebulaGraph's ResettableHistogram, so a generic histogram reader handles both.
++// Caveat: Nebula splits its GET histogram into get_found_latency/get_notfound_latency
++// (2026-06-29); ArangoDB emits a single get_latency here — the found/total split
++// lives in the flat ARANGO_KV_STATS counts instead, not in the histogram.
++// Linear 1us buckets up to 10ms + one overflow bucket. All atomics, so it
++// updates lock-free from the read path. Recorded only when ARANGO_KV_STATS is also
++// on (that path supplies the timing); ARANGO_KV_HISTOGRAMS requires ARANGO_KV_STATS.
++struct KvLatencyHistogram {
++  static constexpr uint32_t kBucketWidth = 1;      // us per bucket
++  static constexpr uint32_t kNumBuckets = 10000;   // 0..10ms range
++  std::atomic<uint64_t> count{0};
++  std::atomic<uint64_t> sum{0};
++  std::atomic<uint64_t> min{UINT64_MAX};
++  std::atomic<uint64_t> max{0};
++  std::array<std::atomic<uint64_t>, kNumBuckets + 1> buckets{};
++
++  // CAS-loop min/max + linear bucket increment (lock-free).
++  void record(uint64_t us) noexcept {
++    count.fetch_add(1, std::memory_order_relaxed);
++    sum.fetch_add(us, std::memory_order_relaxed);
++    uint64_t cur = min.load(std::memory_order_relaxed);
++    while (us < cur &&
++           !min.compare_exchange_weak(cur, us, std::memory_order_relaxed)) {
++    }
++    cur = max.load(std::memory_order_relaxed);
++    while (us > cur &&
++           !max.compare_exchange_weak(cur, us, std::memory_order_relaxed)) {
++    }
++    uint32_t idx = static_cast<uint32_t>(us / kBucketWidth);
++    if (idx > kNumBuckets) {
++      idx = kNumBuckets;
++    }
++    buckets[idx].fetch_add(1, std::memory_order_relaxed);
++  }
++
++  void reset() noexcept {
++    count.store(0, std::memory_order_relaxed);
++    sum.store(0, std::memory_order_relaxed);
++    min.store(UINT64_MAX, std::memory_order_relaxed);
++    max.store(0, std::memory_order_relaxed);
++    for (uint32_t i = 0; i <= kNumBuckets; ++i) {
++      buckets[i].store(0, std::memory_order_relaxed);
++    }
++  }
++
++  // Emit {count, sum, min, max, p50/p75/p99/p999, bucket_width, num_buckets,
++  // overflow_count, buckets:[{lo,hi,count}]} — defined in RocksDBEngine.cpp.
++  void toVPack(velocypack::Builder& builder) const noexcept;
++};
++#endif
++
++#ifdef ARANGO_KV_STATS
++// arangodb.unified.patch — one entry in the KV key trace. Mirrors NebulaGraph's
++// KVTraceEntry {op, key_hex}, plus the RocksDB column-family label (the external
++// names: documents / primary / edge / vpack / ...), which tells you the *kind* of key without
++// decoding the bytes — richer than Nebula's raw-key trace. Only GET and iterator
++// SEEK append entries (op = "get" | "seek"); NEXT/PREV stay counter-only so a
++// row-walk can't explode the buffer (Nebula traces seek-origins the same way).
++struct KVTraceEntry {
++  std::string op;
++  std::string key_hex;
++  std::string cf;
++  uint64_t object_id;  // RocksDB objectId (first 8 key bytes): the collection or
++                       // index id; resolved to a name at fetch (kvTraceNameFor).
++  uint32_t key_size;
++  uint32_t value_size;
++};
++#endif
++
+ class RocksDBEngine final : public StorageEngine, public ICompactKeyRange {
+   friend class RocksDBFilePurgePreventer;
+   friend class RocksDBFilePurgeEnabler;
+@@ -231,6 +307,84 @@ class RocksDBEngine final : public StorageEngine, public ICompactKeyRange {
+   void toPrometheus(std::string& result, std::string_view globals,
+                     bool ensureWhitespace) const override;
+ 
++#ifdef ARANGO_KV_STATS
++  /// @brief add elapsed nanoseconds (steady_clock), op counts, and bytes for engine-wrapper
++  /// RocksDB reads. Updates both the cumulative Prometheus counters and the
++  /// resettable atomics behind /_admin/kvstats. For Get/MultiGet, foundKeys =
++  /// number of keys whose Status was ok(), totalKeys = number queried (1 for a
++  /// single Get, count for MultiGet), bytes = value bytes read. For Seek/Next,
++  /// bytes = key+value bytes at the landed position (0 if the iterator is
++  /// invalid). These are hand counters at the RocksDBMethods / TimedRocksDBIterator
++  /// wrapper — the ArangoDB analog of NebulaGraph's KV_STATS RocksEngine counters.
++  /// Compiled only when -DARANGO_KV_STATS=ON (see arangodb.unified.patch).
++  void addRocksdbGetTime(uint64_t ns, uint64_t foundKeys, uint64_t totalKeys,
++                         uint64_t bytes) noexcept;
++  void addRocksdbSeekTime(uint64_t ns, uint64_t bytes) noexcept;
++  // Iterator creation (NewIterator) time, folded into the seek time without
++  // counting a seek, as Dgraph and NebulaGraph fold it into their seek time.
++  void addRocksdbIteratorCreateTime(uint64_t ns) noexcept;
++  // Next = forward iteration, Prev = reverse iteration, tracked separately to
++  // mirror NebulaGraph's iterator_next_*/iterator_prev_* counters.
++  void addRocksdbNextTime(uint64_t ns, uint64_t bytes) noexcept;
++  void addRocksdbPrevTime(uint64_t ns, uint64_t bytes) noexcept;
++  // arangodb.unified.patch (write parity, 2026-07-02): the write-side analog of the
++  // read counters above. Put = RocksDB Put/PutUntracked (insert/update), Delete =
++  // Delete/SingleDelete (real RocksDB deletes — unlike Dgraph's tombstone-SETs),
++  // Commit = one commitTransaction() (the final commit). bytes = the logical entry
++  // size, key+value for a Put / key for a Delete (NOT the WriteBatch capacity delta,
++  // which doubles geometrically and is meaningless per-op). Makes Arango's per-op
++  // writes measurable like Nebula's put/remove/commit. SCOPE: these count LOGICAL
++  // writes through the transaction Methods, which is complete for single-document AQL
++  // INSERT/UPDATE/REMOVE (the mb2 workload). NOT counted (out of scope, keep the
++  // server quiescent): intermediate commits of large txns (they call doCommit()
++  // directly, so commit_count would undercount), index-build/sort-spill writes (a
++  // separate RocksDBBatchedMethods hierarchy), and engine-internal background writes.
++  // An empty (no-op) transaction that commits still bumps commit_count.
++  void addRocksdbPutTime(uint64_t ns, uint64_t bytes) noexcept;
++  void addRocksdbDeleteTime(uint64_t ns, uint64_t bytes) noexcept;
++  void addRocksdbCommitTime(uint64_t ns) noexcept;
++
++  /// @brief REST endpoint helpers for /_admin/kvstats — flat engine-wrapper
++  /// get_/seek_/next_/prev_ count + found + time_ns + bytes fields (next = forward
++  /// iteration, prev = reverse, split like NebulaGraph's iterator_next/prev).
++  void getKvStats(velocypack::Builder& builder) const noexcept;
++  void resetKvStats() noexcept;
++
++  /// @brief KV key tracing (arangodb.unified.patch), the ArangoDB analog of
++  /// NebulaGraph's /kvtrace. When enabled via PUT /_admin/kvtrace/enable, each
++  /// engine-wrapper GET and iterator SEEK appends a {op, key_hex, cf, sizes}
++  /// entry; NEXT/PREV stay counter-only. Overhead when disabled is one atomic
++  /// load (the _kvTraceEnabled check). The buffer is process-global like the
++  /// counters, so keep the server quiescent during a measured trace.
++  void appendKvTrace(char const* op, rocksdb::Slice const& key,
++                     rocksdb::ColumnFamilyHandle* cf,
++                     uint32_t valueSize = 0) noexcept;
++  // Not noexcept: called only from the REST handler; a lock/alloc failure
++  // propagates to a 500 instead of terminating (see RocksDBEngine.cpp).
++  void kvTraceEnable(size_t maxEntries);
++  void kvTraceDisable() noexcept;
++  void kvTraceClear();
++  bool kvTraceEnabled() const noexcept {
++    return _kvTraceEnabled.load(std::memory_order_relaxed);
++  }
++  void kvTraceToVPack(velocypack::Builder& builder) const;
++  // Resolve a traced objectId to a human name (documents → collection "Person";
++  // index → "Person.creationDate"). Runs only at fetch (REST lane), via the
++  // engine's objectId→collection/index maps + a DatabaseFeature lookup. Empty
++  // string if the collection/index is gone. See RocksDBEngine.cpp.
++  std::string kvTraceNameFor(uint64_t objectId, bool isIndex) const;
++#endif
++
++#ifdef ARANGO_KV_HISTOGRAMS
++  /// @brief Emit the engine-wrapper latency histograms as get_latency /
++  /// seek_latency / next_latency / prev_latency sub-objects (RocksDB ships no
++  /// per-op micros the wrapper can attribute, so we keep our own — same bucket
++  /// schema as NebulaGraph's ResettableHistogram). Requires ARANGO_KV_STATS,
++  /// which supplies the per-op timing. See arangodb.unified.patch.
++  void kvLatencyHistogramsToVPack(velocypack::Builder& builder) const noexcept;
++  void resetKvLatencyHistograms() noexcept;
++#endif
++
+   // inventory functionality
+   // -----------------------
+ 
+@@ -820,6 +974,61 @@ class RocksDBEngine final : public StorageEngine, public ICompactKeyRange {
+ 
+   bool _forceLittleEndianKeys;  // force new database to use old format
+ 
++#ifdef ARANGO_KV_STATS
++  // Cumulative Prometheus counters (never reset — for global monitoring).
++  metrics::Counter& _metricsRocksdbGetTime;
++  metrics::Counter& _metricsRocksdbGetCount;
++  metrics::Counter& _metricsRocksdbSeekTime;
++  metrics::Counter& _metricsRocksdbSeekCount;
++  metrics::Counter& _metricsRocksdbNextTime;
++  metrics::Counter& _metricsRocksdbNextCount;
++  metrics::Counter& _metricsRocksdbPrevTime;
++  metrics::Counter& _metricsRocksdbPrevCount;
++
++  // Resettable atomics for /_admin/kvstats endpoint (reset between queries).
++  std::atomic<uint64_t> _kvGetTimeNs{0};
++  std::atomic<uint64_t> _kvGetCount{0};
++  std::atomic<uint64_t> _kvGetFoundCount{0};
++  std::atomic<uint64_t> _kvGetBytes{0};
++  std::atomic<uint64_t> _kvSeekTimeNs{0};
++  std::atomic<uint64_t> _kvSeekCount{0};
++  std::atomic<uint64_t> _kvSeekBytes{0};
++  std::atomic<uint64_t> _kvNextTimeNs{0};
++  std::atomic<uint64_t> _kvNextCount{0};
++  std::atomic<uint64_t> _kvNextBytes{0};
++  std::atomic<uint64_t> _kvPrevTimeNs{0};
++  std::atomic<uint64_t> _kvPrevCount{0};
++  std::atomic<uint64_t> _kvPrevBytes{0};
++  // Write-side resettable atomics (arangodb.unified.patch write parity, 2026-07-02).
++  std::atomic<uint64_t> _kvPutTimeNs{0};
++  std::atomic<uint64_t> _kvPutCount{0};
++  std::atomic<uint64_t> _kvPutBytes{0};
++  std::atomic<uint64_t> _kvDeleteTimeNs{0};
++  std::atomic<uint64_t> _kvDeleteCount{0};
++  std::atomic<uint64_t> _kvDeleteBytes{0};
++  std::atomic<uint64_t> _kvCommitTimeNs{0};
++  std::atomic<uint64_t> _kvCommitCount{0};
++
++  // KV key trace buffer (arangodb.unified.patch). _kvTraceEnabled gates the
++  // append on the read path so the disabled cost is a single atomic load; the
++  // mutex only serialises appends while a trace is actually running. Bounded by
++  // _kvTraceMax (overridable via PUT /_admin/kvtrace/enable?max=N).
++  std::atomic<bool> _kvTraceEnabled{false};
++  mutable std::mutex _kvTraceMutex;
++  std::vector<KVTraceEntry> _kvTrace;
++  size_t _kvTraceMax{100000};
++#endif
++
++#ifdef ARANGO_KV_HISTOGRAMS
++  // Engine-wrapper latency histograms, one per op kind (RocksDB has no native
++  // per-op micros the wrapper can attribute). Each is ~80KB of atomics; recorded
++  // from addRocksdb{Get,Seek,Next,Prev}Time, which only run under ARANGO_KV_STATS.
++  KvLatencyHistogram _kvGetHist;
++  KvLatencyHistogram _kvSeekHist;
++  KvLatencyHistogram _kvNextHist;
++  KvLatencyHistogram _kvPrevHist;
++#endif
++
+   metrics::Gauge<uint64_t>& _metricsIndexEstimatorMemoryUsage;
+   metrics::Gauge<uint64_t>& _metricsWalReleasedTickFlush;
+   metrics::Gauge<uint64_t>& _metricsWalSequenceLowerBound;
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.cpp
+new file mode 100644
+index 000000000..5e67c14e3
+--- /dev/null
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.cpp
+@@ -0,0 +1,149 @@
++////////////////////////////////////////////////////////////////////////////////
++/// Unified REST handler for /_admin/kvstats — per-query RocksDB KV statistics.
++///
++/// Emits whichever sections are compiled in (ARANGO_KV_TICKERS / ARANGO_KV_HISTOGRAMS
++/// / ARANGO_KV_STATS). See arangodb.unified.patch.
++////////////////////////////////////////////////////////////////////////////////
++
++#include "RocksDBRestKVStatsHandler.h"
++
++#include "ApplicationFeatures/ApplicationServer.h"
++#include "RocksDBEngine/RocksDBEngine.h"
++#include "StorageEngine/EngineSelectorFeature.h"
++
++#ifdef ARANGO_KV_TICKERS
++// Native tickers + native histograms both read RocksDB's statistics object.
++#include <rocksdb/statistics.h>
++#endif
++
++using namespace arangodb;
++using namespace arangodb::rest;
++
++RocksDBRestKVStatsHandler::RocksDBRestKVStatsHandler(
++    application_features::ApplicationServer& server, GeneralRequest* request,
++    GeneralResponse* response)
++    : RestBaseHandler(server, request, response) {}
++
++RestStatus RocksDBRestKVStatsHandler::execute() {
++  auto const type = _request->requestType();
++  auto const& suffixes = _request->suffixes();
++
++  if (type == rest::RequestType::GET && suffixes.empty()) {
++    readStats();
++  } else if (type == rest::RequestType::PUT && suffixes.size() == 1 &&
++             suffixes[0] == "reset") {
++    resetStats();
++  } else {
++    generateError(rest::ResponseCode::METHOD_NOT_ALLOWED,
++                  TRI_ERROR_HTTP_METHOD_NOT_ALLOWED,
++                  "use GET /_admin/kvstats or PUT /_admin/kvstats/reset");
++  }
++  return RestStatus::DONE;
++}
++
++void RocksDBRestKVStatsHandler::readStats() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  (void)engine;  // may be unused if no instrumentation flag is set
++
++  VPackBuilder builder;
++  builder.openObject();
++
++#ifdef ARANGO_KV_TICKERS
++  // RocksDB native statistics — the process-global op-count tickers and the
++  // native latency histograms. Both come from RocksDB's own statistics object,
++  // so both need --rocksdb.enable-statistics true and live under one flag. This
++  // is the layer ArangoDB has but NebulaGraph does not; the engine-wrapper counts
++  // (ARANGO_KV_STATS) are the apples-to-apples cross-DB signal.
++  {
++    auto const& opts = engine.rocksDBOptions();
++    if (opts.statistics) {
++      // Ticker counts — all standard RocksDB tickers (op counts).
++      builder.add("tickers", VPackValue(VPackValueType::Object));
++      for (auto const& t : rocksdb::TickersNameMap) {
++        builder.add(t.second,
++                    VPackValue(opts.statistics->getTickerCount(t.first)));
++      }
++      builder.close();  // tickers
++      // Native RocksDB latency histograms (db.get.micros, etc.).
++      builder.add("native_histograms", VPackValue(VPackValueType::Object));
++      for (auto const& h : rocksdb::HistogramsNameMap) {
++        rocksdb::HistogramData data;
++        opts.statistics->histogramData(h.first, &data);
++        if (data.count > 0) {
++          builder.add(h.second, VPackValue(VPackValueType::Object));
++          builder.add("count", VPackValue(data.count));
++          builder.add("sum", VPackValue(data.sum));
++          builder.add("avg", VPackValue(data.average));
++          builder.add("median", VPackValue(data.median));
++          builder.add("p95", VPackValue(data.percentile95));
++          builder.add("p99", VPackValue(data.percentile99));
++          builder.add("min", VPackValue(data.min));
++          builder.add("max", VPackValue(data.max));
++          // Raw RocksDB bucket-distribution text dump. Each non-empty bucket line
++          // is "[ lo, hi ) count pct% cum% ##bars" — parsed Python-side. RocksDB's
++          // public Statistics API doesn't expose raw bucket counts any other way.
++          builder.add("buckets_raw",
++                      VPackValue(opts.statistics->getHistogramString(h.first)));
++          builder.close();  // histogram entry
++        }
++      }
++      builder.close();  // native_histograms
++    } else {
++      // Compiled with ARANGO_KV_TICKERS but the server was started without
++      // --rocksdb.enable-statistics true: report it rather than failing, so the
++      // engine-wrapper sections below are still returned.
++      builder.add("statistics_enabled", VPackValue(false));
++    }
++  }
++#endif  // ARANGO_KV_TICKERS
++
++#ifdef ARANGO_KV_STATS
++  // Engine-wrapper hand counters: flat get_/seek_/next_/prev_ count + found +
++  // time_ns + bytes from the RocksDBMethods / TimedRocksDBIterator path (next =
++  // forward iteration, prev = reverse, split like NebulaGraph's iterator_next/prev).
++  // No runtime flag needed. The ArangoDB analog of NebulaGraph's KV_STATS counters.
++  engine.getKvStats(builder);
++#endif
++
++#ifdef ARANGO_KV_HISTOGRAMS
++  // Engine-wrapper latency histograms: get_latency / seek_latency / next_latency /
++  // prev_latency, hand-maintained from the same timing as ARANGO_KV_STATS (no
++  // RocksDB statistics needed). Same {lo,hi,count} bucket schema as NebulaGraph's
++  // KV_HISTOGRAMS (see KvLatencyHistogram for the GET found/notfound caveat).
++  // Requires ARANGO_KV_STATS.
++  builder.add("histograms", VPackValue(VPackValueType::Object));
++  engine.kvLatencyHistogramsToVPack(builder);
++  builder.close();  // histograms
++#endif
++
++  builder.close();  // root object
++  generateResult(rest::ResponseCode::OK, builder.slice());
++}
++
++void RocksDBRestKVStatsHandler::resetStats() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  (void)engine;
++
++#ifdef ARANGO_KV_TICKERS
++  {
++    auto const& opts = engine.rocksDBOptions();
++    if (opts.statistics) {
++      opts.statistics->Reset();
++    }
++  }
++#endif
++#ifdef ARANGO_KV_STATS
++  engine.resetKvStats();
++#endif
++#ifdef ARANGO_KV_HISTOGRAMS
++  engine.resetKvLatencyHistograms();
++#endif
++
++  VPackBuilder result;
++  result.openObject();
++  result.add("reset", VPackValue(true));
++  result.close();
++  generateResult(rest::ResponseCode::OK, result.slice());
++}
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.h b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.h
+new file mode 100644
+index 000000000..bc9216f9f
+--- /dev/null
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVStatsHandler.h
+@@ -0,0 +1,42 @@
++////////////////////////////////////////////////////////////////////////////////
++/// Unified REST handler for per-query RocksDB KV statistics.
++///
++///   GET  /_admin/kvstats        — read whatever instrumentation is compiled in
++///   PUT  /_admin/kvstats/reset  — reset all counters to zero
++///
++/// The response is a superset shaped by the compile-time flags (see
++/// arangodb.unified.patch). Flag names are aligned with NebulaGraph's by layer:
++///   ARANGO_KV_TICKERS    → "tickers" + "native_histograms" (RocksDB native,
++///                          process-global; no NebulaGraph analog)
++///   ARANGO_KV_STATS      → flat get_/seek_/next_/prev_ count + found + time_ns +
++///                          bytes (engine-wrapper hand counters, next=forward /
++///                          prev=reverse; = NebulaGraph KV_STATS)
++///   ARANGO_KV_HISTOGRAMS → "histograms" (engine-wrapper get/seek/next/prev latency
++///                          histograms; NebulaGraph-aligned bucket shape, but a
++///                          single get_latency vs Nebula's found/notfound split;
++///                          needs KV_STATS)
++///
++/// ARANGO_KV_TICKERS needs --rocksdb.enable-statistics true; the engine-wrapper
++/// sections (KV_STATS / KV_HISTOGRAMS) need no runtime flag.
++////////////////////////////////////////////////////////////////////////////////
++
++#pragma once
++
++#include "RestHandler/RestBaseHandler.h"
++
++namespace arangodb {
++
++class RocksDBRestKVStatsHandler : public arangodb::RestBaseHandler {
++ public:
++  RocksDBRestKVStatsHandler(application_features::ApplicationServer&,
++                            GeneralRequest*, GeneralResponse*);
++
++  RestStatus execute() override;
++  char const* name() const override { return "RocksDBRestKVStatsHandler"; }
++  RequestLane lane() const override final { return RequestLane::CLIENT_SLOW; }
++
++ private:
++  void readStats();
++  void resetStats();
++};
++}  // namespace arangodb
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.cpp b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.cpp
+new file mode 100644
+index 000000000..8aebf28aa
+--- /dev/null
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.cpp
+@@ -0,0 +1,103 @@
++////////////////////////////////////////////////////////////////////////////////
++/// REST handler for per-key RocksDB KV tracing (arangodb.unified.patch).
++/// See RocksDBRestKVTraceHandler.h for the endpoint contract.
++////////////////////////////////////////////////////////////////////////////////
++
++#include "RocksDBRestKVTraceHandler.h"
++
++#include "ApplicationFeatures/ApplicationServer.h"
++#include "RocksDBEngine/RocksDBEngine.h"
++#include "StorageEngine/EngineSelectorFeature.h"
++
++using namespace arangodb;
++using namespace arangodb::rest;
++
++RocksDBRestKVTraceHandler::RocksDBRestKVTraceHandler(
++    application_features::ApplicationServer& server, GeneralRequest* request,
++    GeneralResponse* response)
++    : RestBaseHandler(server, request, response) {}
++
++RestStatus RocksDBRestKVTraceHandler::execute() {
++  auto const type = _request->requestType();
++  auto const& suffixes = _request->suffixes();
++
++  if (type == rest::RequestType::GET && suffixes.empty()) {
++    readTrace();
++  } else if (type == rest::RequestType::PUT && suffixes.size() == 1 &&
++             suffixes[0] == "enable") {
++    enableTrace();
++  } else if (type == rest::RequestType::PUT && suffixes.size() == 1 &&
++             suffixes[0] == "disable") {
++    disableTrace();
++  } else if (type == rest::RequestType::PUT && suffixes.size() == 1 &&
++             suffixes[0] == "clear") {
++    clearTrace();
++  } else {
++    generateError(rest::ResponseCode::METHOD_NOT_ALLOWED,
++                  TRI_ERROR_HTTP_METHOD_NOT_ALLOWED,
++                  "use GET /_admin/kvtrace, or PUT /_admin/kvtrace/"
++                  "{enable[?max=N],disable,clear}");
++  }
++  return RestStatus::DONE;
++}
++
++#ifdef ARANGO_KV_STATS
++void RocksDBRestKVTraceHandler::readTrace() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  VPackBuilder builder;
++  builder.openObject();
++  engine.kvTraceToVPack(builder);
++  builder.close();
++  generateResult(rest::ResponseCode::OK, builder.slice());
++}
++
++void RocksDBRestKVTraceHandler::enableTrace() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  // ?max=N caps the buffer; default mirrors NebulaGraph's 100000.
++  uint64_t maxEntries = _request->parsedValue<uint64_t>("max", 100000);
++  engine.kvTraceEnable(static_cast<size_t>(maxEntries));
++
++  VPackBuilder result;
++  result.openObject();
++  result.add("enabled", VPackValue(true));
++  result.add("max", VPackValue(maxEntries));
++  result.close();
++  generateResult(rest::ResponseCode::OK, result.slice());
++}
++
++void RocksDBRestKVTraceHandler::disableTrace() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  engine.kvTraceDisable();
++
++  VPackBuilder result;
++  result.openObject();
++  result.add("enabled", VPackValue(false));
++  result.close();
++  generateResult(rest::ResponseCode::OK, result.slice());
++}
++
++void RocksDBRestKVTraceHandler::clearTrace() {
++  auto& engine =
++      server().getFeature<EngineSelectorFeature>().engine<RocksDBEngine>();
++  engine.kvTraceClear();
++
++  VPackBuilder result;
++  result.openObject();
++  result.add("cleared", VPackValue(true));
++  result.close();
++  generateResult(rest::ResponseCode::OK, result.slice());
++}
++#else
++// Built without -DARANGO_KV_STATS: the trace buffer does not exist. Report it
++// rather than failing to link, so the endpoint degrades gracefully.
++void RocksDBRestKVTraceHandler::readTrace() {
++  generateError(rest::ResponseCode::NOT_IMPLEMENTED, TRI_ERROR_NOT_IMPLEMENTED,
++                "KV tracing not compiled in (needs -DARANGO_KV_STATS=ON)");
++}
++void RocksDBRestKVTraceHandler::enableTrace() { readTrace(); }
++void RocksDBRestKVTraceHandler::disableTrace() { readTrace(); }
++void RocksDBRestKVTraceHandler::clearTrace() { readTrace(); }
++#endif
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.h b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.h
+new file mode 100644
+index 000000000..edde95cf0
+--- /dev/null
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/RocksDBRestKVTraceHandler.h
+@@ -0,0 +1,41 @@
++////////////////////////////////////////////////////////////////////////////////
++/// REST handler for per-key RocksDB KV tracing — the ArangoDB analog of
++/// NebulaGraph's storaged /kvtrace.
++///
++///   PUT  /_admin/kvtrace/enable[?max=N] — start tracing (clears the buffer;
++///                                         default cap 100000 entries)
++///   PUT  /_admin/kvtrace/disable        — stop tracing
++///   PUT  /_admin/kvtrace/clear          — empty the buffer, keep tracing state
++///   GET  /_admin/kvtrace                — read the captured entries
++///
++/// Each entry is {op, key (hex), cf, key_size, value_size}. Only engine-wrapper
++/// GETs and iterator SEEKs are traced (op = "get" | "seek"); NEXT/PREV stay
++/// counter-only so a row-walk can't explode the buffer (see arangodb.unified.patch).
++///
++/// The whole feature lives behind -DARANGO_KV_STATS=ON (the trace buffer hangs off
++/// the same RocksDBEngine instrumentation). When that flag is off, the endpoints
++/// report that tracing was not compiled in rather than failing to link.
++////////////////////////////////////////////////////////////////////////////////
++
++#pragma once
++
++#include "RestHandler/RestBaseHandler.h"
++
++namespace arangodb {
++
++class RocksDBRestKVTraceHandler : public arangodb::RestBaseHandler {
++ public:
++  RocksDBRestKVTraceHandler(application_features::ApplicationServer&,
++                            GeneralRequest*, GeneralResponse*);
++
++  RestStatus execute() override;
++  char const* name() const override { return "RocksDBRestKVTraceHandler"; }
++  RequestLane lane() const override final { return RequestLane::CLIENT_SLOW; }
++
++ private:
++  void readTrace();
++  void enableTrace();
++  void disableTrace();
++  void clearTrace();
++};
++}  // namespace arangodb
+diff --git a/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/TimedRocksDBIterator.h b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/TimedRocksDBIterator.h
+new file mode 100644
+index 000000000..c586aaa07
+--- /dev/null
++++ b/arangodb/arangodb-3.12.8/arangod/RocksDBEngine/TimedRocksDBIterator.h
+@@ -0,0 +1,123 @@
++////////////////////////////////////////////////////////////////////////////////
++/// @brief Iterator decorator that times Seek and Next/Prev operations.
++///
++/// Wraps a rocksdb::Iterator and increments the global RocksDBEngine seek/next
++/// time, count, and byte counters. Created by instrumented NewIterator()
++/// implementations. Bytes = key+value size at the position the op landed on.
++///
++/// Compiled only when -DARANGO_KV_STATS=ON (see arangodb.unified.patch). When
++/// the flag is off this header is empty, so it is safe to include unconditionally.
++////////////////////////////////////////////////////////////////////////////////
++
++#pragma once
++
++#ifdef ARANGO_KV_STATS
++
++#include "RocksDBEngine/RocksDBEngine.h"
++
++#include <chrono>
++#include <memory>
++#include <rocksdb/iterator.h>
++
++namespace arangodb {
++
++class TimedRocksDBIterator final : public rocksdb::Iterator {
++ public:
++  TimedRocksDBIterator(std::unique_ptr<rocksdb::Iterator> inner,
++                       RocksDBEngine& engine, rocksdb::ColumnFamilyHandle* cf)
++      : _inner(std::move(inner)), _engine(engine), _cf(cf) {}
++
++  // --- Seek operations (timed → seek counter) ---
++
++  void Seek(rocksdb::Slice const& target) override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->Seek(target);
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbSeekTime(ns, landedBytes());
++    // Trace the probed key (the seek origin), mirroring NebulaGraph's
++    // appendTrace("prefix"/"range", start). The target carries the objectId that
++    // identifies the collection/index probed even if the seek lands nowhere.
++    _engine.appendKvTrace("seek", target, _cf);
++  }
++
++  void SeekToFirst() override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->SeekToFirst();
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbSeekTime(ns, landedBytes());
++    // No target key for a full-CF seek; record where the cursor landed (or an
++    // empty key if the family is empty) so #seek entries == seek_count exactly.
++    _engine.appendKvTrace("seek", _inner->Valid() ? _inner->key() : rocksdb::Slice(),
++                          _cf);
++  }
++
++  void SeekToLast() override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->SeekToLast();
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbSeekTime(ns, landedBytes());
++    // No target key for a full-CF seek; record where the cursor landed (or an
++    // empty key if the family is empty) so #seek entries == seek_count exactly.
++    _engine.appendKvTrace("seek", _inner->Valid() ? _inner->key() : rocksdb::Slice(),
++                          _cf);
++  }
++
++  void SeekForPrev(rocksdb::Slice const& target) override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->SeekForPrev(target);
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbSeekTime(ns, landedBytes());
++    _engine.appendKvTrace("seek", target, _cf);
++  }
++
++  // --- Next/Prev operations (forward → next counter, reverse → prev counter) ---
++
++  void Next() override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->Next();
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbNextTime(ns, landedBytes());
++  }
++
++  void Prev() override {
++    auto start = std::chrono::steady_clock::now();
++    _inner->Prev();
++    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
++        std::chrono::steady_clock::now() - start).count();
++    _engine.addRocksdbPrevTime(ns, landedBytes());
++  }
++
++  // --- Pass-through (no timing) ---
++
++  bool Valid() const override { return _inner->Valid(); }
++  rocksdb::Slice key() const override { return _inner->key(); }
++  rocksdb::Slice value() const override { return _inner->value(); }
++  rocksdb::Status status() const override { return _inner->status(); }
++  rocksdb::Slice timestamp() const override { return _inner->timestamp(); }
++  rocksdb::Status Refresh() override { return _inner->Refresh(); }
++  rocksdb::Status Refresh(rocksdb::Snapshot const* snap) override {
++    return _inner->Refresh(snap);
++  }
++
++ private:
++  // Bytes at the iterator's current position (0 if it ran off the end). Reading
++  // key()/value() on an invalid iterator is undefined, so guard with Valid().
++  uint64_t landedBytes() const {
++    return _inner->Valid() ? (_inner->key().size() + _inner->value().size()) : 0;
++  }
++
++  std::unique_ptr<rocksdb::Iterator> _inner;
++  RocksDBEngine& _engine;
++  // Column family this iterator scans; recorded with each seek trace entry so the
++  // Python decoder can label the key (Documents / PrimaryIndex / EdgeIndex / ...).
++  rocksdb::ColumnFamilyHandle* _cf;
++};
++
++}  // namespace arangodb
++
++#endif  // ARANGO_KV_STATS

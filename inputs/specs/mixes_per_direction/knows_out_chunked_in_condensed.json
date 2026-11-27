@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "owners": "one",
+    "split": "never"
+  },
+  "adjacency": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+  },
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "split": "never",
+    "term": "exact",
+    "scope": "type"
+  },
+  "adjacency_by_etype_dir": {
+    "knows": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "owner",
+        "owners": "one",
+        "split": 524288
+      }
+    }
+  }
+}

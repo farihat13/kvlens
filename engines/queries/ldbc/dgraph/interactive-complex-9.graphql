@@ -1,0 +1,45 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=10.08 
+# Q9. Recent messages by friends or friends of friends (1..2 hops)
+#
+# Given a start Person with ID $personId, find the most recent Messages created by that Person’s
+# friends or friends of friends (excluding the start Person). Only consider Messages created before
+# the given $maxDate (excluding that day).
+#
+# Sort  creationDate(desc), id(asc)
+# Limit  20
+# 
+# Params:
+#   $personId : int
+#   $maxDate : string   # ISO-8601 UTC, e.g., "2010-11-16T12:00:00Z"
+
+query Q9($personId: int, $maxDate: string) {
+  
+  # Anchor Person and 1..2-hop friends (exclude self; dedup)
+  P  as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { l1a as knows  l1b as ~knows }
+  F1 as var(func: uid(l1a, l1b)) @filter(type(person) AND NOT uid(P))
+  _l2(func: uid(l1a, l1b)) { l2a as knows  l2b as ~knows }
+  F2 as var(func: uid(l2a, l2b)) @filter(type(person) AND NOT uid(P, F1))
+  F  as var(func: uid(F1, F2))
+
+  # Messages authored by those friends, before $maxDate
+  var(func: uid(F)) {
+    M as ~hasCreator @filter(
+      (type(post) OR type(comment)) AND lt(creationDate, $maxDate)
+    )
+  }
+
+  # Order by (creationDate DESC, id ASC), take top 20, and project friend (author) fields
+  recent(func: uid(M), orderdesc: creationDate, orderasc: id, first: 20) @normalize {
+    commentOrPostId: id
+    commentOrPostCreationDate: creationDate
+    content: content
+    imageFile: imageFile
+
+    hasCreator @filter(type(person)) {
+      personId: id
+      personFirstName: firstName
+      personLastName:  lastName
+    }
+  }
+}

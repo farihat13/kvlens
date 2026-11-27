@@ -1,0 +1,85 @@
+{
+  "plan": "point_post",
+  "question": "Given a post, read all of its properties, including the long content.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": [
+            {
+              "let": "anchor_vid"
+            }
+          ],
+          "props": [
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "content",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "pr"
+          },
+          "fields": [
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "content",
+            "length"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "0c98408c1136",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

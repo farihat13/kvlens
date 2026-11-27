@@ -1,0 +1,89 @@
+{
+  "plan": "hop1_hasmember",
+  "question": "Given a forum, count its members.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "forum": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "forum"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Forum"
+            },
+            {
+              "param": "forum"
+            }
+          ]
+        },
+        {
+          "param": "forum"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Forum"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasMember",
+          "dir": "out"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "fb4b0cafd4af",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

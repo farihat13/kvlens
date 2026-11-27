@@ -1,0 +1,22 @@
+[project]
+name = "kvengines"
+version = "0.1.0"
+description = "Optional: clients and drivers for the real databases (Dgraph, NebulaGraph, ArangoDB)."
+requires-python = ">=3.12"
+dependencies = ["kvevaluator", "pandas==3.0.1", "requests==2.32.5", "nebula3-python==3.8.3", "python-arango==8.3.1",
+                "graphviz==0.21"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The package dir is this member's root (python/kvengines/ holds __init__.py), so the wheel maps "." to "kvengines"
+# and the editable install puts python/ on the path.
+[tool.hatch.build.targets.wheel]
+only-include = ["."]
+sources = {"" = "kvengines"}
+exclude = ["pyproject.toml"]
+dev-mode-dirs = [".."]
+
+[tool.uv.sources]
+kvevaluator = { workspace = true }

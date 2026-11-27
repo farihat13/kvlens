@@ -1,0 +1,133 @@
+{
+  "plan": "is1",
+  "question": "Given a person, read their profile (first and last name, birthday, IP address, browser, gender, creation date) and the id of their city.",
+  "params_like": "ic1",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "is1": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "profile",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "me"
+          },
+          "props": [
+            "firstName",
+            "lastName",
+            "birthday",
+            "locationIP",
+            "browserUsed",
+            "gender",
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_id"
+          },
+          "names": {
+            "id": "cityId"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profile"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "joined"
+          },
+          "fields": [
+            "firstName",
+            "lastName",
+            "birthday",
+            "locationIP",
+            "browserUsed",
+            "cityId",
+            "gender",
+            "creationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "is1": {
+      "sha": "365e086efd04",
+      "requires": [],
+      "sources": [
+        "is1"
+      ]
+    }
+  }
+}

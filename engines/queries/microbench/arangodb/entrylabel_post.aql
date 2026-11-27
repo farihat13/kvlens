@@ -1,0 +1,7 @@
+// microbench entrylabel_post: enumerate every Post (NS2, find start vids by type).
+// Reads: the Post collection's keys only (no property); one returned key per Post.
+// Evaluator: queries/entry.py _entry_label("Post") -- read_vertices_by_label + count
+// (count-final: the harness counts the returned keys).
+// mb2 lineage: MB9-10, 19-20, 209-210 (mb2 capped these at LIMIT 10000; this one enumerates all).
+FOR x IN Post
+    RETURN x._key

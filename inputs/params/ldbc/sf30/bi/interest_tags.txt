@@ -1,0 +1,6 @@
+tag|interested|pairs|stratum
+Chicago_VII|29|114|p50
+The_Only_Way_Is_Up|63|468|p75
+Laundry_Service|230|13560|p90
+John_McCain|5148|3315546|p99
+Augustine_of_Hippo|18952|147639874|max

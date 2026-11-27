@@ -1,0 +1,20 @@
+# LDBC SNB -- type_scoped_date schema: the canonical design, but the Post/Comment creationDate
+# index is scoped PER TYPE instead of predicate-global. Pick with `--schema type_scoped_date`.
+#
+# WHY. dgraph's date index is per-PREDICATE: date_predicates() drops the label, so Post, Comment,
+# Person and Forum creationDates all share one (creationDate,"I",day) posting. A top-k "newest
+# messages" must therefore carry a cross-type candidate set (read every Post + Comment vid) and
+# walk a whole day-bucket. Nebula's index is per-(tag,prop), so its walk is candidate-free and
+# stops at k. Declaring `Post.creationDate type_scoped` / `Comment.creationDate type_scoped` makes
+# dgraph key those postings f"Post.creationDate" / f"Comment.creationDate" -- the index IS the type
+# restriction, so the top-k walk is candidate-free (vids=None), like nebula's. It stays DAY-granular
+# (the ms is condensed into day buckets), so the boundary day is still fully read to rank -- more
+# limit-friendly than canonical, not equal to nebula. Everything else matches canonical.
+
+include canonical
+
+# Re-declare the two message-date indexes as type-scoped. `include canonical` already declares them
+# as plain sorted date indexes; the trailing `type_scoped` flips only their KEYING (the index still
+# exists and is still sorted). Person/Forum creationDate stay predicate-global (canonical).
+index Post.creationDate type_scoped
+index Comment.creationDate type_scoped

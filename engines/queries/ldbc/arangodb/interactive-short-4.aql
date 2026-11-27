@@ -1,0 +1,13 @@
+// IS4: Content of a Message
+// Given a messageId, return its creation date and content
+// Message can be a Post or Comment
+LET post = DOCUMENT(CONCAT("Post/", @messageId))
+LET comment = DOCUMENT(CONCAT("Comment/", @messageId))
+LET msg = post != null ? post : comment
+
+RETURN {
+    messageCreationDate: msg.creationDate,
+    messageContent: IS_SAME_COLLECTION("Post", msg)
+        ? (msg.content != "" AND msg.content != null ? msg.content : msg.imageFile)
+        : msg.content
+}

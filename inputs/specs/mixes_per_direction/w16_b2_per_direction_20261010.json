@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "owners": "one",
+    "split": "never"
+  },
+  "adjacency": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+  },
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "split": "never",
+    "term": "exact",
+    "scope": "type"
+  },
+  "vertex_props_by_label": {
+    "Post": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "Comment": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "Organisation": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "Place": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "Tag": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    }
+  },
+  "adjacency_by_etype": {
+    "hasModerator": {
+      "group": "item",
+      "owners": "one",
+      "split": "never"
+    },
+    "isPartOf": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "likes": {
+      "group": "item",
+      "owners": "one",
+      "split": "never"
+    },
+    "studyAt": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "workAt": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    }
+  },
+  "adjacency_by_etype_dir": {
+    "containerOf": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "item",
+        "owners": "one",
+        "split": "never"
+      }
+    },
+    "hasCreator": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "owner",
+        "owners": "one",
+        "split": 524288
+      }
+    },
+    "hasMember": {
+      "out": {
+        "group": "item",
+        "owners": "one",
+        "split": "never"
+      },
+      "in": {
+        "group": "owner",
+        "owners": "one",
+        "split": 524288
+      }
+    },
+    "hasTag": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "item",
+        "owners": "one",
+        "split": "never"
+      }
+    },
+    "isLocatedIn": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "item",
+        "owners": "one",
+        "split": "never"
+      }
+    },
+    "knows": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "owner",
+        "owners": "one",
+        "split": 524288
+      }
+    },
+    "replyOf": {
+      "out": {
+        "group": "owner",
+        "owners": {
+          "pack": 65536
+        },
+        "split": "never"
+      },
+      "in": {
+        "group": "owner",
+        "owners": "one",
+        "split": 524288
+      }
+    }
+  }
+}

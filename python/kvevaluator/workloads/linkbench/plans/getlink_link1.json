@@ -1,0 +1,133 @@
+{
+  "plan": "getlink_link1",
+  "question": "Given a node and a list of target nodes, read the links of type 1 from the node to those targets, with their data.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    },
+    "id2s": {
+      "type": "list"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    },
+    "ids_vid": {
+      "map": [
+        {
+          "param": "id2s"
+        },
+        {
+          "if": [
+            {
+              "is_digit": {
+                "field": "item"
+              }
+            },
+            {
+              "vid": [
+                {
+                  "lit": "Node"
+                },
+                {
+                  "field": "item"
+                }
+              ]
+            },
+            {
+              "field": "item"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "ll",
+      "op": "read_neighbors",
+      "srcs": [
+        {
+          "let": "n_vid"
+        }
+      ],
+      "etype": "link1",
+      "dir": "out",
+      "edge_props": [
+        "visibility",
+        "version",
+        "time",
+        "data"
+      ],
+      "pairs": true
+    },
+    {
+      "name": "hit",
+      "op": "filter",
+      "rows": {
+        "ref": "ll"
+      },
+      "pred": {
+        "in": [
+          {
+            "field": "dst"
+          },
+          {
+            "let": "ids_vid"
+          }
+        ]
+      }
+    },
+    {
+      "name": "srt",
+      "op": "top_k",
+      "rows": {
+        "ref": "hit"
+      },
+      "keys": [
+        [
+          "dst",
+          "asc"
+        ]
+      ],
+      "k": null
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "srt"
+      },
+      "fields": [
+        "src",
+        "dst",
+        "visibility",
+        "version",
+        "time",
+        "data"
+      ]
+    }
+  ],
+  "output": "out"
+}

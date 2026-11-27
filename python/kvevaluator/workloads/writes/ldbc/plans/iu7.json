@@ -1,0 +1,260 @@
+{
+  "plan": "iu7",
+  "question": "Add a comment with its creator, country, two tags and the post it replies to.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "replyTo": {
+      "type": "id"
+    },
+    "country": {
+      "type": "int"
+    },
+    "tag1": {
+      "type": "int"
+    },
+    "tag2": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Comment"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842627
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1099511627776
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1099511627776
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "country_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "country"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Place"
+            },
+            {
+              "param": "country"
+            }
+          ]
+        },
+        {
+          "param": "country"
+        }
+      ]
+    },
+    "tag1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag1"
+            }
+          ]
+        },
+        {
+          "param": "tag1"
+        }
+      ]
+    },
+    "tag2_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag2"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag2"
+            }
+          ]
+        },
+        {
+          "param": "tag2"
+        }
+      ]
+    },
+    "reply_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "replyTo"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "replyTo"
+            }
+          ]
+        },
+        {
+          "param": "replyTo"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "v",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Comment",
+      "props": {
+        "creationDate": 1577836800000,
+        "locationIP": "10.0.0.1",
+        "browserUsed": "Chrome",
+        "content": "written by IU7",
+        "length": 14
+      }
+    },
+    {
+      "name": "cr0",
+      "op": "insert_edge",
+      "etype": "hasCreator",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "me_vid"
+      },
+      "props": {},
+      "src_label": "Comment",
+      "dst_label": "Person"
+    },
+    {
+      "name": "loc0",
+      "op": "insert_edge",
+      "etype": "isLocatedIn",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "country_vid"
+      },
+      "props": {},
+      "src_label": "Comment",
+      "dst_label": "Place"
+    },
+    {
+      "name": "rep0",
+      "op": "insert_edge",
+      "etype": "replyOf",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "reply_vid"
+      },
+      "props": {},
+      "src_label": "Comment",
+      "dst_label": "Post"
+    },
+    {
+      "name": "tag0",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag1_vid"
+      },
+      "props": {},
+      "src_label": "Comment",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag1",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag2_vid"
+      },
+      "props": {},
+      "src_label": "Comment",
+      "dst_label": "Tag"
+    }
+  ],
+  "output": "tag1"
+}

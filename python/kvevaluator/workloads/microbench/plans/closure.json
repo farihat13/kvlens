@@ -1,0 +1,68 @@
+{
+  "plan": "closure",
+  "question": "Given a tag class, find all its subclasses at any depth, including the class itself.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tagclass": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tagclass"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "TagClass"
+            },
+            {
+              "param": "tagclass"
+            }
+          ]
+        },
+        {
+          "param": "tagclass"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "sub",
+          "op": "read_closure",
+          "srcs": [
+            {
+              "let": "anchor_vid"
+            }
+          ],
+          "etype": "isSubclassOf",
+          "dir": "in"
+        },
+        {
+          "name": "out",
+          "op": "dedup",
+          "items": {
+            "ref": "sub"
+          }
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "df2b6cc394ef",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

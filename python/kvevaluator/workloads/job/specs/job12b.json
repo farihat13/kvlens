@@ -1,0 +1,174 @@
+{
+ "query": "job12b",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "it1": "info_type",
+  "it2": "info_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "info_type_id",
+   "it1",
+   "id"
+  ],
+  [
+   "mi_idx",
+   "info_type_id",
+   "it2",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "ct": [
+   [
+    "null",
+    "ct",
+    "kind",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "cmp",
+      "=",
+      "ct",
+      "kind",
+      "production companies"
+     ],
+     [
+      "cmp",
+      "=",
+      "ct",
+      "kind",
+      "distributors"
+     ]
+    ]
+   ]
+  ],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "budget"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "bottom 10 rank"
+   ]
+  ],
+  "mc": [],
+  "mi": [],
+  "mi_idx": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2000
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "t",
+      "title",
+      "Birdemic%",
+      false
+     ],
+     [
+      "like",
+      "t",
+      "title",
+      "%Movie%",
+      false
+     ]
+    ]
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "budget",
+   "mi",
+   "info"
+  ],
+  [
+   "unsuccsessful_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

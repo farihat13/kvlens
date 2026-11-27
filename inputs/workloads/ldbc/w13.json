@@ -1,0 +1,83 @@
+{
+ "id": "w13",
+ "name": "posts_read_likes_written",
+ "title": "A person's posts read, likes written",
+ "items": [
+  {"family": "microbench", "query": "hop1_knows", "frequency": 10, "params": null},
+  {"family": "microbench", "query": "hop1_posts_props", "frequency": 100, "params": null},
+  {"family": "writes", "query": "iu2", "frequency": 100, "params": null},
+  {"family": "writes", "query": "iu7", "frequency": 10, "params": null},
+  {"family": "writes", "query": "iu6", "frequency": 1, "params": null}
+ ],
+ "expect": "Post props Condensed; Post likers list Split; Person's hasCreator vs likes lists pull opposite ways",
+ "why": "reading a person's posts wants Message properties Chunked (ops) or Split (bytes), and its hasCreator list Condensed ({hc_cc} read per run against {hc_sp} Split: the source of the {gain} bytes gain). The writes append to likes and hub lists, which want Split. Mixed, best in ops, keeps the Chunked reads and hasCreator Condensed and makes the other written lists Split: the same read ops, bytes written {wb_single} -> {wb_mix}, of which {msg_share} is the inserts rewriting Chunked Message properties. That gain is small next to the {rb_single} the Chunked reads cost, so it barely shows in total bytes.",
+ "why_numbers": {
+  "hc_cc": [
+   "run",
+   "bytes",
+   "hop1_posts_props",
+   "hasCreator lists",
+   "props_condensed_adj_condensed"
+  ],
+  "hc_sp": [
+   "run",
+   "bytes",
+   "hop1_posts_props",
+   "hasCreator lists",
+   "props_split_adj_split"
+  ],
+  "gain": [
+   "ratio",
+   [
+    "total",
+    "bytes",
+    "best_single_bytes"
+   ],
+   [
+    "total",
+    "bytes",
+    "per_type_fewest_bytes"
+   ]
+  ],
+  "wb_single": [
+   "total",
+   "write_bytes",
+   "best_single_ops"
+  ],
+  "wb_mix": [
+   "total",
+   "write_bytes",
+   "per_type_fewest_ops"
+  ],
+  "msg_share": [
+   "share",
+   [
+    "sum",
+    [
+     "runs",
+     "write_bytes",
+     "iu6",
+     "Message props",
+     "per_type_fewest_ops"
+    ],
+    [
+     "runs",
+     "write_bytes",
+     "iu7",
+     "Message props",
+     "per_type_fewest_ops"
+    ]
+   ],
+   [
+    "total",
+    "write_bytes",
+    "per_type_fewest_ops"
+   ]
+  ],
+  "rb_single": [
+   "total",
+   "read_bytes",
+   "best_single_ops"
+  ]
+ }
+}

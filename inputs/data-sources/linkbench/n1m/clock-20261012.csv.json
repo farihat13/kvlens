@@ -1,0 +1,31 @@
+{
+  "files": {
+    "links.jsonl": {
+      "clock_first_ms": 1791797291307,
+      "clock_last_ms": 1791797308340,
+      "lines": 5249370,
+      "lines_with_time": 5249370,
+      "sha256": "a6041ee0851ee8e77f2838fb3f74bdbce96fdb6139ffbb55257909fe2eff201b",
+      "steps": 16995
+    },
+    "nodes.jsonl": {
+      "clock_first_ms": 1791797291000,
+      "clock_last_ms": 1791797301000,
+      "lines": 1000000,
+      "lines_with_time": 1000000,
+      "sha256": "c2985eeaa538748fc4fee1f01ef5238cb113c2414873e67de139730f5cae26e2",
+      "steps": 11
+    },
+    "requests.jsonl": {
+      "clock_first_ms": 1791797308000,
+      "clock_last_ms": 1791797309145,
+      "lines": 100000,
+      "lines_with_time": 27058,
+      "sha256": "b2699de65c9318f8b69501052e2a0c1294e692fed71b9b876791206e6290a757",
+      "steps": 307
+    }
+  },
+  "fixed_clock_ms_used_for_the_extraction": 1791797291000,
+  "note": "the n1m data the LinkBench results of 2026-10-12 were measured on (output/linkbench/n1m/remeasure-20261012): generated 2026-10-12 by run-linkbench.sh --scale n1m --data-only with the wall clock, tool facebookarchive/linkbench ac67d54b",
+  "what": "the run whose clock clock-n1m-20261012.csv holds: a replay must give these files"
+}

@@ -1,0 +1,115 @@
+{
+  "adjacency": {
+    "group": "owner",
+    "owners": {
+      "pack": 65536
+    },
+    "split": "never"
+  },
+  "adjacency_by_etype": {
+    "hasCreator": {
+      "group": "owner",
+      "owners": {
+        "pack": 16384
+      },
+      "split": "never"
+    },
+    "hasInterest": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "hasMember": {
+      "group": "owner",
+      "owners": {
+        "pack": 4096
+      },
+      "split": "never"
+    },
+    "hasModerator": {
+      "group": "item",
+      "owners": "one",
+      "split": "never"
+    },
+    "hasType": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "isSubclassOf": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "knows": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "likes": {
+      "group": "owner",
+      "owners": {
+        "pack": 16384
+      },
+      "split": "never"
+    },
+    "replyOf": {
+      "group": "owner",
+      "owners": {
+        "pack": 4096
+      },
+      "split": "never"
+    }
+  },
+  "direction": "declared",
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "scope": "type",
+    "split": "never",
+    "term": "exact"
+  },
+  "version": 1,
+  "vertex_props": {
+    "group": "owner",
+    "owners": {
+      "pack": 65536
+    },
+    "split": "never"
+  },
+  "vertex_props_by_label": {
+    "Comment": {
+      "group": "owner",
+      "owners": {
+        "pack": 4096
+      },
+      "split": "never"
+    },
+    "Forum": {
+      "group": "owner",
+      "owners": "one",
+      "split": "never"
+    },
+    "Organisation": {
+      "group": "owner",
+      "owners": {
+        "pack": 16384
+      },
+      "split": "never"
+    },
+    "Person": {
+      "group": "owner",
+      "owners": {
+        "pack": 4096
+      },
+      "split": "never"
+    },
+    "Post": {
+      "group": "owner",
+      "owners": {
+        "pack": 4096
+      },
+      "split": "never"
+    }
+  }
+}

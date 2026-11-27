@@ -1,0 +1,18 @@
+# edge_probe -- does a knows edge exist between two given persons, either direction (E1)?
+# Reads: the src person's knows and ~knows postings, intersected with the dst uid in RAM.
+# Evaluator: queries/hop.py edge_probe -> read_edge_exists (dgraph: the src's fwd + rev
+#   postings) -> ONE row carrying the knows flag, whether or not the edge exists.
+# So the answer is the one src row; the flag is out + in > 0. count() here is the flag
+#   (as in IS7's knows flag), not the answer size.
+# mb2 lineage: MB55-56, 155-156.
+# Anchor: Dgraph has no external-key addressing, so BOTH persons are found through the `id`
+#   int index (eq(id, ...)), which the evaluator does not pay (its vids are given). `id` is
+#   shared by all 8 LDBC types, so type(person) is what names THE person.
+# answer-path: result
+query q($person1Id: string, $person2Id: string) {
+  dst as var(func: eq(id, $person2Id)) @filter(type(person))
+  result(func: eq(id, $person1Id)) @filter(type(person)) {
+    out: count(knows @filter(uid(dst)))
+    in: count(~knows @filter(uid(dst)))
+  }
+}

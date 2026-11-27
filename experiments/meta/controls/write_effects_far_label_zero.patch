@@ -1,0 +1,14 @@
+diff --git a/cpp/kvevaluator/src/formats/meta/writes.cc b/cpp/kvevaluator/src/formats/meta/writes.cc
+index 1a387ab..57ea76d 100644
+--- a/cpp/kvevaluator/src/formats/meta/writes.cc
++++ b/cpp/kvevaluator/src/formats/meta/writes.cc
+@@ -74,7 +74,8 @@ Value Meta::run_write_op(const Step& step, const Args& a, StepExec& ex) {
+     // a family that stores labels and a step that names none fails loudly (far_code)
+     auto far_of = [&](const std::string& etype, bool out, const std::string& label) -> std::optional<uint8_t> {
+       if (!far_bits(etype, out)) return std::nullopt;
+-      return far_code(etype, out, label);
++      (void)label;
++      return uint8_t(0);   // CONTROL: every written entry stores code 0 (the write-effects label check must catch it)
+     };
+     auto coded = [&](std::optional<uint8_t> code) { return code ? std::string(1, char(*code)) : std::string(); };
+     // own placement: the ep chunks of the out-src's vid group (keys.h pep_prefix)

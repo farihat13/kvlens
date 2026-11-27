@@ -1,0 +1,149 @@
+# LDBC SNB -- no_type_index schema (--schema no_type_index): the canonical design MINUS the
+# per-type membership indexes. A WRITE-MOTIVATED design, and the first one chosen from the
+# two-currency scoreboard rather than from the read side.
+#
+# WHY THIS DESIGN EXISTS. On dgraph the type-enumeration index is ONE posting per label holding
+# every uid of that label, so inserting a vertex appends to it -- and at rollup that posting is
+# rewritten WHOLE. It is by far the largest single write cost measured: of the 2.85 MB an IU6
+# add-post writes at k=1, 2.17 MB is ('dgraph.type','I','Post') alone. Dropping
+# it should be the biggest available write win.
+#
+# WHAT IT COSTS ON READS. dgraph loses the index-once path for a type filter: filter_via falls back
+# to the per-vid probe (read_filter_by_label_probe), so the type filter goes from 1 SEEK to N SEEK (ADR 0001). It also
+# loses type ENUMERATION entirely -- read_vertices_by_label refuses on this design rather than
+# returning an empty list -- so this design is only valid for plans that enter by a value index,
+# which is why it derives from canonical (value + date indexes present) and NOT from label_only.
+#
+# The per-vertex ("dgraph.type","D",vid) record is UNCONDITIONAL and still written: it is the
+# structural type record the probe path reads. Only the INDEX is dropped.
+#
+# nebula and arango are largely unaffected, because of how they store types: nebula's empty tag
+# index keys on whether a label has a required PROPERTY index (not on this declaration) and arango folds the type
+# into the collection-qualified id. That asymmetry is the point -- this is a predicate-store knob.
+
+# ---------------------------------------------------------------- vertices ----
+vertex Person prefix=person
+    firstName    str
+    lastName     str
+    gender       str
+    birthday     date
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    email        str multi
+    language     str multi
+
+# Post & Comment share one id space (group=Message -> the msg_ vid prefix); the concrete
+# label still rides in storage, so a query recovers Post-vs-Comment, never from the vid.
+vertex Post prefix=msg group=Message
+    imageFile    str nullable
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    language     str nullable
+    content      str nullable
+    length       int
+
+vertex Comment prefix=msg group=Message
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    content      str
+    length       int
+
+vertex Forum prefix=forum
+    title        str
+    creationDate date
+
+vertex Organisation prefix=org
+    type str
+    name str
+    url  str
+
+vertex Place prefix=place
+    name str
+    url  str
+    type str
+
+vertex Tag prefix=tag
+    name str
+    url  str
+
+vertex TagClass prefix=tagclass
+    name str
+    url  str
+
+# ------------------------------------------------------------------- edges ----
+# `reverse` = the workload traverses it backward (dgraph @reverse, per-predicate). One etype
+# can span many endpoint pairs. Edge props are read by name from the CSV.
+edge knows reverse
+    Person->Person
+    creationDate date
+
+edge likes reverse
+    Person->Post Person->Comment
+    creationDate date
+
+edge hasCreator reverse
+    Post->Person Comment->Person
+
+edge hasTag reverse
+    Post->Tag Comment->Tag Forum->Tag
+
+edge hasType reverse
+    Tag->TagClass
+
+edge isLocatedIn reverse
+    Person->Place Post->Place Comment->Place Organisation->Place
+
+edge replyOf reverse
+    Comment->Post Comment->Comment
+
+edge containerOf reverse
+    Forum->Post
+
+edge hasMember reverse
+    Forum->Person
+    joinDate date
+
+edge hasModerator reverse
+    Forum->Person
+
+edge isPartOf reverse
+    Place->Place
+
+edge isSubclassOf reverse
+    TagClass->TagClass
+
+# forward-only (no @reverse)
+edge hasInterest
+    Person->Tag
+
+edge studyAt
+    Person->Organisation
+    classYear int
+
+edge workAt
+    Person->Organisation
+    workFrom int
+
+# ----------------------------------------------------------------- indexes ----
+# `index Label.prop` = a property index; the kind is inferred from the column type
+# (string -> equality, date/number -> sorted). `index Label` (no prop) = a per-type
+# membership (type-enumeration) index.
+index Person.firstName
+index Tag.name
+index TagClass.name
+index Place.name
+index Person.creationDate
+index Post.creationDate
+index Comment.creationDate
+
+# NO per-type membership index -- that is the whole point of this design. The canonical note about
+# why it is a real structure still applies; here we price its ABSENCE. (Original note:
+# This is a REAL structure of the canonical design,
+# not an opt-in: dgraph mandates it (dgraph.type -- opaque uids can't be typed without it), and
+# nebula/arango materialize it faithfully. The SCHEMA declares that the structure exists; whether
+# a given FORMAT is "fair" or "faithful" is a separate axis (how it prices that structure), so a
+# per-type index in canonical is symmetric across formats, not an advantage for any one. It is the
+# enumeration structure read_vertices_by_label scans and the "index" path read_filter_by_label_index takes.

@@ -1,0 +1,26 @@
+{
+ "id": "w11",
+ "name": "people_analytics_content_firehose",
+ "title": "Analytics on people, firehose on content",
+ "items": [
+  {"family": "microbench", "query": "nhop2", "frequency": 20, "params": null},
+  {"family": "microbench", "query": "entry_eq_scan", "frequency": 5, "params": null},
+  {"family": "writes", "query": "iu6", "frequency": 500, "params": null},
+  {"family": "writes", "query": "iu7", "frequency": 500, "params": null},
+  {"family": "microbench", "query": "point_post", "frequency": 100, "params": null}
+ ],
+ "expect": "Person Chunked; Post/Comment Condensed props + Split adjacency; Tag/Place Split; Forum any",
+ "why": "the reads walk knows lists and scan Person names (both want Chunked); the inserts append to the hub lists of other edge types: hasTag, isLocatedIn, hasCreator (these want Split: under Condensed an isLocatedIn list part averages {loc_part} to rewrite per insert; containerOf and replyOf lists are small, so their layout barely matters). Message properties are both read (point_post) and written (the inserts), but Condensed wins both sides (1 GET to read, 1 PUT to write). So a mixed layout takes each side's best layout at no cost.",
+ "why_numbers": {
+  "loc_part": [
+   "run",
+   "write_bytes",
+   "iu6",
+   "isLocatedIn lists",
+   "props_condensed_adj_condensed"
+  ]
+ },
+ "why_scale_free": {
+  "1": "a Condensed row is one key, read with one GET and written with one PUT"
+ }
+}

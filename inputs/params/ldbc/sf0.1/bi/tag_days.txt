@@ -1,0 +1,6 @@
+tagA|dateA|tagB|dateB|maxKnowsLimit|countA|countB|stratum
+Muammar_Gaddafi|1318723200000|Imelda_Marcos|1336435200000|4|517|289|max+partner
+Pablo_Picasso|1334793600000|John_Rhys-Davies|1334880000000|4|8|224|p99+partner
+Chuck_Berry|1336176000000|Alexander_Downer|1327881600000|4|4|181|p90+partner
+Muhammad|1342137600000|John_Rhys-Davies|1334880000000|4|2|224|p50+partner
+Tom_Hanks|1316304000000|Muammar_Gaddafi|1318723200000|4|2|517|p20+partner

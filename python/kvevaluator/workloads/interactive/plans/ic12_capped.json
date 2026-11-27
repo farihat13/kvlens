@@ -1,0 +1,950 @@
+{
+  "plan": "ic12_capped",
+  "question": "Same as ic12, but the tag-class subclass tree is followed at most three levels deep.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "tagClassName": {}
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "filter_index+index_eq": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "fmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fmsg_v"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "parentv",
+          "op": "pluck",
+          "rows": {
+            "ref": "replies"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "parents",
+          "op": "dedup",
+          "items": {
+            "ref": "parentv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "parents"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "tagclass",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClassName"
+          }
+        },
+        {
+          "name": "tc_sub",
+          "op": "read_closure",
+          "srcs": {
+            "ref": "tagclass"
+          },
+          "etype": "isSubclassOf",
+          "dir": "in",
+          "max_levels": 3
+        },
+        {
+          "name": "tc_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc_sub"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tc_tags"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "matched",
+          "op": "filter_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tags"
+          }
+        },
+        {
+          "name": "matched_p",
+          "op": "pluck",
+          "rows": {
+            "ref": "matched"
+          },
+          "field": "src"
+        },
+        {
+          "name": "matched_posts",
+          "op": "dedup",
+          "items": {
+            "ref": "matched_p"
+          }
+        },
+        {
+          "name": "replies_r",
+          "op": "rename",
+          "rows": {
+            "ref": "replies"
+          },
+          "names": {
+            "src": "_comment",
+            "dst": "_parent"
+          }
+        },
+        {
+          "name": "good_replies",
+          "op": "filter_in",
+          "rows": {
+            "ref": "replies_r"
+          },
+          "field": "_parent",
+          "allowed": {
+            "ref": "matched_posts"
+          }
+        },
+        {
+          "name": "fmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "names": {
+            "src": "friend",
+            "dst": "_c2"
+          }
+        },
+        {
+          "name": "friend_reps",
+          "op": "join",
+          "left": {
+            "ref": "good_replies"
+          },
+          "right": {
+            "ref": "fmsg_r"
+          },
+          "left_on": "_comment",
+          "right_on": "_c2"
+        },
+        {
+          "name": "friendv",
+          "op": "pluck",
+          "rows": {
+            "ref": "friend_reps"
+          },
+          "field": "friend"
+        },
+        {
+          "name": "reply_count",
+          "op": "group_count",
+          "items": {
+            "ref": "friendv"
+          }
+        },
+        {
+          "name": "counted_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "reply_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "pid",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "counted_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "pid_named",
+          "op": "rename",
+          "rows": {
+            "ref": "pid"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "counted",
+          "op": "zip_rows",
+          "left": {
+            "ref": "reply_count"
+          },
+          "right": {
+            "ref": "pid_named"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "counted"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "topv",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "item"
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "topv"
+          },
+          "props": [
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "names_r",
+          "op": "rename",
+          "rows": {
+            "ref": "names"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "names_r"
+          },
+          "left_on": "item",
+          "right_on": "_vid"
+        },
+        {
+          "name": "winner_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "named"
+          },
+          "field": "item"
+        },
+        {
+          "name": "winner_reps",
+          "op": "filter_in",
+          "rows": {
+            "ref": "friend_reps"
+          },
+          "field": "friend",
+          "allowed": {
+            "ref": "winner_v"
+          }
+        },
+        {
+          "name": "matched_r",
+          "op": "rename",
+          "rows": {
+            "ref": "matched"
+          },
+          "names": {
+            "src": "_p3",
+            "dst": "_tag"
+          }
+        },
+        {
+          "name": "winner_tags",
+          "op": "join_multi",
+          "left": {
+            "ref": "winner_reps"
+          },
+          "right": {
+            "ref": "matched_r"
+          },
+          "left_on": "_parent",
+          "right_on": "_p3"
+        },
+        {
+          "name": "winner_tagv",
+          "op": "pluck",
+          "rows": {
+            "ref": "winner_tags"
+          },
+          "field": "_tag"
+        },
+        {
+          "name": "winner_tagd",
+          "op": "dedup",
+          "items": {
+            "ref": "winner_tagv"
+          }
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "winner_tagd"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "tag_named",
+          "op": "rename",
+          "rows": {
+            "ref": "tag_names"
+          },
+          "names": {
+            "name": "tagName"
+          }
+        },
+        {
+          "name": "winner_named",
+          "op": "join",
+          "left": {
+            "ref": "winner_tags"
+          },
+          "right": {
+            "ref": "tag_named"
+          },
+          "left_on": "_tag",
+          "right_on": "_vid"
+        },
+        {
+          "name": "nested",
+          "op": "nest",
+          "rows": {
+            "ref": "named"
+          },
+          "children": {
+            "ref": "winner_named"
+          },
+          "on": "item",
+          "child_on": "friend",
+          "into": "tagNames",
+          "fields": [
+            "tagName"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "nested"
+          },
+          "names": {
+            "count": "replyCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "tagNames",
+            "replyCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "filter_probe+index_eq": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "fmsg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fmsg_v"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "parentv",
+          "op": "pluck",
+          "rows": {
+            "ref": "replies"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "parents",
+          "op": "dedup",
+          "items": {
+            "ref": "parentv"
+          }
+        },
+        {
+          "name": "posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "parents"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "tagclass",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClassName"
+          }
+        },
+        {
+          "name": "tc_sub",
+          "op": "read_closure",
+          "srcs": {
+            "ref": "tagclass"
+          },
+          "etype": "isSubclassOf",
+          "dir": "in",
+          "max_levels": 3
+        },
+        {
+          "name": "tc_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc_sub"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tc_tags"
+          }
+        },
+        {
+          "name": "post_tags",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "posts"
+          },
+          "etype": "hasTag",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "matched",
+          "op": "filter_in",
+          "rows": {
+            "ref": "post_tags"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "tags"
+          }
+        },
+        {
+          "name": "matched_p",
+          "op": "pluck",
+          "rows": {
+            "ref": "matched"
+          },
+          "field": "src"
+        },
+        {
+          "name": "matched_posts",
+          "op": "dedup",
+          "items": {
+            "ref": "matched_p"
+          }
+        },
+        {
+          "name": "replies_r",
+          "op": "rename",
+          "rows": {
+            "ref": "replies"
+          },
+          "names": {
+            "src": "_comment",
+            "dst": "_parent"
+          }
+        },
+        {
+          "name": "good_replies",
+          "op": "filter_in",
+          "rows": {
+            "ref": "replies_r"
+          },
+          "field": "_parent",
+          "allowed": {
+            "ref": "matched_posts"
+          }
+        },
+        {
+          "name": "fmsg_r",
+          "op": "rename",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "names": {
+            "src": "friend",
+            "dst": "_c2"
+          }
+        },
+        {
+          "name": "friend_reps",
+          "op": "join",
+          "left": {
+            "ref": "good_replies"
+          },
+          "right": {
+            "ref": "fmsg_r"
+          },
+          "left_on": "_comment",
+          "right_on": "_c2"
+        },
+        {
+          "name": "friendv",
+          "op": "pluck",
+          "rows": {
+            "ref": "friend_reps"
+          },
+          "field": "friend"
+        },
+        {
+          "name": "reply_count",
+          "op": "group_count",
+          "items": {
+            "ref": "friendv"
+          }
+        },
+        {
+          "name": "counted_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "reply_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "pid",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "counted_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "pid_named",
+          "op": "rename",
+          "rows": {
+            "ref": "pid"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "counted",
+          "op": "zip_rows",
+          "left": {
+            "ref": "reply_count"
+          },
+          "right": {
+            "ref": "pid_named"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "counted"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "topv",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "item"
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "topv"
+          },
+          "props": [
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "names_r",
+          "op": "rename",
+          "rows": {
+            "ref": "names"
+          },
+          "names": {
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "named",
+          "op": "join",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "names_r"
+          },
+          "left_on": "item",
+          "right_on": "_vid"
+        },
+        {
+          "name": "winner_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "named"
+          },
+          "field": "item"
+        },
+        {
+          "name": "winner_reps",
+          "op": "filter_in",
+          "rows": {
+            "ref": "friend_reps"
+          },
+          "field": "friend",
+          "allowed": {
+            "ref": "winner_v"
+          }
+        },
+        {
+          "name": "matched_r",
+          "op": "rename",
+          "rows": {
+            "ref": "matched"
+          },
+          "names": {
+            "src": "_p3",
+            "dst": "_tag"
+          }
+        },
+        {
+          "name": "winner_tags",
+          "op": "join_multi",
+          "left": {
+            "ref": "winner_reps"
+          },
+          "right": {
+            "ref": "matched_r"
+          },
+          "left_on": "_parent",
+          "right_on": "_p3"
+        },
+        {
+          "name": "winner_tagv",
+          "op": "pluck",
+          "rows": {
+            "ref": "winner_tags"
+          },
+          "field": "_tag"
+        },
+        {
+          "name": "winner_tagd",
+          "op": "dedup",
+          "items": {
+            "ref": "winner_tagv"
+          }
+        },
+        {
+          "name": "tag_names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "winner_tagd"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "tag_named",
+          "op": "rename",
+          "rows": {
+            "ref": "tag_names"
+          },
+          "names": {
+            "name": "tagName"
+          }
+        },
+        {
+          "name": "winner_named",
+          "op": "join",
+          "left": {
+            "ref": "winner_tags"
+          },
+          "right": {
+            "ref": "tag_named"
+          },
+          "left_on": "_tag",
+          "right_on": "_vid"
+        },
+        {
+          "name": "nested",
+          "op": "nest",
+          "rows": {
+            "ref": "named"
+          },
+          "children": {
+            "ref": "winner_named"
+          },
+          "on": "item",
+          "child_on": "friend",
+          "into": "tagNames",
+          "fields": [
+            "tagName"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "nested"
+          },
+          "names": {
+            "count": "replyCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "tagNames",
+            "replyCount"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "filter_index+index_eq": {
+      "sha": "54555ebe60c3",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "filter_index+index_eq"
+      ]
+    },
+    "filter_probe+index_eq": {
+      "sha": "5f59fcea446c",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "filter_probe+index_eq"
+      ]
+    }
+  }
+}

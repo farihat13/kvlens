@@ -1,0 +1,5 @@
+{
+  "about": "What LDBC's statistics declare (python -m kvevaluator.predict.build_stats reads it): the labels a query binds (their vertices get the anchor tier, and recency is built for their hops), and the date axis a date rule reads.",
+  "anchor_labels": ["Person"],
+  "date_axis": {"labels": ["Post", "Comment"], "prop": "creationDate"}
+}

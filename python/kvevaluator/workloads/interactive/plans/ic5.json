@@ -1,0 +1,825 @@
+{
+  "plan": "ic5",
+  "question": "Given a person and a date, find the 20 forums that friends and friends of friends joined after that date, ranked by how many posts those members made in them.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "minDate": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "ic5": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f12",
+          "op": "concat",
+          "a": {
+            "ref": "f1"
+          },
+          "b": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "fd",
+          "op": "dedup",
+          "items": {
+            "ref": "f12"
+          }
+        },
+        {
+          "name": "f",
+          "op": "exclude",
+          "items": {
+            "ref": "fd"
+          },
+          "remove": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "memb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasMember",
+          "dir": "in",
+          "edge_props": [
+            "joinDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "memb_new",
+          "op": "filter",
+          "rows": {
+            "ref": "memb"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "joinDate"
+              },
+              {
+                "param": "minDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "memb_pf",
+          "op": "derive",
+          "rows": {
+            "ref": "memb_new"
+          },
+          "into": "_pf",
+          "fn": {
+            "tuple": [
+              {
+                "field": "src"
+              },
+              {
+                "field": "dst"
+              }
+            ]
+          }
+        },
+        {
+          "name": "forumv",
+          "op": "pluck",
+          "rows": {
+            "ref": "memb_new"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "forums",
+          "op": "dedup",
+          "items": {
+            "ref": "forumv"
+          }
+        },
+        {
+          "name": "fposts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "forums"
+          },
+          "etype": "containerOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "postv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fposts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "post_auth",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "postv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "post_authr",
+          "op": "rename",
+          "rows": {
+            "ref": "post_auth"
+          },
+          "names": {
+            "src": "_post",
+            "dst": "_creator"
+          }
+        },
+        {
+          "name": "fpostr",
+          "op": "rename",
+          "rows": {
+            "ref": "fposts"
+          },
+          "names": {
+            "src": "forum",
+            "dst": "_post2"
+          }
+        },
+        {
+          "name": "post_forum",
+          "op": "join",
+          "left": {
+            "ref": "post_authr"
+          },
+          "right": {
+            "ref": "fpostr"
+          },
+          "left_on": "_post",
+          "right_on": "_post2"
+        },
+        {
+          "name": "post_pf",
+          "op": "derive",
+          "rows": {
+            "ref": "post_forum"
+          },
+          "into": "_pf",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_creator"
+              },
+              {
+                "field": "forum"
+              }
+            ]
+          }
+        },
+        {
+          "name": "memb_pfv",
+          "op": "pluck",
+          "rows": {
+            "ref": "memb_pf"
+          },
+          "field": "_pf"
+        },
+        {
+          "name": "own_posts",
+          "op": "filter_in",
+          "rows": {
+            "ref": "post_pf"
+          },
+          "field": "_pf",
+          "allowed": {
+            "ref": "memb_pfv"
+          }
+        },
+        {
+          "name": "own_forum",
+          "op": "pluck",
+          "rows": {
+            "ref": "own_posts"
+          },
+          "field": "forum"
+        },
+        {
+          "name": "forum_count",
+          "op": "group_count",
+          "items": {
+            "ref": "own_forum"
+          }
+        },
+        {
+          "name": "counted_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "forum_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_forums",
+          "op": "exclude",
+          "items": {
+            "ref": "forums"
+          },
+          "remove": {
+            "ref": "counted_ids"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_forums"
+          },
+          "field": "count",
+          "value": 0
+        },
+        {
+          "name": "zero_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "allf",
+          "op": "concat",
+          "a": {
+            "ref": "forum_count"
+          },
+          "b": {
+            "ref": "zero_rows"
+          }
+        },
+        {
+          "name": "allf_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "allf"
+          },
+          "field": "item"
+        },
+        {
+          "name": "forum_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "allf_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "forum_rows",
+          "op": "zip_rows",
+          "left": {
+            "ref": "allf"
+          },
+          "right": {
+            "ref": "forum_id"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "forum_rows"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "titles",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "title"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "titled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "titles"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "titled"
+          },
+          "names": {
+            "id": "forumId",
+            "title": "forumTitle",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "forumId",
+            "forumTitle",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic5_listjoin(ic5)": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f12",
+          "op": "concat",
+          "a": {
+            "ref": "f1"
+          },
+          "b": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "fd",
+          "op": "dedup",
+          "items": {
+            "ref": "f12"
+          }
+        },
+        {
+          "name": "f",
+          "op": "exclude",
+          "items": {
+            "ref": "fd"
+          },
+          "remove": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "memb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasMember",
+          "dir": "in",
+          "edge_props": [
+            "joinDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "memb_new",
+          "op": "filter",
+          "rows": {
+            "ref": "memb"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "joinDate"
+              },
+              {
+                "param": "minDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "memb_pf",
+          "op": "derive",
+          "rows": {
+            "ref": "memb_new"
+          },
+          "into": "_pf",
+          "fn": {
+            "tuple": [
+              {
+                "field": "src"
+              },
+              {
+                "field": "dst"
+              }
+            ]
+          }
+        },
+        {
+          "name": "forumv",
+          "op": "pluck",
+          "rows": {
+            "ref": "memb_new"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "forums",
+          "op": "dedup",
+          "items": {
+            "ref": "forumv"
+          }
+        },
+        {
+          "name": "fposts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "forums"
+          },
+          "etype": "containerOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "postv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fposts"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "mposts",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "mpostr",
+          "op": "rename",
+          "rows": {
+            "ref": "mposts"
+          },
+          "names": {
+            "src": "_creator",
+            "dst": "_post"
+          }
+        },
+        {
+          "name": "fpostr",
+          "op": "rename",
+          "rows": {
+            "ref": "fposts"
+          },
+          "names": {
+            "src": "forum",
+            "dst": "_post2"
+          }
+        },
+        {
+          "name": "memb_pfv",
+          "op": "pluck",
+          "rows": {
+            "ref": "memb_pf"
+          },
+          "field": "_pf"
+        },
+        {
+          "name": "own_posts",
+          "op": "join_multi",
+          "left": {
+            "ref": "fpostr"
+          },
+          "right": {
+            "ref": "mpostr"
+          },
+          "left_on": "_post2",
+          "right_on": "_post",
+          "where_key": {
+            "tuple": [
+              {
+                "field": "_creator"
+              },
+              {
+                "field": "forum"
+              }
+            ]
+          },
+          "where_in": {
+            "ref": "memb_pfv"
+          }
+        },
+        {
+          "name": "own_forum",
+          "op": "pluck",
+          "rows": {
+            "ref": "own_posts"
+          },
+          "field": "forum"
+        },
+        {
+          "name": "forum_count",
+          "op": "group_count",
+          "items": {
+            "ref": "own_forum"
+          }
+        },
+        {
+          "name": "counted_ids",
+          "op": "pluck",
+          "rows": {
+            "ref": "forum_count"
+          },
+          "field": "item"
+        },
+        {
+          "name": "zero_forums",
+          "op": "exclude",
+          "items": {
+            "ref": "forums"
+          },
+          "remove": {
+            "ref": "counted_ids"
+          }
+        },
+        {
+          "name": "zero_ann",
+          "op": "annotate",
+          "items": {
+            "ref": "zero_forums"
+          },
+          "field": "count",
+          "value": 0
+        },
+        {
+          "name": "zero_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "zero_ann"
+          },
+          "names": {
+            "_vid": "item"
+          }
+        },
+        {
+          "name": "allf",
+          "op": "concat",
+          "a": {
+            "ref": "forum_count"
+          },
+          "b": {
+            "ref": "zero_rows"
+          }
+        },
+        {
+          "name": "allf_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "allf"
+          },
+          "field": "item"
+        },
+        {
+          "name": "forum_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "allf_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "forum_rows",
+          "op": "zip_rows",
+          "left": {
+            "ref": "allf"
+          },
+          "right": {
+            "ref": "forum_id"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "forum_rows"
+          },
+          "keys": [
+            [
+              "count",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "titles",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "title"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "titled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "titles"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "titled"
+          },
+          "names": {
+            "id": "forumId",
+            "title": "forumTitle",
+            "count": "postCount"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "forumId",
+            "forumTitle",
+            "postCount"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "ic5": {
+      "sha": "c4dcca81e8e3",
+      "requires": [],
+      "measure_only": true,
+      "reason": "replaced by the list-join body (2026-10-10); kept measurable",
+      "sources": [
+        "ic5",
+        "ic5_per_post_creator(ic5)"
+      ]
+    },
+    "ic5_listjoin(ic5)": {
+      "sha": "39e902e53fed",
+      "requires": [],
+      "sources": [
+        "ic5_listjoin(ic5)"
+      ]
+    }
+  }
+}

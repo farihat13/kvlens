@@ -1,0 +1,85 @@
+{
+  "plan": "point7",
+  "question": "Given a person, read all seven of their properties.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": [
+            {
+              "let": "anchor_vid"
+            }
+          ],
+          "props": [
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "pr"
+          },
+          "fields": [
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "068012a4034b",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

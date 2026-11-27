@@ -1,0 +1,231 @@
+{
+  "plan": "forum_board_render",
+  "question": "Given a forum, list its posts with their content and the full profile of each post's author.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "forum": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "forum_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "forum"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Forum"
+            },
+            {
+              "param": "forum"
+            }
+          ]
+        },
+        {
+          "param": "forum"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "forum_board_render": {
+      "steps": [
+        {
+          "name": "posts",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "forum_vid"
+            }
+          ],
+          "etype": "containerOf",
+          "dir": "out"
+        },
+        {
+          "name": "pvids",
+          "op": "dedup",
+          "items": {
+            "ref": "posts"
+          }
+        },
+        {
+          "name": "pprops",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "pvids"
+          },
+          "props": [
+            "id",
+            "content",
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "auth_e",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pvids"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "auth_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "auth_e"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "auth_d",
+          "op": "dedup",
+          "items": {
+            "ref": "auth_v"
+          }
+        },
+        {
+          "name": "auth_p",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "auth_d"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "auth_named",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_p"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "auth_join",
+          "op": "join",
+          "left": {
+            "ref": "auth_e"
+          },
+          "right": {
+            "ref": "auth_named"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "auth_by_post",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_join"
+          },
+          "names": {
+            "src": "_post"
+          }
+        },
+        {
+          "name": "pmsg_named",
+          "op": "rename",
+          "rows": {
+            "ref": "pprops"
+          },
+          "names": {
+            "id": "messageId",
+            "content": "messageContent",
+            "imageFile": "messageImageFile",
+            "creationDate": "messageCreationDate",
+            "locationIP": "messageLocationIP",
+            "browserUsed": "messageBrowserUsed",
+            "language": "messageLanguage",
+            "length": "messageLength"
+          }
+        },
+        {
+          "name": "with_auth",
+          "op": "join",
+          "left": {
+            "ref": "pmsg_named"
+          },
+          "right": {
+            "ref": "auth_by_post"
+          },
+          "left_on": "_vid",
+          "right_on": "_post"
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "with_auth"
+          },
+          "keys": [
+            [
+              "messageId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate",
+            "messageLocationIP",
+            "messageBrowserUsed",
+            "messageLanguage",
+            "messageLength",
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "forum_board_render": {
+      "sha": "ce0e2f9344a4",
+      "requires": [],
+      "sources": [
+        "forum_board_render"
+      ]
+    }
+  }
+}

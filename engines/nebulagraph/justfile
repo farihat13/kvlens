@@ -1,0 +1,422 @@
+default_console_cmd := "nebula-console -u root -p nebula -addr 127.0.0.1 -port 9669"
+
+# Auto-activate venv so recipes work without manual `source .venv/bin/activate`
+export VIRTUAL_ENV := justfile_directory() / ".." / ".." / ".venv"     # the repo venv (just setup)
+export PATH := justfile_directory() / ".." / ".." / ".venv" / "bin" + ":" + env("PATH")
+
+default:
+    @just --list --unsorted
+
+# ----------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------
+
+# Wait for a tmux session to end before proceeding
+wait-for-session-end SESSION:
+	until ! tmux has-session -t {{SESSION}} 2>/dev/null; do sleep 1; done
+
+# does not duplicate line in file, does not expand variables
+append-if-missing line file:
+    grep -qxF '{{line}}' '{{file}}' || echo '{{line}}' >> '{{file}}'
+
+# =============================
+# Lifecycle
+# =============================
+
+py:
+    #!/bin/bash
+    set -euxo pipefail
+    [ -d .venv ] && { echo ".venv already exists" ; exit 0; }
+    uv venv
+    uv sync
+
+setup:
+    #!/bin/bash
+    set -euxo pipefail
+    bash ../setup.sh --db nebula   # engines/needs.tsv
+    just py
+    command -v go >/dev/null || { echo "Please install Go"; exit 1; }
+    command -v docker >/dev/null || { echo "Please install docker"; exit 1; }
+
+# Download, build and install nebula-importer
+setup-nebula-importer:
+    #!/bin/bash
+    set -euxo pipefail
+    command -v go >/dev/null || { echo "Please install Go"; exit 1; }
+    command -v nebula-importer >/dev/null && { echo "nebula-importer is already installed"; exit 0; }
+    [ -d nebula-importer ] || (git clone https://github.com/vesoft-inc/nebula-importer && cd nebula-importer && git checkout v4.1.0 && rm -rf .git)
+    cd nebula-importer && make build && sudo cp bin/nebula-importer /usr/local/bin/     # on PATH, like nebula-console
+
+# Download and install nebula-console
+setup-console:
+    #!/bin/bash
+    set -euxo pipefail
+    command -v go >/dev/null || { echo "Please install Go"; exit 1; }
+    [ -d nebula-console ] || (git clone https://github.com/vesoft-inc/nebula-console.git && cd nebula-console && git checkout v3.8.0 && rm -rf .git)
+    cd nebula-console && make && sudo cp ./nebula-console /usr/local/bin/
+
+# =============================
+# Build
+# =============================
+
+start-container:
+    bash scripts/start-container.sh ${MY_NEBULA_CONTAINER_NAME}
+
+# just build [rocksdb="true|false"]
+build rocksdb="false":
+    # sudo rm -rf nebula/build
+    # Forward the ENABLE_* build flags into the tmux session with -e. Without this,
+    # `tmux new-session` attaches to an already-running tmux server whose environment
+    # lacks these vars, so the build silently compiles with them OFF (e.g. no /kvstats
+    # route even when ENABLE_KV_STATS=ON was exported by the caller).
+    tmux new-session -d -s nebulabuild \
+        -e ENABLE_KV_STATS="${ENABLE_KV_STATS:-OFF}" \
+        -e ENABLE_KV_PROFILE="${ENABLE_KV_PROFILE:-OFF}" \
+        -e ENABLE_KV_HISTOGRAMS="${ENABLE_KV_HISTOGRAMS:-OFF}" \
+        -e ENABLE_QUERY_PLAN_DEBUG="${ENABLE_QUERY_PLAN_DEBUG:-OFF}" \
+        -e ENABLE_PLANNER_FIXES="${ENABLE_PLANNER_FIXES:-OFF}" \
+        'bash scripts/build.sh {{rocksdb}} 2>&1 | tee build.log'
+
+clean-build:
+    sudo rm -rf nebula/build
+    just dexec "rm -rf /usr/local/nebula"
+    tmux new-session -d -s nebulabuild 'bash scripts/build.sh  2>&1 | tee clean-build.log'
+
+# Install the new compiled nebula (init runs/ if not exist, else update bin/)
+install:
+    #!/bin/bash
+    set -euxo pipefail
+    sudo docker exec ${MY_NEBULA_CONTAINER_NAME} bash scripts/container/install-nebula.sh
+    user_owner=$(stat -c "%U" "$HOME")
+    grp_owner=$(stat -c "%G" "$HOME")
+    sudo chown -R "$user_owner":"$grp_owner" runs
+
+rebuild:
+    just build
+    just stop
+    just wait-for-session-end nebulabuild
+    # just install
+    sudo docker exec ${MY_NEBULA_CONTAINER_NAME} bash -c "cp /usr/local/nebula/bin/* /workspace/runs/bin/"
+    just start
+    # just restart
+    just status
+
+# Apply source patches: just patch [nebula|rocksdb|all] [-f patchfile]
+patch *args:
+    bash scripts/apply-patch.sh {{args}}
+
+# Create source patches: just create-patch [nebula|rocksdb|all] [-f patchfile]
+create-patch *args:
+    bash scripts/create-patch.sh {{args}}
+
+restore:
+    git -C nebula restore . && git -C nebula clean -fd
+    git -C rocksdb restore . && git -C rocksdb clean -fd
+
+# =============================
+# Run
+# =============================
+
+start:
+    bash scripts/start.sh
+
+stop:
+    bash scripts/stop.sh
+
+status:
+    bash scripts/status.sh || true
+
+status-verbose:
+    #!/bin/bash
+    echo "=== Processes ==="
+    ps aux | grep nebula | grep -v grep || true
+    echo -e "\n=== Ports ==="
+    netstat -tlnp 2>/dev/null | grep -E ":(9669|9779|9559|19669|19779|19559)" || true
+    echo -e "\n=== Service Status ==="
+    runs/scripts/nebula.service status all || true
+    echo -e "\n=== Disk Usage ==="
+    du -sh runs/data/ 2>/dev/null || true
+
+restart service="all":
+    runs/scripts/nebula.service restart {{service}}
+
+reset:
+    bash scripts/reset.sh
+
+# not recommended way to stop nebula
+kill:
+    bash scripts/kill.sh
+
+# =============================
+# Variant
+# =============================
+
+# List configurable nebula binary variants
+build-variants-list:
+    python3 ../../python/kvengines/nebula/variant_build.py --list
+
+# Build a named variant from nebula-binaries.conf into ${NEBULA_BINARYDIR}
+# The shebang + pipefail matter: without them just runs this line under `sh -c`,
+# where a pipeline's status is tee's (always 0), so a failed build reports
+# success: variant_build.py can die with a traceback while the recipe exits 0.
+build-variant name *args:
+    #!/bin/bash
+    set -euo pipefail
+    python3 ../../python/kvengines/nebula/variant_build.py {{name}} {{args}} 2>&1 | tee build-{{name}}.log
+
+# Build all variants from nebula-binaries.conf into ${NEBULA_BINARYDIR}
+build-variants-all *args:
+    #!/bin/bash
+    set -euo pipefail
+    python3 ../../python/kvengines/nebula/variant_build.py --all {{args}} 2>&1 | tee build-all.log
+
+alias run-variant := start-variant
+
+# Start a specific variant binary (e.g., just start-variant profile)
+start-variant name:
+    bash scripts/variant-run.sh {{name}}
+
+# Which variant is running now
+which-variant:
+    #!/bin/bash
+    runinfo="${NEBULA_RUNSDIR}/runinfo"
+    if [ ! -f "$runinfo" ]; then
+        echo "No variant running (using default build or not started via start-variant)"
+        exit 0
+    fi
+    cat "$runinfo"
+
+# =============================
+# Data
+# =============================
+
+ldbc-download sf="0.3":
+    #!/bin/bash
+    set -euxo pipefail
+    mkdir -p data/ldbc/sf{{sf}}
+    # main data
+    [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter" ] || { echo "${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter not found"; exit 1; }
+    ln -sfn ${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter data/ldbc/sf{{sf}}/CsvBasic-LongDateFormatter
+    # substitution parameters
+    params=$(bash ../ldbc-params-dir.sh {{sf}})     # LDBC's download, else the tracked copy (sf0.3, sf1)
+    ln -sfn "$params" data/ldbc/substitution_parameters-sf{{sf}}
+    # update streams
+    [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" ] || { echo "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" not found; exit 1; }
+    ln -sfn ${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams data/ldbc/sf{{sf}}/update_streams
+
+alias load-ldbc := ldbc-load
+
+ldbc-load sf="0.3":
+    bash scripts/ldbc/load.sh --sf {{sf}}
+
+ldbc-backup sf="0.3":
+    bash scripts/ldbc/backup-data.sh {{sf}}
+
+# Generate LDBC loaded data and backup (build → install → load → sync → backup)
+ldbc-prepare-data sf='0.3':
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    just reset
+    just build
+    just wait-for-session-end nebulabuild || true
+    just install
+    mkdir -p backup
+    cp -r runs/ "backup/fresh-runs-$(date +%Y%m%d-%H%M%S)"
+    ulimit -n 65536
+    just start
+    just status
+    just ldbc-load {{sf}}
+    sleep 10
+    sync   # plain sync: flush to disk, no root needed
+    sleep 2
+    bash scripts/ldbc/backup-data.sh {{sf}}
+    ls -la backup/runs-sf{{sf}}
+
+# =============================
+# Queries
+# =============================
+
+# Run a single query from string, e.g., `just q "MATCH (v) RETURN v;" --space demo_space --pretty`
+q query *args:
+    python3 ../../python/kvengines/nebula/query_run.py -s "{{query}}" {{args}}
+
+# Run queries from a file, e.g., `just qfile queries/test.gql --space demo_space`
+qfile file *args:
+    python3 ../../python/kvengines/nebula/query_run.py -f {{file}} {{args}}
+
+# =============================
+# LDBC SNB Interactive
+# =============================
+
+# Run a single LDBC interactive-complex query
+ldbc-icq q="1" param="1":
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --num {{q}} --param {{param}} -v
+
+# Run all LDBC interactive-complex queries
+ldbc-ic:
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --all --nparam 35 -c
+
+# Run all LDBC interactive-short queries
+ldbc-short:
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py -qt short --all -c
+
+# Run a single LDBC interactive-short query
+ldbc-isq q="1":
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py -qt short --num {{q}} --nparam 20 --show-raw
+
+# Compare two query variants for equivalence
+check-qeq q="1" nparam="1":
+    python3 -u ../../python/kvengines/nebula/query_check_equivalence.py \
+    --query1 queries/interactive-complex-{{q}}.gql \
+    --query2 queries/interactive-complex-{{q}}.v2.gql \
+    --params data/ldbc/substitution_parameters-sf0.3/interactive_{{q}}_param.txt \
+    --nparam {{nparam}} \
+    --continue \
+    --save-report logs/ic{{q}}_comparison.json
+
+# =============================
+# Microbench
+# =============================
+
+
+
+
+
+
+
+
+
+
+## ============================
+# Microbench2 (node selection)
+# ============================
+
+
+
+
+# =============================
+# Tests
+# =============================
+
+
+# =============================
+# Experiment
+# =============================
+
+# Run all IC queries with PROFILE
+ldbc-ic-profile:
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --all --nparam 35 -c --profile
+
+# Run all IC queries with hooks (metrics collection)
+ldbc-ic-collect:
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --all --nparam 35 --hooks
+
+ldbc-icq-profile q="1":
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --num {{q}} --nparam 35 -c --profile
+
+ldbc-icq-explain q="1":
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --num {{q}} --nparam 1 -c --explain -v
+
+ldbc-icq-collect q="1" nparam="1":
+    python3 -u ../../python/kvengines/nebula/ldbc/run_ldbc.py --num {{q}} --nparam {{nparam}} --hooks
+
+warmup:
+    just ldbc-ic > warmup.log 2>&1
+
+# Measure kvstore time and query time with profiling enabled
+ldbc-icq-seqrun:
+    echo "warmup..."
+    just ldbc-ic > ic.log 2>&1
+    echo "profile run..."
+    just ldbc-ic-profile > profile.log 2>&1
+    echo "extract plan metrics..."
+    python3 -u ../../python/kvengines/nebula/extract_plan_metrics.py -v > plan.log 2>&1
+    mv logs/nebula_plan_metrics.csv logs/nebula-icq-seqrun_$(date +%Y%m%d_%H%M%S).csv
+
+# =============================
+# Plan Inspection
+# =============================
+
+# Set storage debug flags, run a single query, and parse plan output
+storage-plan-query q='1' param='1' level='1':
+    #!/bin/bash
+    set -euo pipefail
+    curl -s -X PUT http://localhost:19779/flags \
+      -d '{"storage_log_level": "{{level}}", "query_concurrently": "false", "num_worker_threads": "1"}'
+    LOG=runs/logs/nebula-storaged.INFO
+    truncate -s 0 "$LOG"
+    just ldbc-icq {{q}} {{param}}
+    outdir="logs/storage-plan-level{{level}}/ic{{q}}/p{{param}}"
+    mkdir -p "$outdir"
+    cp "$LOG" "$outdir/storaged.log"
+    echo "Raw log saved to $outdir/storaged.log ($(wc -l < "$outdir/storaged.log") lines)"
+    python3 -u ../../python/kvengines/nebula/parse_storage_plan_log.py "$outdir/storaged.log"
+
+# Reset storage debug flags and restore concurrency
+storage-plan-off:
+    curl -s -X PUT http://localhost:19779/flags -d '{"storage_log_level": "0", "query_concurrently": "true", "num_worker_threads": "128"}'
+
+# Run PROFILE on a query file and generate plan figures
+plan-query file *args:
+    python3 -u ../../python/kvengines/nebula/plan_query.py -f {{file}} {{args}}
+
+# Re-analyze a saved plan.txt (no DB connection needed)
+plan-analyze file *args:
+    python3 -u ../../python/kvengines/nebula/plan_query.py --from-saved {{file}} {{args}}
+
+# =============================
+# Metrics
+# =============================
+
+# Snapshot metrics before an experiment
+before:
+    just storage-stats > 0storage.log
+    just graph-stats > 0graph.log
+    just meta-stats > 0meta.log
+    just rocksdb-stats > 0rocksdb.log
+
+# Snapshot metrics after an experiment
+after:
+    just storage-stats > 1storage.log
+    just graph-stats > 1graph.log
+    just meta-stats > 1meta.log
+    just rocksdb-stats > 1rocksdb.log
+
+# RocksDB statistics (storage layer)
+rocksdb-stats:
+    curl -s http://127.0.0.1:19779/rocksdb_stats | sort
+
+# Storage service stats/metrics
+storage-stats:
+    curl -s http://127.0.0.1:19779/stats | sort
+
+# Graph service stats (port 19669)
+graph-stats:
+    curl -s http://127.0.0.1:19669/stats | sort
+
+# Meta service stats (port 19559)
+meta-stats:
+    curl -s http://127.0.0.1:19559/stats | sort
+
+kvstats:
+    curl -s http://localhost:19779/kvstats
+reset-kvstats:
+    curl -s -X PUT http://localhost:19779/kvstats/reset
+
+# =============================
+# DB-specific (Nebula)
+# =============================
+
+add-hosts:
+    {{default_console_cmd}} -e 'ADD HOSTS "127.0.0.1":9779'
+
+# Open nebula-console
+console:
+    {{default_console_cmd}}
+
+show-hosts:
+    {{default_console_cmd}} -e 'SHOW HOSTS;'
+
+# Execute command in nebula Docker container
+dexec command:
+    docker exec ${MY_NEBULA_CONTAINER_NAME} {{command}}

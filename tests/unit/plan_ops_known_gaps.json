@@ -1,0 +1,40 @@
+{
+ "about": "Cells check_plan_ops_supported.py lets pass: a body the store may run (the selector's; a generated file's legal bodies) uses an op the format does not run yet. Each entry needs a reason; an entry that no longer fails makes the check fail (remove it).",
+ "gaps": [
+  {
+   "config": "nebula",
+   "workload": "microbench",
+   "query": "entry_range",
+   "op": "index_range_buckets",
+   "reason": "the day-bucket walk body: its `requires` hold on this store but the format does not run the op (dgraph's date index only); a capture of it fails, so it is never priced or recorded"
+  },
+  {
+   "config": "arangodb",
+   "workload": "microbench",
+   "query": "entry_range",
+   "op": "index_range_buckets",
+   "reason": "the day-bucket walk body: its `requires` hold on this store but the format does not run the op (dgraph's date index only); a capture of it fails, so it is never priced or recorded"
+  },
+  {
+   "config": "pertype_csr",
+   "workload": "microbench",
+   "query": "entry_range",
+   "op": "index_range_buckets",
+   "reason": "the day-bucket walk body: its `requires` hold on this store but the format does not run the op (dgraph's date index only); a capture of it fails, so it is never priced or recorded"
+  },
+  {
+   "config": "pertype_csr[chunk_target=65536]",
+   "workload": "microbench",
+   "query": "entry_range",
+   "op": "index_range_buckets",
+   "reason": "the day-bucket walk body: its `requires` hold on this store but the format does not run the op (dgraph's date index only); a capture of it fails, so it is never priced or recorded"
+  },
+  {
+   "config": "pertype_csr[chunk_target=524288]",
+   "workload": "microbench",
+   "query": "entry_range",
+   "op": "index_range_buckets",
+   "reason": "the day-bucket walk body: its `requires` hold on this store but the format does not run the op (dgraph's date index only); a capture of it fails, so it is never priced or recorded"
+  }
+ ]
+}

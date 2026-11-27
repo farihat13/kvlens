@@ -1,0 +1,6 @@
+// microbench point1: 1 property of a known person (NS1, the vid is given).
+// Reads: the Person document by _key (firstName); no traversal, no index.
+// Evaluator: queries/point.py _point(nprops=1) -- read_vertex_props on the anchor, 1 row.
+// mb2 lineage: MB1-2 (MB2 used a FOR+FILTER on _key; DOCUMENT() is the direct key read).
+LET p = DOCUMENT(CONCAT("Person/", @personId))
+RETURN {firstName: p.firstName}

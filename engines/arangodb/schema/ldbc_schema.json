@@ -1,0 +1,34 @@
+{
+  "vertex_collections": [
+    "Person", "Post", "Comment", "Forum",
+    "Organisation", "Place", "Tag", "TagClass"
+  ],
+  "edge_definitions": [
+    {"edge_collection": "knows",        "from": ["Person"],  "to": ["Person"]},
+    {"edge_collection": "likes",        "from": ["Person"],  "to": ["Post", "Comment"]},
+    {"edge_collection": "hasInterest",  "from": ["Person"],  "to": ["Tag"]},
+    {"edge_collection": "studyAt",      "from": ["Person"],  "to": ["Organisation"]},
+    {"edge_collection": "workAt",       "from": ["Person"],  "to": ["Organisation"]},
+    {"edge_collection": "isLocatedIn",  "from": ["Person", "Post", "Comment", "Organisation"], "to": ["Place"]},
+    {"edge_collection": "hasCreator",   "from": ["Post", "Comment"], "to": ["Person"]},
+    {"edge_collection": "replyOf",      "from": ["Comment"], "to": ["Post", "Comment"]},
+    {"edge_collection": "containerOf",  "from": ["Forum"],   "to": ["Post"]},
+    {"edge_collection": "hasMember",    "from": ["Forum"],   "to": ["Person"]},
+    {"edge_collection": "hasModerator", "from": ["Forum"],   "to": ["Person"]},
+    {"edge_collection": "hasTag",       "from": ["Post", "Comment", "Forum"], "to": ["Tag"]},
+    {"edge_collection": "isPartOf",     "from": ["Place"],   "to": ["Place"]},
+    {"edge_collection": "hasType",      "from": ["Tag"],     "to": ["TagClass"]},
+    {"edge_collection": "isSubclassOf", "from": ["TagClass"], "to": ["TagClass"]}
+  ],
+  "indexes": [
+    ["Person",   ["firstName"]],
+    ["Person",   ["creationDate"]],
+    ["Post",     ["creationDate"]],
+    ["Comment",  ["creationDate"]],
+    ["Place",    ["name"]],
+    ["Tag",      ["name"]],
+    ["TagClass", ["name"]],
+    ["likes",    ["creationDate"]],
+    ["knows",    ["creationDate"]]
+  ]
+}

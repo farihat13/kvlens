@@ -1,0 +1,215 @@
+{
+  "plan": "ic2_merge",
+  "question": "An alias of ic2: every format runs ic2's plan (no format runs a date-sorted merge plan).",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "maxDate": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "f0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f",
+          "op": "dedup",
+          "items": {
+            "ref": "f0"
+          }
+        },
+        {
+          "name": "fmsgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fmsgs"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "topk",
+          "op": "read_top_k_by_index",
+          "vids": {
+            "ref": "msg_vids"
+          },
+          "prop": "creationDate",
+          "k": 20,
+          "hi": {
+            "param": "maxDate"
+          },
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "props": [
+            "content",
+            "imageFile"
+          ]
+        },
+        {
+          "name": "with_authv",
+          "op": "join",
+          "left": {
+            "ref": "topk"
+          },
+          "right": {
+            "ref": "fmsgs"
+          },
+          "left_on": "_vid",
+          "right_on": "dst"
+        },
+        {
+          "name": "author_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "with_authv"
+          },
+          "field": "src"
+        },
+        {
+          "name": "author_vids",
+          "op": "dedup",
+          "items": {
+            "ref": "author_v0"
+          }
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "with_author",
+          "op": "join",
+          "left": {
+            "ref": "with_authv"
+          },
+          "right": {
+            "ref": "authors_named"
+          },
+          "left_on": "src",
+          "right_on": "_vid"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "with_author"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "ab3c78320716",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

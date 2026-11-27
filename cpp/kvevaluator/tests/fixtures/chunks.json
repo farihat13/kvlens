@@ -1,0 +1,307 @@
+[
+ {
+  "kind": "props",
+  "label": "Person",
+  "cols": [
+   [
+    "firstName",
+    "str",
+    false
+   ],
+   [
+    "lastName",
+    "str",
+    false
+   ],
+   [
+    "gender",
+    "str",
+    false
+   ],
+   [
+    "birthday",
+    "date",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "email",
+    "str",
+    true
+   ],
+   [
+    "language",
+    "str",
+    true
+   ]
+  ],
+  "rows": [
+   [
+    5,
+    {
+     "id": 5,
+     "firstName": "Ann",
+     "lastName": "Li",
+     "gender": "female",
+     "birthday": 1,
+     "creationDate": 2,
+     "locationIP": "1.2.3.4",
+     "browserUsed": "Firefox",
+     "email": [
+      "a@x",
+      "b@y"
+     ],
+     "language": [
+      "en"
+     ]
+    }
+   ],
+   [
+    1099511627776,
+    {
+     "id": 1099511627776,
+     "firstName": "Zoë",
+     "lastName": "Ærø",
+     "gender": "male",
+     "birthday": -86400000,
+     "creationDate": 1354060800000,
+     "locationIP": "",
+     "browserUsed": "IE",
+     "email": [],
+     "language": [
+      "zh",
+      "en"
+     ]
+    }
+   ],
+   [
+    1099511627783,
+    {
+     "id": 1099511627783,
+     "firstName": "N",
+     "gender": "x",
+     "birthday": 0,
+     "creationDate": 3,
+     "locationIP": "9",
+     "browserUsed": "B"
+    }
+   ]
+  ],
+  "hex": "0305fbffffffff1f0700000000030000000700000008416e6e5a6fc3ab4e0400000002000000074c69c38672c3b800000000060000000a0000000b66656d616c656d616c6578000000000000000001fffffffffad9a40000000000000000000000000000000000020000013b44502000000000000000000300000000070000000700000008312e322e332e34390000000007000000090000000a46697265666f7849454204000000090000000a0203614078036240790004000000040000000b0102656e02027a6802656e",
+  "est": [
+   92,
+   77,
+   52
+  ]
+ },
+ {
+  "kind": "props",
+  "label": "Post",
+  "cols": [
+   [
+    "imageFile",
+    "str",
+    false
+   ],
+   [
+    "creationDate",
+    "date",
+    false
+   ],
+   [
+    "locationIP",
+    "str",
+    false
+   ],
+   [
+    "browserUsed",
+    "str",
+    false
+   ],
+   [
+    "language",
+    "str",
+    false
+   ],
+   [
+    "content",
+    "str",
+    false
+   ],
+   [
+    "length",
+    "int",
+    false
+   ]
+  ],
+  "rows": [
+   [
+    1152921504606846976,
+    {
+     "id": 0,
+     "imageFile": "photo1.jpg",
+     "creationDate": 10,
+     "locationIP": "a",
+     "browserUsed": "b",
+     "length": 0
+    }
+   ],
+   [
+    1152921504606846979,
+    {
+     "id": 3,
+     "creationDate": 11,
+     "locationIP": "a",
+     "browserUsed": "b",
+     "language": "uz",
+     "content": "About Ärger, a short post",
+     "length": 25
+    }
+   ]
+  ],
+  "hex": "0280808080808080801003020000000a70686f746f312e6a706700000000000000000a000000000000000b000000000100000002616100000000010000000262620100000002757a010000001a41626f757420c384726765722c20612073686f727420706f73740000000000000000000000000000000019",
+  "est": [
+   56,
+   78
+  ]
+ },
+ {
+  "kind": "adj",
+  "with_ordinals": false,
+  "groups": [
+   [
+    5,
+    [
+     7,
+     300,
+     2199023255552
+    ],
+    null
+   ],
+   [
+    6,
+    [
+     1
+    ],
+    null
+   ],
+   [
+    1099511627776,
+    [
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    null
+   ]
+  ],
+  "hex": "030501faffffffff1f030105000000090000000a0000000f07a502d4fdffffff3f010201010101",
+  "est": [
+   24,
+   14,
+   34
+  ]
+ },
+ {
+  "kind": "adj",
+  "with_ordinals": true,
+  "groups": [
+   [
+    5,
+    [
+     7,
+     300,
+     2199023255552
+    ],
+    [
+     0,
+     1,
+     2
+    ]
+   ],
+   [
+    6,
+    [
+     1
+    ],
+    [
+     3
+    ]
+   ],
+   [
+    1099511627776,
+    [
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    [
+     4,
+     5,
+     6,
+     7,
+     300000
+    ]
+   ]
+  ],
+  "hex": "030501faffffffff1f030105000000090000000a0000000f07a502d4fdffffff3f0102010101010001020304050607e0a712",
+  "est": [
+   33,
+   17,
+   49
+  ]
+ },
+ {
+  "kind": "ep",
+  "etype": "knows",
+  "cols": [
+   [
+    "creationDate",
+    "date",
+    false
+   ]
+  ],
+  "rows": [
+   [
+    0,
+    {
+     "creationDate": 123
+    }
+   ],
+   [
+    2,
+    {
+     "creationDate": 456
+    }
+   ],
+   [
+    300000,
+    {}
+   ]
+  ],
+  "hex": "030002dea71204000000000000007b00000000000001c8",
+  "est": [
+   18,
+   18,
+   10
+  ]
+ }
+]

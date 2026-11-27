@@ -1,0 +1,18 @@
+{
+  "name": "linkbench",
+  "order": 2,
+  "title": "LinkBench, Facebook's social graph benchmark",
+  "scale_axis": "tag",
+  "scale_dir": "{scale}",
+  "deciding_scale": null,
+  "scales": ["tiny", "n1m"],
+  "schema": "inputs/schemas/linkbench/schema.json",
+  "schema_module": "kvevaluator.datasets.linkbench.schema",
+  "output_root": "linkbench",
+  "records_source": "kvevaluator.datasets.linkbench.records",
+  "fetch_module": "kvevaluator.datasets.linkbench.fetch",
+  "capture_key_schema": "python/kvevaluator/benchmarks/linkbench/schema.json",
+  "workload_files": [
+    "inputs/workloads/linkbench/{scale}"
+  ]
+}

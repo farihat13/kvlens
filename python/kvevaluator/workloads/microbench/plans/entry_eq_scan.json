@@ -1,0 +1,196 @@
+{
+  "plan": "entry_eq_scan",
+  "question": "Given a first name, find the ids of all persons with that first name by reading every person, with no index.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "firstName": {}
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "v",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "v"
+          },
+          "props": [
+            "firstName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "eq": [
+              {
+                "field": "firstName"
+              },
+              {
+                "param": "firstName"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fx"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "vv"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+fused": {
+      "steps": [
+        {
+          "name": "pp",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "firstName"
+          ]
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "eq": [
+              {
+                "field": "firstName"
+              },
+              {
+                "param": "firstName"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vv",
+          "op": "pluck",
+          "rows": {
+            "ref": "fx"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "vv"
+          }
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "d"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "srt",
+          "op": "top_k",
+          "rows": {
+            "ref": "pr"
+          },
+          "keys": [
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "srt"
+          },
+          "fields": [
+            "id"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "35287e6ae3a4",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand+fused": {
+      "sha": "82eba23ee3b0",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "hand+fused"
+      ]
+    }
+  }
+}

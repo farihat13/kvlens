@@ -1,0 +1,368 @@
+{
+  "plan": "bi6",
+  "question": "Given a tag, find the 100 people whose tagged messages were liked by people who themselves received the most likes.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tag": {
+      "type": "str"
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "creators",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "likers",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "cr_n",
+          "op": "rename",
+          "rows": {
+            "ref": "creators"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_p1"
+          }
+        },
+        {
+          "name": "lk_n",
+          "op": "rename",
+          "rows": {
+            "ref": "likers"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_p2"
+          }
+        },
+        {
+          "name": "pp0",
+          "op": "join_multi",
+          "left": {
+            "ref": "cr_n"
+          },
+          "right": {
+            "ref": "lk_n"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "pp1",
+          "op": "derive",
+          "rows": {
+            "ref": "pp0"
+          },
+          "into": "_k",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_p1"
+              },
+              {
+                "field": "_p2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pp",
+          "op": "dedup_rows",
+          "rows": {
+            "ref": "pp1"
+          },
+          "field": "_k"
+        },
+        {
+          "name": "p2v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "pp"
+          },
+          "field": "_p2"
+        },
+        {
+          "name": "p2v",
+          "op": "dedup",
+          "items": {
+            "ref": "p2v0"
+          }
+        },
+        {
+          "name": "m2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "p2v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "m2v",
+          "op": "pluck",
+          "rows": {
+            "ref": "m2"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "l3",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "m2v"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "l3v",
+          "op": "pluck",
+          "rows": {
+            "ref": "l3"
+          },
+          "field": "src"
+        },
+        {
+          "name": "l3c",
+          "op": "group_count",
+          "items": {
+            "ref": "l3v"
+          }
+        },
+        {
+          "name": "l3n",
+          "op": "rename",
+          "rows": {
+            "ref": "l3c"
+          },
+          "names": {
+            "item": "_msg2",
+            "count": "_likes"
+          }
+        },
+        {
+          "name": "m2n",
+          "op": "rename",
+          "rows": {
+            "ref": "m2"
+          },
+          "names": {
+            "src": "_p2",
+            "dst": "_msg2"
+          }
+        },
+        {
+          "name": "m2l",
+          "op": "left_join",
+          "left": {
+            "ref": "m2n"
+          },
+          "right": {
+            "ref": "l3n"
+          },
+          "left_on": "_msg2",
+          "right_on": "_msg2",
+          "default": {
+            "_likes": 0
+          }
+        },
+        {
+          "name": "pop",
+          "op": "group_agg",
+          "rows": {
+            "ref": "m2l"
+          },
+          "by": [
+            "_p2"
+          ],
+          "aggs": {
+            "_pop": [
+              "sum",
+              "_likes"
+            ]
+          }
+        },
+        {
+          "name": "ppp",
+          "op": "left_join",
+          "left": {
+            "ref": "pp"
+          },
+          "right": {
+            "ref": "pop"
+          },
+          "left_on": "_p2",
+          "right_on": "_p2",
+          "default": {
+            "_pop": 0
+          }
+        },
+        {
+          "name": "sc",
+          "op": "group_agg",
+          "rows": {
+            "ref": "ppp"
+          },
+          "by": [
+            "_p1"
+          ],
+          "aggs": {
+            "authorityScore": [
+              "sum",
+              "_pop"
+            ]
+          }
+        },
+        {
+          "name": "p1s",
+          "op": "dedup_rows",
+          "rows": {
+            "ref": "cr_n"
+          },
+          "field": "_p1"
+        },
+        {
+          "name": "scored",
+          "op": "left_join",
+          "left": {
+            "ref": "p1s"
+          },
+          "right": {
+            "ref": "sc"
+          },
+          "left_on": "_p1",
+          "right_on": "_p1",
+          "default": {
+            "authorityScore": 0
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "authorityScore",
+              "desc"
+            ],
+            [
+              "_p1",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_p1"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "idn",
+          "op": "rename",
+          "rows": {
+            "ref": "ids"
+          },
+          "names": {
+            "id": "personId"
+          }
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "idn"
+          },
+          "left_on": "_p1",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "personId",
+            "authorityScore"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "4f4e66fe2c48",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

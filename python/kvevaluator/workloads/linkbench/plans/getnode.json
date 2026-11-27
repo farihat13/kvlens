@@ -1,0 +1,67 @@
+{
+  "plan": "getnode",
+  "question": "Given a node, read its whole record (type, version, time and data).",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "nv",
+      "op": "read_vertex_props",
+      "vids": [
+        {
+          "let": "n_vid"
+        }
+      ],
+      "props": [
+        "ntype",
+        "version",
+        "time",
+        "data"
+      ],
+      "label": "Node"
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "nv"
+      },
+      "fields": [
+        "_vid",
+        "ntype",
+        "version",
+        "time",
+        "data"
+      ]
+    }
+  ],
+  "output": "out"
+}

@@ -1,0 +1,6 @@
+personId|tagName
+32985348848611|Democratic_Republic_of_the_Congo
+4398046516745|Batman
+32985348841083|Leon_Trotsky
+21990232565867|Superman
+10995116292222|Nepal

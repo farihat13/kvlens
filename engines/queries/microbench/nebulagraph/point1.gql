@@ -1,0 +1,10 @@
+# microbench point1 -- read 1 property (firstName) of a known Person.
+# Evaluator: queries/point.py _point(1): read_vertex_props(vid, [firstName]) -> 1 row.
+# mb2 lineage: MB1-2 (those used MATCH).
+# Form: FETCH PROP (GetVertices, the direct point read). FETCH does not accept a $param as the
+# vid in this Nebula ("Parameter is not supported in vid"), so the anchor enters through a
+# one-row YIELD piped into FETCH; that YIELD reads nothing from storage.
+# MATCH alternative (the earlier smoke test): MATCH (p:Person) WHERE id(p) == $personId
+# RETURN p.Person.firstName -- same answer, same 1 GET.
+YIELD $personId AS s
+| FETCH PROP ON Person $-.s YIELD Person.firstName AS firstName

@@ -1,0 +1,10 @@
+// microbench nhop4: the persons at knows-distance exactly 4 from a person (TM1, undirected BFS
+// with a global visited set: a person is reported only at the depth it is first reached).
+// Reads: the knows edge index (both sides) of every vertex expanded up to depth 3;
+// returns each depth-4 person's _key only.
+// Evaluator: queries/nhop.py _nhop(4) -- 4 x (read_neighbors both + dedup + exclude visited),
+// final = the depth-4 frontier, one row per person.
+// mb2 lineage: MB41-44, 53-54 (no arango text in mb2).
+FOR v IN 4..4 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN v._key

@@ -1,0 +1,150 @@
+{
+ "query": "job11d",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "k": "keyword",
+  "lt": "link_type",
+  "mc": "movie_companies",
+  "mk": "movie_keyword",
+  "ml": "movie_link",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "lt",
+   "id",
+   "ml",
+   "link_type_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "company_type_id",
+   "ct",
+   "id"
+  ],
+  [
+   "mc",
+   "company_id",
+   "cn",
+   "id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "!=",
+    "cn",
+    "country_code",
+    "[pl]"
+   ]
+  ],
+  "ct": [
+   [
+    "cmp",
+    "!=",
+    "ct",
+    "kind",
+    "production companies"
+   ],
+   [
+    "null",
+    "ct",
+    "kind",
+    false
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "sequel",
+     "revenge",
+     "based-on-novel"
+    ]
+   ]
+  ],
+  "lt": [],
+  "mc": [
+   [
+    "null",
+    "mc",
+    "note",
+    false
+   ]
+  ],
+  "mk": [],
+  "ml": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    1950
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "from_company",
+   "cn",
+   "name"
+  ],
+  [
+   "production_note",
+   "mc",
+   "note"
+  ],
+  [
+   "movie_based_on_book",
+   "t",
+   "title"
+  ]
+ ]
+}

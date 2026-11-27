@@ -1,0 +1,178 @@
+{
+  "plan": "entry_range_scan",
+  "question": "Given a date window, count the persons created in it by reading every person, with no index.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "startDate": {
+      "type": "int"
+    },
+    "days": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "end": {
+      "add": [
+        {
+          "param": "startDate"
+        },
+        {
+          "mul": [
+            {
+              "param": "days"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "v",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "fx"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "hand+fused": {
+      "steps": [
+        {
+          "name": "pp",
+          "op": "read_vertices_by_label",
+          "label": "Person",
+          "props": [
+            "creationDate"
+          ]
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "fx"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "95f378cdec4b",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand+fused": {
+      "sha": "e38240c1c00d",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "hand+fused"
+      ]
+    }
+  }
+}

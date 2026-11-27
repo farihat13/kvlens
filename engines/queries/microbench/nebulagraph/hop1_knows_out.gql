@@ -1,0 +1,6 @@
+# microbench hop1_knows_out -- a Person's distinct knows-neighbours, out direction only.
+# Evaluator: queries/hop.py _hop1("knows", "out", "Person"): read_neighbors -> dedup -> count.
+# Count-final: one row per distinct neighbour, the vid only.
+# mb2 lineage: MB21-22 (MATCH).  Form and $param note: see hop1_knows.gql.
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS YIELD DISTINCT dst(edge) AS id

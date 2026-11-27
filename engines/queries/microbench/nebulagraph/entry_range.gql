@@ -1,0 +1,10 @@
+# microbench entry_range -- the Persons created in [startDate, startDate + days) (indexed range).
+# Evaluator: queries/entry.py entry_range: read_index_range(Person.creationDate, lo, hi) ->
+# dedup -> count. Count-final: one row per Person in the window, the vid only.
+# mb2 lineage: MB7-8 (those used an inclusive upper bound; the evaluator's is exclusive).
+# Params: the binder turns (startDate, days) into $startDate and $endDate (int ms).
+# Form: LOOKUP range scan of person_creation_date_idx. Engine note: id(vertex) costs 1 base-row
+# GET per entry (see entrylabel_person.gql); `YIELD Person.creationDate` alone costs 0 GETs.
+LOOKUP ON Person
+WHERE Person.creationDate >= $startDate AND Person.creationDate < $endDate
+YIELD id(vertex) AS id

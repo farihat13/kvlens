@@ -1,0 +1,15 @@
+# engines/tugraph: the server's stop and status (engines/stop-server.sh calls `just stop` here).
+default:
+    @just --list --unsorted
+
+# the load reads LDBC's CSV files in place: only check that they are there (engines/once.sh calls this)
+ldbc-download SF:
+    bash -c 'source ../env.sh && test -d "$LDBC_SNB_DATA_DIR/sf{{SF}}/CsvBasic-LongDateFormatter/dynamic" || { echo "no LDBC CsvBasic data at sf{{SF}}: just fetch-dataset ldbc={{SF}}" >&2; exit 1; }'
+
+# stop the server
+stop:
+    bash scripts/stop.sh
+
+# is it up, and what does it count
+status:
+    bash scripts/status.sh || true

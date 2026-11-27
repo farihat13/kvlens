@@ -1,0 +1,26 @@
+# LDBC SNB -- value_sorted_date schema: the type_scoped_date design (Post/Comment creationDate index
+# scoped per type), PLUS the same two indexes stored VALUE-sorted by date (dim-2). The full
+# nebula-equivalent global top-k. Pick with `--schema value_sorted_date`.
+#
+# WHY. type_scoped_date (dim-1) keys the message-date index per type, so a "newest messages" top-k
+# walks it candidate-free -- a BYTE win (no cross-type candidate set). But the day-token posting still
+# stores its uids in UID order, so the top-k must GET the exact ms of every same-day candidate to rank
+# them: NO ops win. dim-2 fixes that. `value_sorted` stores each day bucket as DATE-descending
+# [vid, ms] pairs, so the walk reads each touched day's value already in date order and ranks with no
+# per-candidate ms GET -- the ops win, matching nebula's ms-in-key index. The stored ms also serves the
+# result's creationDate and the exact intra-day maxDate filter, both GET-free.
+#
+# COMPOSITION. value_sorted only orders the VALUE; it relies on type_scoped for the per-type KEY (a
+# predicate-global bucket is shared by every dated type, so value-sorting it would mix Post's [vid, ms]
+# pairs with Person's plain vids). So we include type_scoped_date and add value_sorted on top -- the two
+# knobs compose (dim-1 = per-type key -> bytes; dim-2 = date-ordered value -> ops). Person/Forum
+# creationDate stay canonical (predicate-global, uid-ordered). Everything else matches canonical.
+
+include type_scoped_date
+
+# Add value_sorted to the two message-date indexes. `include type_scoped_date` already declares them as
+# per-type sorted date indexes; the trailing `value_sorted` flips only the VALUE ordering (the index
+# still exists, still sorted, still per-type). type_scoped is re-stated so this line reads on its own and
+# satisfies the value_sorted -> type_scoped invariant even when read in isolation.
+index Post.creationDate type_scoped value_sorted
+index Comment.creationDate type_scoped value_sorted

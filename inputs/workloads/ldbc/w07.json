@@ -1,0 +1,35 @@
+{
+ "id": "w07",
+ "name": "wide_props",
+ "title": "Wide: every property of one vertex",
+ "items": [
+  {"family": "microbench", "query": "point7", "frequency": 100, "params": null}
+ ],
+ "expect": "Condensed props (one GET)",
+ "why": "one GET for all 7 properties with Condensed ({cc_ops} ops) against 7 GETs with Split ({sp_ops}). Split still reads fewer bytes ({sp_bytes} against {cc_bytes}). One type: nothing for a mixed layout to separate.",
+ "why_numbers": {
+  "cc_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_condensed"
+  ],
+  "sp_ops": [
+   "total",
+   "ops",
+   "props_split_adj_split"
+  ],
+  "sp_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_split"
+  ],
+  "cc_bytes": [
+   "total",
+   "bytes",
+   "props_condensed_adj_condensed"
+  ]
+ },
+ "why_scale_free": {
+  "7": "a Person declares 7 properties (schema)"
+ }
+}

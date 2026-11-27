@@ -1,0 +1,6 @@
+tag5|messages5|tag7|messages7|tag8|messages8|startDate|endDate|stratum
+The_Bridge_Is_Over|1002|Cry_for_Help|1000|Back_in_the_DHSS|1000|1315201677805|1323841677805|p25
+Little_Lies|2239|The_Declaration|2239|Roy_Keane|2239|1315201677805|1323841677805|p50
+Sweet_Home_Chicago|4432|Rufus_Does_Judy_at_Carnegie_Hall|4430|Life_in_a_Northern_Town|4425|1315201677805|1323841677805|p75
+Brian_Mulroney|47546|Joseph_Smith|47541|Joan_Crawford|47480|1315201677805|1323841677805|p95
+Augustine_of_Hippo|854225|Adolf_Hitler|429619|Muammar_Gaddafi|403468|1317179076632|1325819076632|max

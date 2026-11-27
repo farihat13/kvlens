@@ -1,0 +1,33 @@
+# Report-only: the lints and the fast tests that need no C++ binary, on each push to main. A failure marks the commit
+# and blocks nothing (no required check, no branch protection). The binary's tests run locally: `just tests-fast`.
+name: check
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0   # the full history: plan checks read plan files at older commits (git show)
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "0.13.6"
+          enable-cache: true
+      - uses: extractions/setup-just@v4.0.0
+        with:
+          just-version: "1.59.0"
+      - name: setup
+        run: just setup
+      - name: lint
+        run: just lint
+      - name: fast tests (no C++ binary)
+        run: just tests-fast-no-binary

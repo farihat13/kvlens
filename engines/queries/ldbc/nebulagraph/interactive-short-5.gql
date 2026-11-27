@@ -1,0 +1,18 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=19
+# IS5. Creator of a message
+# 
+# Given a Message with ID $messageId, retrieve its author.
+# 
+# Params:
+#   $messageId  : string     (e.g., "933")
+# Results:
+# 1 person.id ID R
+# 2 person.firstName String R
+# 3 person.lastName String R
+
+MATCH (m)-[:HAS_CREATOR]->(p:Person)
+WHERE id(m) == $messageId 
+RETURN
+    id(p) AS personId,
+    p.Person.firstName AS firstName,
+    p.Person.lastName AS lastName

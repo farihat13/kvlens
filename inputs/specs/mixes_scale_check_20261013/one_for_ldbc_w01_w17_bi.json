@@ -1,0 +1,174 @@
+{
+ "adjacency": {
+  "group": "owner",
+  "owners": {
+   "pack": 65536
+  },
+  "split": "never"
+ },
+ "adjacency_by_etype": {
+  "hasType": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "isLocatedIn": {
+   "group": "item",
+   "owners": "one",
+   "split": "never"
+  },
+  "isSubclassOf": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "knows": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  },
+  "likes": {
+   "group": "item",
+   "owners": "one",
+   "split": "never"
+  },
+  "studyAt": {
+   "group": "owner",
+   "owners": "one",
+   "split": 524288
+  }
+ },
+ "adjacency_by_etype_dir": {
+  "containerOf": {
+   "in": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "hasCreator": {
+   "in": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "hasMember": {
+   "in": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "hasModerator": {
+   "in": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   }
+  },
+  "hasTag": {
+   "in": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "isPartOf": {
+   "in": {
+    "group": "owner",
+    "owners": "one",
+    "split": 524288
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  },
+  "replyOf": {
+   "in": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+   },
+   "out": {
+    "group": "owner",
+    "owners": {
+     "pack": 65536
+    },
+    "split": "never"
+   }
+  }
+ },
+ "direction": "declared",
+ "index": {
+  "group": "item",
+  "owners": "one",
+  "scope": "type",
+  "split": "never",
+  "term": "exact"
+ },
+ "version": 1,
+ "vertex_props": {
+  "group": "owner",
+  "owners": {
+   "pack": 65536
+  },
+  "split": "never"
+ },
+ "vertex_props_by_label": {
+  "Organisation": {
+   "group": "item",
+   "owners": "one",
+   "split": "never"
+  },
+  "Person": {
+   "group": "owner",
+   "owners": "one",
+   "split": "never"
+  },
+  "Place": {
+   "group": "item",
+   "owners": "one",
+   "split": "never"
+  }
+ }
+}

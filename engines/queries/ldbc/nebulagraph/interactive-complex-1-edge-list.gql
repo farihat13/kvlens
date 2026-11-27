@@ -1,0 +1,81 @@
+# The query-text variant ic1-edge-list of interactive-complex-1.gql (kvengines.complex_kv_reads.QUERY_VARIANTS): the
+# same query binding only the walk's edge list (`-[e:KNOWS*1..3]-`, distance from `size(e)`), not its whole path
+# (`MATCH p=...`, `length(p)`). With the path bound NebulaGraph looks every vertex on it up under all vertex types;
+# with the edge list it reads each person once. Nothing else differs from interactive-complex-1.gql.
+#
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=2.11
+# Q1. Transitive friends with certain name
+#
+# Given a start Person with ID $personId, find Persons with a given first name ($firstName) that the
+# start Person is connected to (excluding start Person) by at most 3 steps via the knows relationships.
+# Return Persons, including the distance (1..3), summaries of the Persons workplaces and places of
+# study.
+# 
+# Params:
+#   $personId  : int        (e.g., 933)
+#   $firstName : string     (e.g., "John")
+# result
+# 1 otherPerson.id ID R
+# 2 otherPerson.lastName String R
+# 3 distanceFromPerson 32-bit Integer C
+# 4 otherPerson.birthday Date R
+# 5 otherPerson.creationDate DateTime R
+# 6 otherPerson.gender String R
+# 7 otherPerson.browserUsed String R
+# 8 otherPerson.locationIP String R
+# 9 otherPerson.email {Long String} R
+# 10 otherPerson.speaks {String} R
+# 11 locationCity.name String R
+# 12 universities{<String,32-bit Integer,String>}A {<university.name, studyAt.classYear,universityCity.name>}
+# 13 companies{<String,32-bit Integer,String>}A {<company.name, workAt.workFrom,companyCountry.name>}
+# sort
+# 1 distanceFromPerson ↑
+# 2 otherPerson.lastName ↑
+# 3 otherPerson.id ↑
+
+MATCH (person:Person)-[e:KNOWS*1..3]-(friend:Person {firstName: $firstName})
+      WHERE id(person) == $personId
+      AND id(friend) != $personId
+      # WITH friend, length(p) AS distance
+      WITH friend, min(size(e)) AS distance # deduplicate by min distance
+      MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place)
+      OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:IS_LOCATED_IN]->(uniCity:Place)
+      WITH
+        friend,
+        collect(
+          CASE uni.Organisation.name
+            WHEN null THEN null
+            ELSE [uni.Organisation.name, studyAt.classYear, uniCity.Place.name]
+          END
+        ) AS unis,
+        friendCity,
+        distance
+      OPTIONAL MATCH (friend)-[workAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(companyCountry:Place)
+      WITH
+        friend,
+        collect(
+          CASE company.Organisation.name
+            WHEN null THEN null
+            ELSE [company.Organisation.name, workAt.workFrom, companyCountry.Place.name]
+          END
+        ) AS companies,
+        unis,
+        friendCity,
+        distance
+      RETURN
+        id(friend) AS friendId,
+        friend.Person.lastName AS friendLastName,
+        distance AS distanceFromPerson,
+        friend.Person.birthday AS friendBirthday,
+        friend.Person.creationDate AS friendCreationDate,
+        friend.Person.gender AS friendGender,
+        friend.Person.browserUsed AS friendBrowserUsed,
+        friend.Person.locationIP AS friendLocationIp,
+        friend.Person.emails AS friendEmails,
+        friend.Person.languages AS friendLanguages,
+        friendCity.Place.name AS friendCityName,
+        unis AS friendUniversities,
+        companies AS friendCompanies,
+        toInteger(split(tostring(id(friend)), "_")[1]) AS friendIdInt
+      ORDER BY distanceFromPerson ASC, friendLastName ASC, friendIdInt ASC 
+      LIMIT 20

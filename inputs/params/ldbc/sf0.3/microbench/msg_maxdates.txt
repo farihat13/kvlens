@@ -1,0 +1,4 @@
+maxDate|kind
+1347528477814|all
+1319443819577|median
+1319500800000|dayaligned

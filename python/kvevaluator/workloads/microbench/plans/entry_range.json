@@ -1,0 +1,334 @@
+{
+  "plan": "entry_range",
+  "question": "Given a date window, count the persons created in it, using the creation date index.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "startDate": {
+      "type": "int"
+    },
+    "days": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "end": {
+      "add": [
+        {
+          "param": "startDate"
+        },
+        {
+          "mul": [
+            {
+              "param": "days"
+            },
+            {
+              "lit": 86400000
+            }
+          ]
+        }
+      ]
+    },
+    "end_excl": {
+      "sub": [
+        {
+          "let": "end"
+        },
+        {
+          "lit": 1
+        }
+      ]
+    },
+    "lo_day": {
+      "floordiv": [
+        {
+          "param": "startDate"
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    },
+    "hi_day": {
+      "floordiv": [
+        {
+          "let": "end_excl"
+        },
+        {
+          "lit": 86400000
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand~3428d9": {
+      "steps": [
+        {
+          "name": "per",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "day",
+          "op": "index_range_buckets",
+          "labels": [
+            "Person"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "param": "startDate"
+          },
+          "hi": {
+            "let": "end_excl"
+          }
+        },
+        {
+          "name": "bndr",
+          "op": "filter",
+          "rows": {
+            "ref": "day"
+          },
+          "pred": {
+            "in": [
+              {
+                "field": "_bucket"
+              },
+              {
+                "tuple": [
+                  {
+                    "let": "lo_day"
+                  },
+                  {
+                    "let": "hi_day"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bnd",
+          "op": "pluck",
+          "rows": {
+            "ref": "bndr"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "winr",
+          "op": "filter",
+          "rows": {
+            "ref": "day"
+          },
+          "pred": {
+            "not": {
+              "in": [
+                {
+                  "field": "_bucket"
+                },
+                {
+                  "tuple": [
+                    {
+                      "let": "lo_day"
+                    },
+                    {
+                      "let": "hi_day"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "win",
+          "op": "pluck",
+          "rows": {
+            "ref": "winr"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bp",
+          "op": "intersect",
+          "items": {
+            "ref": "bnd"
+          },
+          "other": {
+            "ref": "per"
+          }
+        },
+        {
+          "name": "bd",
+          "op": "dedup",
+          "items": {
+            "ref": "bp"
+          }
+        },
+        {
+          "name": "br",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "bd"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "bf",
+          "op": "filter",
+          "rows": {
+            "ref": "br"
+          },
+          "pred": {
+            "and": [
+              {
+                "le": [
+                  {
+                    "param": "startDate"
+                  },
+                  {
+                    "field": "creationDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "end"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "bv",
+          "op": "pluck",
+          "rows": {
+            "ref": "bf"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "wp",
+          "op": "intersect",
+          "items": {
+            "ref": "win"
+          },
+          "other": {
+            "ref": "per"
+          }
+        },
+        {
+          "name": "all",
+          "op": "concat",
+          "a": {
+            "ref": "wp"
+          },
+          "b": {
+            "ref": "bv"
+          }
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "all"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "hand~60b076": {
+      "steps": [
+        {
+          "name": "w",
+          "op": "read_index_range",
+          "labels": [
+            "Person"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "param": "startDate"
+          },
+          "hi": {
+            "let": "end"
+          }
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "w"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand~3428d9": {
+      "sha": "3428d996eda5",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~60b076": {
+      "sha": "60b076020602",
+      "requires": [
+        "per_type_index",
+        "property_index",
+        "sorted_range_index"
+      ],
+      "on": {
+        "per_type_index": [
+          "Person"
+        ],
+        "sorted_range_index": [
+          "Person"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

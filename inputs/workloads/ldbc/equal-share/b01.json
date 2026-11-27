@@ -1,0 +1,116 @@
+{
+ "id": "b01-equal-share",
+ "name": "b01_equal_share",
+ "title": "Equal-share frequencies of b01 (LDBC BI, every query once): each query weighted 1 / its measured wops_bytes4k on Sp-Co at ldbc 3 (chunk view half), so each costs 1 on Sp-Co",
+ "equal_share": {
+  "dataset": "ldbc",
+  "scale": "3",
+  "model": "wops_bytes4k",
+  "chunk_view": "half",
+  "reference": "props_split_adj_condensed"
+ },
+ "items": [
+  {
+   "family": "bi",
+   "query": "bi1",
+   "frequency": 1.345044063679648e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi2",
+   "frequency": 1.3419643709310825e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi3",
+   "frequency": 9.023576406031132e-07,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi4",
+   "frequency": 1.997244298512312e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi5",
+   "frequency": 1.8263635595154658e-05,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi6",
+   "frequency": 3.0945843356344393e-07,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi7",
+   "frequency": 2.2529896616713564e-05,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi8",
+   "frequency": 2.414287095969959e-05,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi9",
+   "frequency": 2.4216008023704637e-07,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi10",
+   "frequency": 2.0755236600595754e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi11",
+   "frequency": 0.00016921914243162657,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi12",
+   "frequency": 1.2415472870197335e-07,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi13",
+   "frequency": 1.3305109035411292e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi14",
+   "frequency": 1.15563748761412e-06,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi16",
+   "frequency": 4.779508701965286e-05,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi17",
+   "frequency": 1.3609505228258228e-05,
+   "params": null
+  },
+  {
+   "family": "bi",
+   "query": "bi18",
+   "frequency": 2.159749638362947e-05,
+   "params": null
+  }
+ ]
+}

@@ -1,0 +1,59 @@
+{
+ "id": "l03",
+ "name": "lb_writes",
+ "title": "LinkBench's writes only",
+ "items": [
+  {"family": "linkbench_writes", "query": "addlink_link1", "frequency": 5761, "params": null},
+  {"family": "linkbench_writes", "query": "addlink_link2", "frequency": 6132, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link1", "frequency": 2737, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link2", "frequency": 2289, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link1", "frequency": 1504, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link2", "frequency": 1502, "params": null},
+  {"family": "linkbench_writes", "query": "addnode", "frequency": 2628, "params": null},
+  {"family": "linkbench_writes", "query": "updatenode", "frequency": 7352, "params": null},
+  {"family": "linkbench_writes", "query": "deletenode", "frequency": 996, "params": null}
+ ],
+ "expect": "Split adjacency (2 small keys vs a list or chunk rewrite); Condensed props in ops (1 row write vs 3 puts), Split props in bytes. Mixed == uniform.",
+ "why": "Writes only: Condensed/Split (Condensed props, Split lists) is cheapest in ops ({nb_ops}; All-Condensed {cc_ops}, {cc_more} more: a Condensed list write reads and rewrites the list), Split props + Split lists in bytes ({ss_bytes}: no row read-back, 2 small keys per link). Condensed props win ops (row writes), Split props bytes.",
+ "why_numbers": {
+  "nb_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_split"
+  ],
+  "cc_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_condensed"
+  ],
+  "cc_more": [
+   "share",
+   [
+    "diff",
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_condensed"
+    ],
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_split"
+    ]
+   ],
+   [
+    "total",
+    "ops",
+    "props_condensed_adj_split"
+   ]
+  ],
+  "ss_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_split"
+  ]
+ },
+ "why_scale_free": {
+  "2": "one record per direction of a link"
+ }
+}

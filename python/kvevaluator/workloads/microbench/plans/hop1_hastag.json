@@ -1,0 +1,89 @@
+{
+  "plan": "hop1_hastag",
+  "question": "Given a tag, count the distinct posts, comments and forums that carry it.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tag": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag"
+            }
+          ]
+        },
+        {
+          "param": "tag"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Tag"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "e8e65228da62",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

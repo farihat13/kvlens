@@ -1,0 +1,13 @@
+# entrylabel_person -- enumerate every person by type (NS2).
+# Reads: the dgraph.type index posting for "person" only; `uid` is free (no predicate read).
+# Evaluator: queries/entry.py _entry_label("Person") -- read_vertices_by_label -> count row.
+#   Count-final, so the live query returns one item per person (not count(), which the shape
+#   does not read); the harness counts the items.
+# mb2 lineage: MB9-10, 19-20, 209-210 (those capped at first: 10000; this one is uncapped).
+# No anchor, no params.
+# answer-path: result
+{
+  result(func: type(person)) {
+    uid
+  }
+}

@@ -1,0 +1,31 @@
+// IS2: Recent Messages of a Person
+// Given a personId, return 10 most recent messages (posts or comments)
+// with original post and its author
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+FOR msg IN 1..1 INBOUND person hasCreator
+    SORT msg.creationDate DESC, TO_NUMBER(msg._key) ASC
+    LIMIT 10
+    // Walk replyOf chain to find original post
+    LET origPost = FIRST(
+        FOR op IN 0..100 OUTBOUND msg replyOf
+            FILTER IS_SAME_COLLECTION("Post", op)
+            LIMIT 1
+            RETURN op
+    )
+    LET thePost = origPost != null ? origPost : msg
+    LET origAuthor = FIRST(
+        FOR a IN 1..1 OUTBOUND thePost hasCreator
+            RETURN a
+    )
+    RETURN {
+        messageId: TO_NUMBER(msg._key),
+        messageContent: IS_SAME_COLLECTION("Post", msg)
+            ? (msg.content != null AND msg.content != "" ? msg.content : msg.imageFile)
+            : msg.content,
+        messageCreationDate: msg.creationDate,
+        originalPostId: TO_NUMBER(thePost._key),
+        originalPostAuthorId: TO_NUMBER(origAuthor._key),
+        originalPostAuthorFirstName: origAuthor.firstName,
+        originalPostAuthorLastName: origAuthor.lastName
+    }

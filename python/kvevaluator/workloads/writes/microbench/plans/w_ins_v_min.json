@@ -1,0 +1,66 @@
+{
+  "plan": "w_ins_v_min",
+  "question": "Insert a new person with only three non-indexed properties.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Person"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842624
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1125899906842624
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1125899906842624
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Person",
+      "props": {
+        "lastName": "WMin",
+        "gender": "other",
+        "locationIP": "10.0.0.1"
+      }
+    }
+  ],
+  "output": "out"
+}

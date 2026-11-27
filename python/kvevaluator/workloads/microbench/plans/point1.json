@@ -1,0 +1,73 @@
+{
+  "plan": "point1",
+  "question": "Given a person, read their first name (one property).",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": [
+            {
+              "let": "anchor_vid"
+            }
+          ],
+          "props": [
+            "firstName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "pr"
+          },
+          "fields": [
+            "firstName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "7844675e6eb4",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

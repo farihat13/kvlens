@@ -1,0 +1,48 @@
+// IC10: Friend recommendation
+// Find friends-of-friends (not direct friends) born in month window,
+// ranked by common interest score
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+// Direct friends
+LET directFriends = (FOR f IN 1..1 ANY person knows RETURN f._id)
+
+// Person's interest tags
+LET myTags = (FOR t IN 1..1 OUTBOUND person hasInterest RETURN t._id)
+
+LET nextMonth = @month == 12 ? 1 : @month + 1
+
+// Friends of friends (2 hops only, not direct friends)
+FOR fof IN 2..2 ANY person knows
+    FILTER fof._id != person._id
+    FILTER fof._id NOT IN directFriends
+    // Birthday filter: born between 21st of @month and 22nd of next month
+    LET bDay = DATE_DAY(fof.birthday)
+    LET bMonth = DATE_MONTH(fof.birthday)
+    FILTER (bMonth == @month AND bDay >= 21) OR (bMonth == nextMonth AND bDay < 22)
+    COLLECT f = fof INTO groups
+    // Count posts and common posts using traversal from the friend
+    LET postInfo = (
+        FOR post IN 1..1 INBOUND f hasCreator
+            FILTER IS_SAME_COLLECTION("Post", post)
+            LET hasCommonTag = LENGTH(
+                FOR tag IN 1..1 OUTBOUND post hasTag
+                    FILTER tag._id IN myTags
+                    LIMIT 1
+                    RETURN 1
+            ) > 0
+            RETURN { common: hasCommonTag }
+    )
+    LET postCount = LENGTH(postInfo)
+    LET commonPostCount = LENGTH(FOR pi IN postInfo FILTER pi.common RETURN 1)
+    LET score = 2 * commonPostCount - postCount
+    LET city = FIRST(FOR c IN 1..1 OUTBOUND f isLocatedIn RETURN c)
+    SORT score DESC, TO_NUMBER(f._key) ASC
+    LIMIT 10
+    RETURN {
+        personId: TO_NUMBER(f._key),
+        personFirstName: f.firstName,
+        personLastName: f.lastName,
+        commonInterestScore: score,
+        personGender: f.gender,
+        personCityName: city.name
+    }

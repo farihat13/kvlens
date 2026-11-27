@@ -1,0 +1,26 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS3. Friends of a person
+# 
+# Given a start Person with ID $personId, retrieve all of their friends, and 
+# the date at which they became friends.
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+# Results:
+# 1 friend.id ID R
+# 2 friend.firstName String R
+# 3 friend.lastName String R
+# 4 knows.creationDate DateTime R
+# sort 
+# 1 knows.creationDate ↓
+# 2 friend.id ↑
+
+MATCH (p:Person)-[k:KNOWS]-(f:Person)
+WHERE id(p) == $personId
+RETURN
+    id(f) AS friendId,
+    f.Person.firstName AS friendFirstName,
+    f.Person.lastName AS friendLastName,
+    k.creationDate AS friendshipCreationDate,
+    toInteger(split(tostring(id(f)), "_")[1]) AS friendIdInt
+ORDER BY friendshipCreationDate DESC, friendIdInt ASC

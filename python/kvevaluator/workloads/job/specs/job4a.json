@@ -1,0 +1,93 @@
+{
+ "query": "job4a",
+ "aliases": {
+  "it": "info_type",
+  "k": "keyword",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "rating"
+   ]
+  ],
+  "k": [
+   [
+    "like",
+    "k",
+    "keyword",
+    "%sequel%",
+    false
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    ">",
+    "mi_idx",
+    "info",
+    "5.0"
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2005
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "rating",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "movie_title",
+   "t",
+   "title"
+  ]
+ ]
+}

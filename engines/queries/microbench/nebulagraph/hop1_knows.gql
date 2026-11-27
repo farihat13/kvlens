@@ -1,0 +1,10 @@
+# microbench hop1_knows -- a Person's distinct knows-neighbours, both directions.
+# Evaluator: queries/hop.py _hop1("knows", "both", "Person"): read_neighbors -> dedup -> count.
+# Count-final: one row per distinct neighbour, the vid only.
+# mb2 lineage: MB21-26 (MB25 = both directions, MATCH).
+# Form: GO BIDIRECT (GetNeighbors: one out and one in edge prefix). id($$) is the far end of the
+# edge and costs nothing; dst(edge) would return the anchor itself for in-edges. $param: GO
+# does not take a $param as the start vid in this Nebula, so the anchor enters through a
+# one-row YIELD (no storage read).
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS BIDIRECT YIELD DISTINCT id($$) AS id

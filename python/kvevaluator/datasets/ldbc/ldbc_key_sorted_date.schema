@@ -1,0 +1,29 @@
+# LDBC SNB -- key_sorted_date schema: the type_scoped_date design (Post/Comment creationDate index
+# scoped per type), PLUS the same two indexes with the ms IN THE KEY (dim-2 Option B). The full
+# nebula-equivalent global top-k, byte-optimal at every K. Pick with `--schema key_sorted_date`.
+#
+# WHY. type_scoped_date (dim-1) keys the message-date index per type -> a candidate-free top-k walk
+# (BYTE win from dropping the cross-type candidate set). value_sorted_date (dim-2 Option A) then
+# stores each day bucket's VALUE date-sorted -> the OPS win (rank with no per-candidate ms GET). But
+# Option A still reads the WHOLE boundary day's VALUE to rank, so at small K it reads far more BYTES
+# than nebula (K=1: the newest day's whole value vs nebula's one key). Option B fixes exactly that.
+# `key_sorted` puts ms in the key, one index ENTRY per message (an order-preserving ms+vid composite
+# token, empty value), so a top-k KEY range scan reads exactly K key-only entries and STOPS --
+# scan_key proportional to K, scan_value ~ 0, like nebula's ms-in-key index. The ms and vid ride in
+# the key, so ranking, the exact intra-window maxDate filter, and the result creationDate are all
+# GET-free; only the K winners pay a props GET.
+#
+# COMPOSITION. key_sorted changes only the KEYING; it relies on type_scoped for the per-type key (a
+# predicate-global token space would mix every dated type's message entries). So we include
+# type_scoped_date and add key_sorted on top. key_sorted is a DISTINCT layout from value_sorted
+# (day-bucket date-value); a column declares at most one. Person/Forum creationDate stay canonical
+# (predicate-global, day-bucketed). Everything else matches canonical.
+
+include type_scoped_date
+
+# Add key_sorted to the two message-date indexes. `include type_scoped_date` already declares them as
+# per-type sorted date indexes; the trailing `key_sorted` flips only the KEYING (ms-in-key, one entry
+# per value, empty value). type_scoped is re-stated so this line reads on its own and satisfies the
+# key_sorted -> type_scoped invariant even when read in isolation.
+index Post.creationDate type_scoped key_sorted
+index Comment.creationDate type_scoped key_sorted

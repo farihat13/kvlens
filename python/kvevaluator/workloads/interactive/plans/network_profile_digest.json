@@ -1,0 +1,160 @@
+{
+  "plan": "network_profile_digest",
+  "question": "Given a person, list each friend with seven profile fields and the date the friendship began, newest friendship first.",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "network_profile_digest": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "fr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "fvids",
+          "op": "pluck",
+          "rows": {
+            "ref": "fr"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fvids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "locationIP",
+            "browserUsed"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "rows",
+          "op": "zip_rows",
+          "left": {
+            "ref": "fr"
+          },
+          "right": {
+            "ref": "props"
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "rows"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "sorted"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName",
+            "creationDate": "friendshipCreationDate"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "gender",
+            "birthday",
+            "locationIP",
+            "browserUsed",
+            "friendshipCreationDate"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "network_profile_digest": {
+      "sha": "a3c6afd1f973",
+      "requires": [],
+      "sources": [
+        "network_profile_digest"
+      ]
+    }
+  }
+}

@@ -1,0 +1,386 @@
+{
+  "plan": "ic11",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "countryName": {},
+    "year": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "a",
+      "op": "read_vertex_by_id",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person"
+    },
+    {
+      "name": "f0",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "a"
+      },
+      "etype": "knows",
+      "dir": "both"
+    },
+    {
+      "name": "f1",
+      "op": "dedup",
+      "items": {
+        "ref": "f0"
+      }
+    },
+    {
+      "name": "f2r",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "f1"
+      },
+      "etype": "knows",
+      "dir": "both"
+    },
+    {
+      "name": "f12",
+      "op": "concat",
+      "a": {
+        "ref": "f1"
+      },
+      "b": {
+        "ref": "f2r"
+      }
+    },
+    {
+      "name": "fd",
+      "op": "dedup",
+      "items": {
+        "ref": "f12"
+      }
+    },
+    {
+      "name": "f",
+      "op": "exclude",
+      "items": {
+        "ref": "fd"
+      },
+      "remove": {
+        "ref": "a"
+      }
+    },
+    {
+      "name": "works",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "f"
+      },
+      "etype": "workAt",
+      "dir": "out",
+      "edge_props": [
+        "workFrom"
+      ],
+      "pairs": true
+    },
+    {
+      "name": "works_pre",
+      "op": "filter",
+      "rows": {
+        "ref": "works"
+      },
+      "pred": {
+        "lt": [
+          {
+            "field": "workFrom"
+          },
+          {
+            "param": "year"
+          }
+        ]
+      }
+    },
+    {
+      "name": "country_scan",
+      "op": "read_vertices_by_label",
+      "label": "Place"
+    },
+    {
+      "name": "country_pr",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "country_scan"
+      },
+      "props": [
+        "name"
+      ],
+      "label": "Place"
+    },
+    {
+      "name": "country_fx",
+      "op": "filter",
+      "rows": {
+        "ref": "country_pr"
+      },
+      "pred": {
+        "eq": [
+          {
+            "field": "name"
+          },
+          {
+            "param": "countryName"
+          }
+        ]
+      }
+    },
+    {
+      "name": "country",
+      "op": "pluck",
+      "rows": {
+        "ref": "country_fx"
+      },
+      "field": "_vid"
+    },
+    {
+      "name": "orgv",
+      "op": "pluck",
+      "rows": {
+        "ref": "works_pre"
+      },
+      "field": "dst"
+    },
+    {
+      "name": "orgs",
+      "op": "dedup",
+      "items": {
+        "ref": "orgv"
+      }
+    },
+    {
+      "name": "org_loc",
+      "op": "read_neighbors",
+      "srcs": {
+        "ref": "orgs"
+      },
+      "etype": "isLocatedIn",
+      "dir": "out",
+      "pairs": true
+    },
+    {
+      "name": "in_country",
+      "op": "filter_in",
+      "rows": {
+        "ref": "org_loc"
+      },
+      "field": "dst",
+      "allowed": {
+        "ref": "country"
+      }
+    },
+    {
+      "name": "country_orgs",
+      "op": "pluck",
+      "rows": {
+        "ref": "in_country"
+      },
+      "field": "src"
+    },
+    {
+      "name": "works_here",
+      "op": "filter_in",
+      "rows": {
+        "ref": "works_pre"
+      },
+      "field": "dst",
+      "allowed": {
+        "ref": "country_orgs"
+      }
+    },
+    {
+      "name": "org_name",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "country_orgs"
+      },
+      "props": [
+        "name"
+      ],
+      "label": "Organisation"
+    },
+    {
+      "name": "org_named",
+      "op": "rename",
+      "rows": {
+        "ref": "org_name"
+      },
+      "names": {
+        "name": "organizationName"
+      }
+    },
+    {
+      "name": "works_named",
+      "op": "join",
+      "left": {
+        "ref": "works_here"
+      },
+      "right": {
+        "ref": "org_named"
+      },
+      "left_on": "dst",
+      "right_on": "_vid"
+    },
+    {
+      "name": "personv",
+      "op": "pluck",
+      "rows": {
+        "ref": "works_named"
+      },
+      "field": "src"
+    },
+    {
+      "name": "persons",
+      "op": "dedup",
+      "items": {
+        "ref": "personv"
+      }
+    },
+    {
+      "name": "pid",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "persons"
+      },
+      "props": [
+        "id"
+      ],
+      "label": "Person"
+    },
+    {
+      "name": "pid_named",
+      "op": "rename",
+      "rows": {
+        "ref": "pid"
+      },
+      "names": {
+        "id": "personId"
+      }
+    },
+    {
+      "name": "ranked",
+      "op": "join",
+      "left": {
+        "ref": "works_named"
+      },
+      "right": {
+        "ref": "pid_named"
+      },
+      "left_on": "src",
+      "right_on": "_vid"
+    },
+    {
+      "name": "top10",
+      "op": "top_k",
+      "rows": {
+        "ref": "ranked"
+      },
+      "keys": [
+        [
+          "workFrom",
+          "asc"
+        ],
+        [
+          "personId",
+          "asc"
+        ],
+        [
+          "organizationName",
+          "desc"
+        ]
+      ],
+      "k": 10
+    },
+    {
+      "name": "topv",
+      "op": "pluck",
+      "rows": {
+        "ref": "top10"
+      },
+      "field": "src"
+    },
+    {
+      "name": "names",
+      "op": "read_vertex_props",
+      "vids": {
+        "ref": "topv"
+      },
+      "props": [
+        "firstName",
+        "lastName"
+      ],
+      "label": "Person"
+    },
+    {
+      "name": "names_r",
+      "op": "rename",
+      "rows": {
+        "ref": "names"
+      },
+      "names": {
+        "firstName": "personFirstName",
+        "lastName": "personLastName"
+      }
+    },
+    {
+      "name": "named",
+      "op": "join",
+      "left": {
+        "ref": "top10"
+      },
+      "right": {
+        "ref": "names_r"
+      },
+      "left_on": "src",
+      "right_on": "_vid"
+    },
+    {
+      "name": "out",
+      "op": "project",
+      "rows": {
+        "ref": "named"
+      },
+      "fields": [
+        "personId",
+        "personFirstName",
+        "personLastName",
+        "organizationName",
+        "workFrom"
+      ]
+    }
+  ],
+  "output": "out"
+}

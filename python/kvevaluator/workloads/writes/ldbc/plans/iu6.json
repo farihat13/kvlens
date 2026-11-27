@@ -1,0 +1,301 @@
+{
+  "plan": "iu6",
+  "question": "Add a post with its creator, forum, country and three tags.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "forum": {
+      "type": "int"
+    },
+    "country": {
+      "type": "int"
+    },
+    "tag1": {
+      "type": "int"
+    },
+    "tag2": {
+      "type": "int"
+    },
+    "tag3": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Post"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842626
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1099511627776
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1099511627776
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "forum_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "forum"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Forum"
+            },
+            {
+              "param": "forum"
+            }
+          ]
+        },
+        {
+          "param": "forum"
+        }
+      ]
+    },
+    "country_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "country"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Place"
+            },
+            {
+              "param": "country"
+            }
+          ]
+        },
+        {
+          "param": "country"
+        }
+      ]
+    },
+    "tag1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag1"
+            }
+          ]
+        },
+        {
+          "param": "tag1"
+        }
+      ]
+    },
+    "tag2_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag2"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag2"
+            }
+          ]
+        },
+        {
+          "param": "tag2"
+        }
+      ]
+    },
+    "tag3_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag3"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag3"
+            }
+          ]
+        },
+        {
+          "param": "tag3"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "v",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Post",
+      "props": {
+        "imageFile": null,
+        "creationDate": 1577836800000,
+        "locationIP": "10.0.0.1",
+        "browserUsed": "Chrome",
+        "language": "en",
+        "content": "written by IU6",
+        "length": 14
+      }
+    },
+    {
+      "name": "cr0",
+      "op": "insert_edge",
+      "etype": "hasCreator",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "me_vid"
+      },
+      "props": {},
+      "src_label": "Post",
+      "dst_label": "Person"
+    },
+    {
+      "name": "ct0",
+      "op": "insert_edge",
+      "etype": "containerOf",
+      "src": {
+        "let": "forum_vid"
+      },
+      "dst": {
+        "let": "new_vid"
+      },
+      "props": {},
+      "src_label": "Forum",
+      "dst_label": "Post"
+    },
+    {
+      "name": "loc0",
+      "op": "insert_edge",
+      "etype": "isLocatedIn",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "country_vid"
+      },
+      "props": {},
+      "src_label": "Post",
+      "dst_label": "Place"
+    },
+    {
+      "name": "tag0",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag1_vid"
+      },
+      "props": {},
+      "src_label": "Post",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag1",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag2_vid"
+      },
+      "props": {},
+      "src_label": "Post",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag2",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag3_vid"
+      },
+      "props": {},
+      "src_label": "Post",
+      "dst_label": "Tag"
+    }
+  ],
+  "output": "tag2"
+}

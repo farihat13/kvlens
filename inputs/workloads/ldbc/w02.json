@@ -1,0 +1,38 @@
+{
+ "id": "w02",
+ "name": "analytics",
+ "title": "Analytics: many-vertex reads",
+ "items": [
+  {"family": "microbench", "query": "nhop2", "frequency": 20, "params": null},
+  {"family": "microbench", "query": "hop2_post_likers", "frequency": 20, "params": null},
+  {"family": "microbench", "query": "entry_eq_scan", "frequency": 5, "params": null}
+ ],
+ "expect": "Chunked (All-Chunked) in ops; Condensed adjacency (Split/Condensed) in bytes",
+ "why": "the reads touch many vertices: many friend lists (nhop2), the firstName of every Person (entry_eq_scan), a person's posts and their likers. Chunked packs many owners into one chunk, so one SEEK serves many of them: the name scan drops from {scan_dg} ops to {scan_ch}. The price is bytes: whole chunks are read ({ch_bytes} against {dg_bytes} for Split/Condensed).",
+ "why_numbers": {
+  "scan_dg": [
+   "run",
+   "ops",
+   "entry_eq_scan",
+   null,
+   "props_split_adj_condensed"
+  ],
+  "scan_ch": [
+   "run",
+   "ops",
+   "entry_eq_scan",
+   null,
+   "props_chunked_adj_chunked"
+  ],
+  "ch_bytes": [
+   "total",
+   "bytes",
+   "props_chunked_adj_chunked"
+  ],
+  "dg_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_condensed"
+  ]
+ }
+}

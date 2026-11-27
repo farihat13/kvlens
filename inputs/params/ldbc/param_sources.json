@@ -1,0 +1,57 @@
+{
+ "about": "Which param file each LDBC Interactive (SF, query) reads: LDBC's hosted file (a verbatim copy at sf<SF>/interactive_<N>_param.txt, sha256 in sf<SF>/hosted_params.meta.json) or, before rule 2, ours (sf<SF>/ours/interactive_<N>_param.txt, made by data/gen_ic<N>_params.py, provenance in its .meta.json). One source per (SF, query), never mixed; rows are taken as the file gives them. A (SF, query) with no row here is hosted; since rule 2 every row is hosted, and ours/ files stay as records. IS1-3 follow ic1. IS4-7, BI, microbench, IU writes and LinkBench are not LDBC substitution params and are not read from here. Read by python/kvevaluator/datasets/ldbc/params.py (param_file); checked by tests/lint/check_param_sources.py.",
+ "rule": "always hosted; the census reports stop-early rows, it decides nothing (2026-10-19). The rule: every LDBC Interactive query reads LDBC's hosted params.",
+ "rule_version": 2,
+ "census_rows": "1-10",
+ "default": "hosted",
+ "pairs": {
+  "sf0.1": {
+   "ic3": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1)",
+    "was": "ours since 2026-09-28",
+    "evidence": "hosted rows are mostly empty but do the full work (param_health: 2/2 empty, 0 stop early); the census: sf0.1/param_census.csv"
+   },
+   "ic11": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1)",
+    "was": "ours since 2026-09-28",
+    "evidence": "param_health: 1/2 empty, 0 stop early; the census: sf0.1/param_census.csv"
+   }
+  },
+  "sf0.3": {
+   "ic3": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1)",
+    "was": "ours since 2026-09-28",
+    "evidence": "param_health (kvbench-20260804, 35 rows): 31/35 empty, 0 stop early; the census: sf0.3/param_census.csv"
+   },
+   "ic5": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1, option a)",
+    "was": "ours since 2026-09-15",
+    "evidence": "the census: 7/35 hosted rows empty, each 3.1-3.7K weighted ops against a median of 11.8K, so 0 stop early (sf0.3/param_census.csv, rows 1-10; sf0.3/param_census_ic5_rows_1_35.csv, all 35). param_health's 7/35 came from the 08-04 capture under the old IC5 plan"
+   },
+   "ic11": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1)",
+    "was": "ours since 2026-09-28",
+    "evidence": "param_health (kvbench-20260804, 35 rows): 22/35 empty, 0 stop early; the census: sf0.3/param_census.csv"
+   }
+  },
+  "sf3": {
+   "ic5": {
+    "source": "hosted",
+    "decided": "2026-10-19 (R1)",
+    "was": "ours since 2026-09-15",
+    "evidence": "the census (sf3/param_census.csv): 1/10 hosted rows empty (row 7, 54.6K weighted ops against a median of 113K), 0 stop early"
+   },
+   "ic7": {
+    "source": "hosted",
+    "decided": "2026-10-19 (rule 2: always hosted)",
+    "was": "ours since 2026-09-15 (R1 kept it on 2026-10-19)",
+    "evidence": "the census (sf3/param_census.csv), reported only: 7/10 hosted rows empty, 3 stop early (rows 1, 4, 10 at about 3.3 weighted ops, the 10% line at 3.6)"
+   }
+  }
+ }
+}

@@ -1,0 +1,6 @@
+tagClass|country|messagesInClass|personsInCountry|stratum
+Politician|Sri_Lanka|146432|1179|p50-class-p50-country
+Writer|Sri_Lanka|5923051|1179|p90-class-p50-country
+Politician|China|146432|24108|p50-class-max-country
+Writer|China|5923051|24108|p90-class-max-country
+Country|China|24193773|24108|max-class-max-country

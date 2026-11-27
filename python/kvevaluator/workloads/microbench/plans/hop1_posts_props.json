@@ -1,0 +1,280 @@
+{
+  "plan": "hop1_posts_props",
+  "question": "Given a person, read all properties of each of their posts and count the posts.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand+probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "md"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "po"
+          },
+          "props": [
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "content",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "pr"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "hand~37bd16": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "po",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "md"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "pr",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "po"
+          },
+          "props": [
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "content",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "pr"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    },
+    "hand~fc526d": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "ms",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "md",
+          "op": "dedup",
+          "items": {
+            "ref": "ms"
+          }
+        },
+        {
+          "name": "pr_cand",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "md"
+          },
+          "props": [
+            "imageFile",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "language",
+            "content",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "pr",
+          "op": "filter",
+          "rows": {
+            "ref": "pr_cand"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "pr"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand+probe": {
+      "sha": "c5e1d5ab84ba",
+      "requires": [],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~37bd16": {
+      "sha": "37bd1672b9a9",
+      "requires": [
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~fc526d": {
+      "sha": "fc526d1ae370",
+      "requires": [
+        "label_scoped_props"
+      ],
+      "sources": [
+        "hand",
+        "hop1_posts_props_fused(hand)"
+      ]
+    }
+  }
+}

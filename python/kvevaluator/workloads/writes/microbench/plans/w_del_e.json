@@ -1,0 +1,73 @@
+{
+  "plan": "w_del_e",
+  "question": "Delete one knows edge between two persons who know each other.",
+  "for": "all formats",
+  "params": {
+    "src": {
+      "type": "int"
+    },
+    "dst": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "src_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "src"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "src"
+            }
+          ]
+        },
+        {
+          "param": "src"
+        }
+      ]
+    },
+    "dst_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "dst"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "dst"
+            }
+          ]
+        },
+        {
+          "param": "dst"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "delete_edge",
+      "etype": "knows",
+      "src": {
+        "let": "src_vid"
+      },
+      "dst": {
+        "let": "dst_vid"
+      }
+    }
+  ],
+  "output": "out"
+}

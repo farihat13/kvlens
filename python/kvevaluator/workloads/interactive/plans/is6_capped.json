@@ -1,0 +1,152 @@
+{
+  "plan": "is6_capped",
+  "question": "Same as is6, but the walk from the message up to its original post is capped at three replies.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "msg_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "is6_capped": {
+      "steps": [
+        {
+          "name": "root_post",
+          "op": "read_chase",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "out",
+          "max_hops": 3
+        },
+        {
+          "name": "forum",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "root_post"
+          },
+          "etype": "containerOf",
+          "dir": "in"
+        },
+        {
+          "name": "forum_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "forum"
+          },
+          "props": [
+            "id",
+            "title"
+          ],
+          "label": "Forum"
+        },
+        {
+          "name": "forum_named",
+          "op": "rename",
+          "rows": {
+            "ref": "forum_props"
+          },
+          "names": {
+            "id": "forumId",
+            "title": "forumTitle"
+          }
+        },
+        {
+          "name": "mod_vid",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "forum"
+          },
+          "etype": "hasModerator",
+          "dir": "out"
+        },
+        {
+          "name": "mod_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "mod_vid"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "mod_named",
+          "op": "rename",
+          "rows": {
+            "ref": "mod_props"
+          },
+          "names": {
+            "id": "moderatorId",
+            "firstName": "moderatorFirstName",
+            "lastName": "moderatorLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "forum_named"
+          },
+          "right": {
+            "ref": "mod_named"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "joined"
+          },
+          "fields": [
+            "forumId",
+            "forumTitle",
+            "moderatorId",
+            "moderatorFirstName",
+            "moderatorLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "is6_capped": {
+      "sha": "20e0b921b9c5",
+      "requires": [],
+      "sources": [
+        "is6_capped"
+      ]
+    }
+  }
+}

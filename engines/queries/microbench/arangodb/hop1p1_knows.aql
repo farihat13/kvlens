@@ -1,0 +1,9 @@
+// microbench hop1p1_knows: firstName of every distinct knows-neighbor of a person, sorted by it.
+// Reads: the knows edge index (both sides), then each distinct friend's document.
+// Evaluator: queries/hop.py _hop1p(1) -- read_neighbors + dedup + read_vertex_props(firstName),
+// one row per friend (no id is read, so dedup is on the vertex, not on the name).
+// mb2 lineage: MB21-26 (width x fan-out cross, MICROBENCH2 #2).
+FOR v IN 1..1 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    SORT v.firstName
+    RETURN {firstName: v.firstName}

@@ -1,0 +1,42 @@
+// IC4: New topics
+// Find tags on friends' posts in [startDate, endDate) that never appeared
+// on friends' posts before startDate
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+LET endDate = @startDate + @durationDays * 86400000
+
+// Collect all tags from friends' posts in the window, and tags from before
+// Use a single pass over friends' posts
+LET friendPosts = (
+    FOR f IN 1..1 ANY person knows
+        FOR post IN 1..1 INBOUND f hasCreator
+            FILTER IS_SAME_COLLECTION("Post", post)
+            RETURN { postId: post._id, creationDate: post.creationDate, post: post }
+)
+
+// Tags in window with counts
+LET windowTags = (
+    FOR fp IN friendPosts
+        FILTER fp.creationDate >= @startDate AND fp.creationDate < endDate
+        FOR tag IN 1..1 OUTBOUND fp.post hasTag
+            COLLECT t = tag WITH COUNT INTO cnt
+            RETURN { tag: t, postCount: cnt }
+)
+
+// Tags seen before window (just the IDs)
+LET oldTagIds = (
+    FOR fp IN friendPosts
+        FILTER fp.creationDate < @startDate
+        FOR tag IN 1..1 OUTBOUND fp.post hasTag
+            RETURN DISTINCT tag._id
+)
+
+FOR tc IN windowTags
+    FILTER tc.tag._id NOT IN oldTagIds
+    // TO_STRING: some tag names are numeric (e.g., album "8701") and arangoimport
+    // stores them as integers; coerce to string for correct sort order
+    SORT tc.postCount DESC, TO_STRING(tc.tag.name) ASC
+    LIMIT 10
+    RETURN {
+        tagName: TO_STRING(tc.tag.name),
+        postCount: tc.postCount
+    }

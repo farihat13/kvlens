@@ -1,0 +1,10629 @@
+{
+ "plan": "job6e",
+ "question": "Join Order Benchmark query 6e: join 5 IMDb tables (cast_info, keyword, movie_keyword, name, title) on 5 join conditions, keep the rows that pass 3 filters, and return the smallest value of each of its 3 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_k_by_index"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Keyword"
+    ]
+   },
+   "plan": "enter_k_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Name"
+    ]
+   },
+   "plan": "enter_n_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_k_by_index": {
+   "steps": [
+    {
+     "name": "s01_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "marvel-cinematic-universe"
+    },
+    {
+     "name": "s02_k_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_k_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_rows"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mk_src_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s10_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_t_back_col"
+     }
+    },
+    {
+     "name": "s13_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s14_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s16_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s22_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s24_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_director"
+     }
+    },
+    {
+     "name": "s28_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s30_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s32_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s34_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s35_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_ci_src_col"
+     }
+    },
+    {
+     "name": "s36_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s35_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s37_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s36_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s38_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s39_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_n_back_col"
+     }
+    },
+    {
+     "name": "s40_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s39_n_back_set"
+     }
+    },
+    {
+     "name": "s41_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s42_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_ci_back_col"
+     }
+    },
+    {
+     "name": "s43_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s42_ci_back_set"
+     }
+    },
+    {
+     "name": "s44_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_mk_back_col"
+     }
+    },
+    {
+     "name": "s46_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_mk_back_set"
+     }
+    },
+    {
+     "name": "s47_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s48_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_k_self_final_col"
+     }
+    },
+    {
+     "name": "s49_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_k_self_final_set"
+     }
+    },
+    {
+     "name": "s50_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s51_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s52_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s53_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s56_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s55_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s57_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_ci_final"
+     }
+    },
+    {
+     "name": "s58_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_k_cut"
+     }
+    },
+    {
+     "name": "s59_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_mk_final"
+     }
+    },
+    {
+     "name": "s60_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_n_final"
+     }
+    },
+    {
+     "name": "s61_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_t_final"
+     }
+    },
+    {
+     "name": "s62_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s63_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_k_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_k_self_final_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s64_k_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s51_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s74_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s73_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s75_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s74_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s76_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s76_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s78_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s57_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s79_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s79_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s82_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_ci_n_in"
+     },
+     "right": {
+      "ref": "s82_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s84_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s85_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s84_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s86_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s83_k_n_in"
+     },
+     "right": {
+      "ref": "s85_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s87_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s88_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s86_mk_n_in"
+     },
+     "right": {
+      "ref": "s88_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s90_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s91_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s90_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s92_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_n_n_in"
+     },
+     "right": {
+      "ref": "s91_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s92_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_index_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_k_ix",
+     "op": "read_index_eq",
+     "label": "Keyword",
+     "prop": "keyword",
+     "value": "marvel-cinematic-universe"
+    },
+    {
+     "name": "s02_k_rows",
+     "op": "annotate",
+     "items": {
+      "ref": "s01_k_ix"
+     },
+     "field": "entry",
+     "value": 1
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_rows"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mk_src_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s10_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_t_back_col"
+     }
+    },
+    {
+     "name": "s13_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s14_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s16_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s22_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s24_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_director"
+     }
+    },
+    {
+     "name": "s28_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s30_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s32_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s34_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s35_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_ci_src_col"
+     }
+    },
+    {
+     "name": "s36_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s35_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s37_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s36_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s38_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s39_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_n_back_col"
+     }
+    },
+    {
+     "name": "s40_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s39_n_back_set"
+     }
+    },
+    {
+     "name": "s41_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s42_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_ci_back_col"
+     }
+    },
+    {
+     "name": "s43_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s42_ci_back_set"
+     }
+    },
+    {
+     "name": "s44_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_mk_back_col"
+     }
+    },
+    {
+     "name": "s46_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_rows"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_mk_back_set"
+     }
+    },
+    {
+     "name": "s47_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s48_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_k_self_final_col"
+     }
+    },
+    {
+     "name": "s49_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_k_self_final_set"
+     }
+    },
+    {
+     "name": "s50_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s51_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s52_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s53_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s56_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s55_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s57_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_ci_final"
+     }
+    },
+    {
+     "name": "s58_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_k_cut"
+     }
+    },
+    {
+     "name": "s59_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_mk_final"
+     }
+    },
+    {
+     "name": "s60_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_n_final"
+     }
+    },
+    {
+     "name": "s61_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_t_final"
+     }
+    },
+    {
+     "name": "s62_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s63_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_k_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s48_k_self_final_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s64_k_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s52_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s57_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_scan": {
+   "steps": [
+    {
+     "name": "s01_k_scan",
+     "op": "read_vertices_by_label",
+     "label": "Keyword"
+    },
+    {
+     "name": "s02_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_k_scan"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s03_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_k_keep"
+     }
+    },
+    {
+     "name": "s05_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_k_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_src_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_src_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s16_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s15_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s17_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s16_ci_all"
+     },
+     "b": {
+      "ref": "s17_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s19_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s20_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s18_ci_all"
+     },
+     "b": {
+      "ref": "s19_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s21_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s20_ci_all"
+     },
+     "b": {
+      "ref": "s21_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s23_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_all"
+     },
+     "b": {
+      "ref": "s23_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s25_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s27_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_director"
+     }
+    },
+    {
+     "name": "s29_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s31_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s33_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s35_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s36_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_ci_src_col"
+     }
+    },
+    {
+     "name": "s37_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s36_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s38_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s37_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s39_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s40_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_n_back_col"
+     }
+    },
+    {
+     "name": "s41_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s34_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s40_n_back_set"
+     }
+    },
+    {
+     "name": "s42_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s43_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_back_col"
+     }
+    },
+    {
+     "name": "s44_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_ci_back_set"
+     }
+    },
+    {
+     "name": "s45_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_mk_back_col"
+     }
+    },
+    {
+     "name": "s47_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_mk_back_set"
+     }
+    },
+    {
+     "name": "s48_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_k_self_final_col"
+     }
+    },
+    {
+     "name": "s50_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_k_self_final_set"
+     }
+    },
+    {
+     "name": "s51_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s53_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s55_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s57_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s38_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_k_cut"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_n_final"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_t_final"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_k_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s52_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s74_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s73_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s75_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s74_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s76_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s76_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s78_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s79_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s79_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s82_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_ci_n_in"
+     },
+     "right": {
+      "ref": "s82_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s84_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s85_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s84_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s86_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s83_k_n_in"
+     },
+     "right": {
+      "ref": "s85_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s87_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s88_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s86_mk_n_in"
+     },
+     "right": {
+      "ref": "s88_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s90_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s91_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s90_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s92_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_n_n_in"
+     },
+     "right": {
+      "ref": "s91_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s92_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_k_scan",
+     "op": "read_vertices_by_label",
+     "label": "Keyword"
+    },
+    {
+     "name": "s02_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_k_scan"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s03_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_k_keep"
+     }
+    },
+    {
+     "name": "s05_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_k_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_src_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_src_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s16_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s15_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s17_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s16_ci_all"
+     },
+     "b": {
+      "ref": "s17_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s19_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s20_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s18_ci_all"
+     },
+     "b": {
+      "ref": "s19_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s21_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s20_ci_all"
+     },
+     "b": {
+      "ref": "s21_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s23_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_all"
+     },
+     "b": {
+      "ref": "s23_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s25_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s27_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_director"
+     }
+    },
+    {
+     "name": "s29_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s31_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s33_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s35_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s36_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_ci_src_col"
+     }
+    },
+    {
+     "name": "s37_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s36_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s38_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s37_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s39_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s40_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_n_back_col"
+     }
+    },
+    {
+     "name": "s41_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s34_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s40_n_back_set"
+     }
+    },
+    {
+     "name": "s42_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s43_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_ci_back_col"
+     }
+    },
+    {
+     "name": "s44_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_ci_back_set"
+     }
+    },
+    {
+     "name": "s45_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_mk_back_col"
+     }
+    },
+    {
+     "name": "s47_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_mk_back_set"
+     }
+    },
+    {
+     "name": "s48_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_k_self_final_col"
+     }
+    },
+    {
+     "name": "s50_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_k_self_final_set"
+     }
+    },
+    {
+     "name": "s51_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s53_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s55_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s57_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s38_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_k_cut"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_n_final"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_t_final"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_k_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s53_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_k_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_k_run",
+     "op": "read_vertices_by_label",
+     "label": "Keyword",
+     "props": [
+      "keyword"
+     ]
+    },
+    {
+     "name": "s02_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_k_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_k_keep"
+     }
+    },
+    {
+     "name": "s04_k_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_k_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_k_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_k_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_src_col"
+     }
+    },
+    {
+     "name": "s09_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mk_src_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s10_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_t_back_col"
+     }
+    },
+    {
+     "name": "s13_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s14_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s16_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s22_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s24_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_director"
+     }
+    },
+    {
+     "name": "s28_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s30_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s32_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s34_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s35_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_ci_src_col"
+     }
+    },
+    {
+     "name": "s36_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s35_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s37_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s36_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s38_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s39_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_n_back_col"
+     }
+    },
+    {
+     "name": "s40_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s39_n_back_set"
+     }
+    },
+    {
+     "name": "s41_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s42_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_ci_back_col"
+     }
+    },
+    {
+     "name": "s43_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s42_ci_back_set"
+     }
+    },
+    {
+     "name": "s44_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_mk_back_col"
+     }
+    },
+    {
+     "name": "s46_k_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_mk_back_set"
+     }
+    },
+    {
+     "name": "s47_k_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_k_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s48_k_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_k_self_final_col"
+     }
+    },
+    {
+     "name": "s49_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_k_self_final_set"
+     }
+    },
+    {
+     "name": "s50_mk_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s51_mk_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_mk_src_final_col"
+     }
+    },
+    {
+     "name": "s52_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s53_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s40_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_mk_src_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s56_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s55_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s57_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_ci_final"
+     }
+    },
+    {
+     "name": "s58_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_k_cut"
+     }
+    },
+    {
+     "name": "s59_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_mk_final"
+     }
+    },
+    {
+     "name": "s60_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_n_final"
+     }
+    },
+    {
+     "name": "s61_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_t_final"
+     }
+    },
+    {
+     "name": "s62_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s63_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s46_k_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s65_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s66_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_base"
+     },
+     "right": {
+      "ref": "s66_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s68_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s70_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s72_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s51_mk_src_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s57_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_scan": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s08_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s09_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s08_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s10_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s11_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_ci_all"
+     },
+     "b": {
+      "ref": "s10_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s12_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_ci_all"
+     },
+     "b": {
+      "ref": "s12_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s14_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_all"
+     },
+     "b": {
+      "ref": "s14_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s16_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_director"
+     }
+    },
+    {
+     "name": "s22_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s24_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s26_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s28_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s29_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_ci_dst_col"
+     }
+    },
+    {
+     "name": "s30_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s29_ci_dst_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s31_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s30_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s32_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s33_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_t_back_col"
+     }
+    },
+    {
+     "name": "s34_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s33_t_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s35_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s36_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_mk_dst_col"
+     }
+    },
+    {
+     "name": "s37_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s36_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s38_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s37_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s39_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s40_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_k_back_col"
+     }
+    },
+    {
+     "name": "s41_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s34_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s40_k_back_set"
+     }
+    },
+    {
+     "name": "s42_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s43_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_mk_back_col"
+     }
+    },
+    {
+     "name": "s44_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_mk_back_set"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_n_self_final_col"
+     }
+    },
+    {
+     "name": "s50_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_n_self_final_set"
+     }
+    },
+    {
+     "name": "s51_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s53_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s31_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s55_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s57_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s38_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_k_final"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_n_cut"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_t_final"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s52_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s74_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s73_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s75_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s74_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s76_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s76_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s78_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s79_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s79_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s82_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_ci_n_in"
+     },
+     "right": {
+      "ref": "s82_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s84_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s85_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s84_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s86_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s83_k_n_in"
+     },
+     "right": {
+      "ref": "s85_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s87_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s88_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s86_mk_n_in"
+     },
+     "right": {
+      "ref": "s88_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s90_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s91_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s90_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s92_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_n_n_in"
+     },
+     "right": {
+      "ref": "s91_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s92_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_n_scan",
+     "op": "read_vertices_by_label",
+     "label": "Name"
+    },
+    {
+     "name": "s02_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_n_scan"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s03_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_n_keep"
+     }
+    },
+    {
+     "name": "s05_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_n_self_col"
+     }
+    },
+    {
+     "name": "s07_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s08_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s09_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s07_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s08_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s10_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s11_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_ci_all"
+     },
+     "b": {
+      "ref": "s10_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s12_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s13_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_ci_all"
+     },
+     "b": {
+      "ref": "s12_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s14_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s15_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_ci_all"
+     },
+     "b": {
+      "ref": "s14_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s16_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s15_ci_all"
+     },
+     "b": {
+      "ref": "s16_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s18_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_all"
+     },
+     "b": {
+      "ref": "s18_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s20_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_director"
+     }
+    },
+    {
+     "name": "s22_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s24_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s26_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s28_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s29_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s28_ci_dst_col"
+     }
+    },
+    {
+     "name": "s30_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s29_ci_dst_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s31_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s30_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s32_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s31_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s33_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s32_t_back_col"
+     }
+    },
+    {
+     "name": "s34_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s33_t_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s35_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s34_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s36_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s35_mk_dst_col"
+     }
+    },
+    {
+     "name": "s37_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s36_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s38_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s37_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s39_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s38_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s40_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s39_k_back_col"
+     }
+    },
+    {
+     "name": "s41_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s34_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s40_k_back_set"
+     }
+    },
+    {
+     "name": "s42_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s43_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_mk_back_col"
+     }
+    },
+    {
+     "name": "s44_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s27_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_mk_back_set"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_n_self_final_col"
+     }
+    },
+    {
+     "name": "s50_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_n_self_final_set"
+     }
+    },
+    {
+     "name": "s51_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s53_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s31_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s52_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s55_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s57_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s38_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_k_final"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_n_cut"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_t_final"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s53_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_n_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_n_run",
+     "op": "read_vertices_by_label",
+     "label": "Name",
+     "props": [
+      "name"
+     ]
+    },
+    {
+     "name": "s02_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_n_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_n_keep"
+     }
+    },
+    {
+     "name": "s04_n_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_n_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_n_self_col"
+     }
+    },
+    {
+     "name": "s06_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s07_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_actress",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s08_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s06_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s07_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s09_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_producer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s10_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s08_ci_all"
+     },
+     "b": {
+      "ref": "s09_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s11_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_writer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s12_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_ci_all"
+     },
+     "b": {
+      "ref": "s11_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s13_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s14_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_ci_all"
+     },
+     "b": {
+      "ref": "s13_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s15_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_composer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s16_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_ci_all"
+     },
+     "b": {
+      "ref": "s15_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s17_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s16_ci_all"
+     },
+     "b": {
+      "ref": "s17_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s19_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_director",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s20_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s18_ci_all"
+     },
+     "b": {
+      "ref": "s19_ci_cast_director"
+     }
+    },
+    {
+     "name": "s21_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_editor",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s20_ci_all"
+     },
+     "b": {
+      "ref": "s21_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s23_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_all"
+     },
+     "b": {
+      "ref": "s23_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s25_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_n_self_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s27_ci_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s28_ci_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_ci_dst_col"
+     }
+    },
+    {
+     "name": "s29_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s28_ci_dst_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s30_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s29_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s31_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s32_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_t_back_col"
+     }
+    },
+    {
+     "name": "s33_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s32_t_back_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s34_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s33_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s35_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s34_mk_dst_col"
+     }
+    },
+    {
+     "name": "s36_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s35_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s37_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s36_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s38_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s39_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_k_back_col"
+     }
+    },
+    {
+     "name": "s40_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s33_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s39_k_back_set"
+     }
+    },
+    {
+     "name": "s41_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s42_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_mk_back_col"
+     }
+    },
+    {
+     "name": "s43_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s26_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s42_mk_back_set"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_n_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_n_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_n_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s48_n_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_n_self_final_col"
+     }
+    },
+    {
+     "name": "s49_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_n_self_final_set"
+     }
+    },
+    {
+     "name": "s50_ci_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s51_ci_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_ci_dst_final_col"
+     }
+    },
+    {
+     "name": "s52_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s51_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s53_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s40_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s51_ci_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s56_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s55_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s57_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_ci_final"
+     }
+    },
+    {
+     "name": "s58_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_k_final"
+     }
+    },
+    {
+     "name": "s59_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_mk_final"
+     }
+    },
+    {
+     "name": "s60_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_n_cut"
+     }
+    },
+    {
+     "name": "s61_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_t_final"
+     }
+    },
+    {
+     "name": "s62_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s63_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s65_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s66_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_base"
+     },
+     "right": {
+      "ref": "s66_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s68_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s46_n_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s70_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s72_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s51_ci_dst_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s72_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s57_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_scan": {
+   "steps": [
+    {
+     "name": "s01_t_scan",
+     "op": "read_vertices_by_label",
+     "label": "Title"
+    },
+    {
+     "name": "s02_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_t_scan"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s03_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_t_keep"
+     }
+    },
+    {
+     "name": "s05_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_t_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_dst_col"
+     }
+    },
+    {
+     "name": "s10_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s11_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_k_back_col"
+     }
+    },
+    {
+     "name": "s14_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s13_k_back_set"
+     }
+    },
+    {
+     "name": "s15_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s16_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mk_back_col"
+     }
+    },
+    {
+     "name": "s17_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s18_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s20_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s22_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s24_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_director"
+     }
+    },
+    {
+     "name": "s32_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s34_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s36_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s38_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s39_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_ci_src_col"
+     }
+    },
+    {
+     "name": "s40_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s39_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s41_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s40_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s42_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s43_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_n_back_col"
+     }
+    },
+    {
+     "name": "s44_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_n_back_set"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_t_self_final_col"
+     }
+    },
+    {
+     "name": "s50_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_t_self_final_set"
+     }
+    },
+    {
+     "name": "s51_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s53_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_t_self_final_set"
+     }
+    },
+    {
+     "name": "s55_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s57_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_k_final"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_n_final"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_t_cut"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s53_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s49_t_self_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s74_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s73_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s75_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s74_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s76_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s75_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s77_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s76_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s78_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s79_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s78_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s80_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s77_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s79_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s81_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s82_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s81_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s83_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s80_ci_n_in"
+     },
+     "right": {
+      "ref": "s82_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s84_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s85_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s84_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s86_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s83_k_n_in"
+     },
+     "right": {
+      "ref": "s85_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s87_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s88_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s87_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s89_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s86_mk_n_in"
+     },
+     "right": {
+      "ref": "s88_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s90_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s91_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s90_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s92_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s89_n_n_in"
+     },
+     "right": {
+      "ref": "s91_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s92_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_t_scan",
+     "op": "read_vertices_by_label",
+     "label": "Title"
+    },
+    {
+     "name": "s02_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_t_scan"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s03_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_t_keep"
+     }
+    },
+    {
+     "name": "s05_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_t_self_col"
+     }
+    },
+    {
+     "name": "s07_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s08_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mk_dst_col"
+     }
+    },
+    {
+     "name": "s10_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s11_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_k_back_col"
+     }
+    },
+    {
+     "name": "s14_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s13_k_back_set"
+     }
+    },
+    {
+     "name": "s15_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s16_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mk_back_col"
+     }
+    },
+    {
+     "name": "s17_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s19_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s17_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s18_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s20_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s21_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s19_ci_all"
+     },
+     "b": {
+      "ref": "s20_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s22_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s23_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s21_ci_all"
+     },
+     "b": {
+      "ref": "s22_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s24_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s25_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s23_ci_all"
+     },
+     "b": {
+      "ref": "s24_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s26_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s27_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s25_ci_all"
+     },
+     "b": {
+      "ref": "s26_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s28_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s29_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s27_ci_all"
+     },
+     "b": {
+      "ref": "s28_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s30_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s31_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s29_ci_all"
+     },
+     "b": {
+      "ref": "s30_ci_cast_director"
+     }
+    },
+    {
+     "name": "s32_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s33_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s31_ci_all"
+     },
+     "b": {
+      "ref": "s32_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s34_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s35_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s33_ci_all"
+     },
+     "b": {
+      "ref": "s34_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s36_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s16_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s37_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s35_ci_all"
+     },
+     "b": {
+      "ref": "s36_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s38_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s37_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s39_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s38_ci_src_col"
+     }
+    },
+    {
+     "name": "s40_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s39_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s41_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s40_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s42_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s41_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s43_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s42_n_back_col"
+     }
+    },
+    {
+     "name": "s44_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s37_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s43_n_back_set"
+     }
+    },
+    {
+     "name": "s45_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s46_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s45_ci_back_col"
+     }
+    },
+    {
+     "name": "s47_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s46_ci_back_set"
+     }
+    },
+    {
+     "name": "s48_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s47_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s49_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s48_t_self_final_col"
+     }
+    },
+    {
+     "name": "s50_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_t_self_final_set"
+     }
+    },
+    {
+     "name": "s51_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s50_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s52_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s51_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s53_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s52_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s44_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s49_t_self_final_set"
+     }
+    },
+    {
+     "name": "s55_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s54_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s56_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s55_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s57_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s41_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s56_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s58_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s54_ci_final"
+     }
+    },
+    {
+     "name": "s59_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_k_final"
+     }
+    },
+    {
+     "name": "s60_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s50_mk_final"
+     }
+    },
+    {
+     "name": "s61_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s57_n_final"
+     }
+    },
+    {
+     "name": "s62_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s47_t_cut"
+     }
+    },
+    {
+     "name": "s63_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s64_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s63_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s65_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s53_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s66_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s65_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s67_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s66_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s68_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s64_base"
+     },
+     "right": {
+      "ref": "s67_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s69_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s57_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s70_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s69_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s71_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s70_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s72_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s68_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s71_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s73_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s74_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s73_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s75_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s74_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s76_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s72_actor_name_in"
+     },
+     "right": {
+      "ref": "s75_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s77_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s78_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s77_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s79_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s76_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s78_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s80_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s81_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s80_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s82_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s79_ci_n_in"
+     },
+     "right": {
+      "ref": "s81_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s83_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s84_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s83_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s85_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s82_k_n_in"
+     },
+     "right": {
+      "ref": "s84_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s86_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s87_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s86_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s88_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s85_mk_n_in"
+     },
+     "right": {
+      "ref": "s87_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s89_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s62_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s90_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s89_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s91_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s88_n_n_in"
+     },
+     "right": {
+      "ref": "s90_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s91_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_t_run",
+     "op": "read_vertices_by_label",
+     "label": "Title",
+     "props": [
+      "production_year",
+      "title"
+     ]
+    },
+    {
+     "name": "s02_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_t_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2000
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_t_keep"
+     }
+    },
+    {
+     "name": "s04_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_t_self_col"
+     }
+    },
+    {
+     "name": "s06_mk_has_keyword",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_t_self_set"
+     },
+     "etype": "has_keyword",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s07_mk_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mk_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mk_dst_col"
+     }
+    },
+    {
+     "name": "s09_k_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mk_dst_set"
+     },
+     "props": [
+      "keyword"
+     ],
+     "label": "Keyword"
+    },
+    {
+     "name": "s10_k_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_k_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "keyword"
+        }
+       },
+       {
+        "eq": [
+         {
+          "get": "keyword"
+         },
+         {
+          "lit": "marvel-cinematic-universe"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_k_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_k_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_k_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_k_back_col"
+     }
+    },
+    {
+     "name": "s13_mk_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mk_has_keyword"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s12_k_back_set"
+     }
+    },
+    {
+     "name": "s14_mk_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_mk_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s15_mk_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_mk_back_col"
+     }
+    },
+    {
+     "name": "s16_ci_cast_actor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_actor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s17_ci_cast_actress",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_actress",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s18_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s16_ci_cast_actor"
+     },
+     "b": {
+      "ref": "s17_ci_cast_actress"
+     }
+    },
+    {
+     "name": "s19_ci_cast_producer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_producer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s20_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s18_ci_all"
+     },
+     "b": {
+      "ref": "s19_ci_cast_producer"
+     }
+    },
+    {
+     "name": "s21_ci_cast_writer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_writer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s22_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s20_ci_all"
+     },
+     "b": {
+      "ref": "s21_ci_cast_writer"
+     }
+    },
+    {
+     "name": "s23_ci_cast_cinematographer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_cinematographer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s24_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s22_ci_all"
+     },
+     "b": {
+      "ref": "s23_ci_cast_cinematographer"
+     }
+    },
+    {
+     "name": "s25_ci_cast_composer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_composer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s26_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s24_ci_all"
+     },
+     "b": {
+      "ref": "s25_ci_cast_composer"
+     }
+    },
+    {
+     "name": "s27_ci_cast_costume_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_costume_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s28_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s26_ci_all"
+     },
+     "b": {
+      "ref": "s27_ci_cast_costume_designer"
+     }
+    },
+    {
+     "name": "s29_ci_cast_director",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_director",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s30_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s28_ci_all"
+     },
+     "b": {
+      "ref": "s29_ci_cast_director"
+     }
+    },
+    {
+     "name": "s31_ci_cast_editor",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_editor",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s32_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s30_ci_all"
+     },
+     "b": {
+      "ref": "s31_ci_cast_editor"
+     }
+    },
+    {
+     "name": "s33_ci_cast_miscellaneous_crew",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_miscellaneous_crew",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s34_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s32_ci_all"
+     },
+     "b": {
+      "ref": "s33_ci_cast_miscellaneous_crew"
+     }
+    },
+    {
+     "name": "s35_ci_cast_production_designer",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s15_mk_back_set"
+     },
+     "etype": "cast_production_designer",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s36_ci_all",
+     "op": "concat",
+     "a": {
+      "ref": "s34_ci_all"
+     },
+     "b": {
+      "ref": "s35_ci_cast_production_designer"
+     }
+    },
+    {
+     "name": "s37_ci_src_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s36_ci_all"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s38_ci_src_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s37_ci_src_col"
+     }
+    },
+    {
+     "name": "s39_n_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s38_ci_src_set"
+     },
+     "props": [
+      "name"
+     ],
+     "label": "Name"
+    },
+    {
+     "name": "s40_n_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s39_n_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "name"
+        }
+       },
+       {
+        "like": [
+         {
+          "get": "name"
+         },
+         {
+          "lit": "%Downey%Robert%"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s41_n_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s40_n_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s42_n_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s41_n_back_col"
+     }
+    },
+    {
+     "name": "s43_ci_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s36_ci_all"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s42_n_back_set"
+     }
+    },
+    {
+     "name": "s44_ci_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s43_ci_cut"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s45_ci_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s44_ci_back_col"
+     }
+    },
+    {
+     "name": "s46_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s45_ci_back_set"
+     }
+    },
+    {
+     "name": "s47_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s46_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s48_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s47_t_self_final_col"
+     }
+    },
+    {
+     "name": "s49_mk_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_mk_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_t_self_final_set"
+     }
+    },
+    {
+     "name": "s50_mk_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s49_mk_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s51_mk_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s50_mk_dst_final_col"
+     }
+    },
+    {
+     "name": "s52_k_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_k_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s51_mk_dst_final_set"
+     }
+    },
+    {
+     "name": "s53_ci_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s43_ci_cut"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s48_t_self_final_set"
+     }
+    },
+    {
+     "name": "s54_ci_src_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s53_ci_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s55_ci_src_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s54_ci_src_final_col"
+     }
+    },
+    {
+     "name": "s56_n_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s40_n_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s55_ci_src_final_set"
+     }
+    },
+    {
+     "name": "s57_ci_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s53_ci_final"
+     }
+    },
+    {
+     "name": "s58_k_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s52_k_final"
+     }
+    },
+    {
+     "name": "s59_mk_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s49_mk_final"
+     }
+    },
+    {
+     "name": "s60_n_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s56_n_final"
+     }
+    },
+    {
+     "name": "s61_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s46_t_cut"
+     }
+    },
+    {
+     "name": "s62_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s63_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s62_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s64_movie_keyword_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s52_k_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "keyword"
+      }
+     }
+    },
+    {
+     "name": "s65_movie_keyword_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s64_movie_keyword_some"
+     },
+     "by": [],
+     "aggs": {
+      "movie_keyword": [
+       "min",
+       "keyword"
+      ]
+     }
+    },
+    {
+     "name": "s66_movie_keyword_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s65_movie_keyword_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s67_movie_keyword_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s63_base"
+     },
+     "right": {
+      "ref": "s66_movie_keyword_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "movie_keyword": null
+     }
+    },
+    {
+     "name": "s68_actor_name_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s56_n_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "name"
+      }
+     }
+    },
+    {
+     "name": "s69_actor_name_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s68_actor_name_some"
+     },
+     "by": [],
+     "aggs": {
+      "actor_name": [
+       "min",
+       "name"
+      ]
+     }
+    },
+    {
+     "name": "s70_actor_name_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s69_actor_name_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s71_actor_name_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s67_movie_keyword_in"
+     },
+     "right": {
+      "ref": "s70_actor_name_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "actor_name": null
+     }
+    },
+    {
+     "name": "s72_marvel_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s46_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s73_marvel_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s72_marvel_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "marvel_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s74_marvel_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s73_marvel_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s75_marvel_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s71_actor_name_in"
+     },
+     "right": {
+      "ref": "s74_marvel_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "marvel_movie": null
+     }
+    },
+    {
+     "name": "s76_ci_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s57_ci_final_n"
+     },
+     "field": "rows_ci"
+    },
+    {
+     "name": "s77_ci_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s76_ci_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s78_ci_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s75_marvel_movie_in"
+     },
+     "right": {
+      "ref": "s77_ci_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s79_k_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s58_k_final_n"
+     },
+     "field": "rows_k"
+    },
+    {
+     "name": "s80_k_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s79_k_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s81_k_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s78_ci_n_in"
+     },
+     "right": {
+      "ref": "s80_k_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s82_mk_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s59_mk_final_n"
+     },
+     "field": "rows_mk"
+    },
+    {
+     "name": "s83_mk_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s82_mk_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s84_mk_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s81_k_n_in"
+     },
+     "right": {
+      "ref": "s83_mk_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s85_n_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s60_n_final_n"
+     },
+     "field": "rows_n"
+    },
+    {
+     "name": "s86_n_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s85_n_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s87_n_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s84_mk_n_in"
+     },
+     "right": {
+      "ref": "s86_n_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s88_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s61_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s89_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s88_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s90_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s87_n_n_in"
+     },
+     "right": {
+      "ref": "s89_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s90_t_n_in"
+     },
+     "fields": [
+      "movie_keyword",
+      "actor_name",
+      "marvel_movie",
+      "rows_ci",
+      "rows_k",
+      "rows_mk",
+      "rows_n",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

@@ -1,0 +1,14 @@
+Our patches to NebulaGraph (commit 5d43e44b, the 3.x line; get.sh pins it); build.sh applies them.
+The KV counters sit in the engine, not in any workload, so the same patched binary serves LDBC and the microbench.
+
+nebula.unified.patch
+  The /kvstats HTTP endpoint on storaged (PUT /kvstats/reset zeroes the counters), plus /kvtrace/{enable,disable} and
+  GET /kvtrace for per-operation key capture; /kvtrace/enable takes ?max=N to change the trace buffer cap (default
+  100000 entries, ~80 bytes each). Built with ENABLE_KV_STATS=ON. Each read and write call is also timed in ns
+  (steady_clock; the *_latency_ns fields). With ENABLE_KV_HISTOGRAMS=ON it adds resettable fixed-bucket latency
+  histograms (p50 / p75 / p99 / p999) under "histograms" in the /kvstats response; their buckets are sized for µs, and
+  they now receive ns (that build is not used).
+
+nebula.plan-debug.patch
+  Logs storaged's execution plan per request, gated by ENABLE_QUERY_PLAN_DEBUG=ON. Needs single-threaded execution
+  for clean logs.

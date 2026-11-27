@@ -1,0 +1,10 @@
+# w_del_e -- delete one existing knows edge.
+# Writes: the source's knows posting and the target's reverse posting, each rewritten without the edge (tombstone
+#   SETs: Dgraph has no KV delete).
+# Evaluator: workloads/writes/microbench/queries.py w_del_e -- delete_edge(knows, src_vid, dst_vid).
+# mb2 lineage: MB88 (same upsert; it found the persons by fqid).
+# Anchor: as w_ins_e_plain. A text template.
+{
+  "query": "{ s as var(func: eq(id, $src)) @filter(type(person)) o as var(func: eq(id, $dst)) @filter(type(person)) }",
+  "delete": { "uid": "uid(s)", "knows": [ { "uid": "uid(o)" } ] }
+}

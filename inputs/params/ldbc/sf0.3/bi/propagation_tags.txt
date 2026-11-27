@@ -1,0 +1,6 @@
+tag|messages|stratum
+Save_the_Last_Dance_for_Me|67|p50
+O._J._Simpson|280|p75
+Laurence_Olivier|431|p90
+Yoko_Ono|900|p99
+Augustine_of_Hippo|6216|max

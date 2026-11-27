@@ -1,0 +1,24 @@
+{
+ "id": "b01",
+ "name": "bi_all",
+ "title": "LDBC BI, every query once",
+ "items": [
+  {"family": "bi", "query": "bi1", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi2", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi3", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi4", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi5", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi6", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi7", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi8", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi9", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi10", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi11", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi12", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi13", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi14", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi16", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi17", "frequency": 1.0, "params": null},
+  {"family": "bi", "query": "bi18", "frequency": 1.0, "params": null}
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "file": "interactive_3_param.txt",
+ "query": "ic3",
+ "generated_by": "python data/gen_ic3_params.py --sf 0.3 --top 6",
+ "script": "data/gen_ic3_params.py",
+ "source": "<data dir>/datasets/ldbc/sf0.3/CsvBasic-LongDateFormatter/dynamic",
+ "selection": "anchors + durationDays = the hosted file's (same rows, same order); the hosted countries + start where a network person qualifies, else a new start, else the best unused country pair -- see the script docstring",
+ "how": {
+  "hosted pair, new start": 26,
+  "new pair": 5,
+  "hosted": 4
+ },
+ "row_count": 35,
+ "hosted_rows_kept": 0,
+ "qualifying_persons": {
+  "min": 1,
+  "median": 1,
+  "max": 4
+ },
+ "date": "2026-09-28",
+ "git_sha": "12de8e64178616422935488d489fd25738ec4832",
+ "note": "hosted interactive_3_param.txt (LDBC's own params for this graph): most params return empty (every standing param 1,7,...,31 at sf0.3); `how` counts the rows kept as hosted. <data dir>/datasets/ is gitignored, so this tracked copy is the source of truth."
+}

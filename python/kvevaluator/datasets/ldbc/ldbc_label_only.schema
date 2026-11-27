@@ -1,0 +1,126 @@
+# PARKED: not maintained; counts not checked. It stays the optimizer regret search's second
+# design until that search is retired.
+# LDBC SNB -- label_only schema: the SAME structure as ldbc.schema, but the ONLY index is the
+# per-type membership (type-enumeration) index on every label -- no property/date indexes. This
+# is the "what does the type index alone buy?" design; pick with `--schema label_only`. A value
+# lookup here enters via read_vertices_by_label + a per-vertex prop read (the missing value index
+# is the cost). Types: str | int | date (date is stored as an epoch-ms int).
+
+# ---------------------------------------------------------------- vertices ----
+vertex Person prefix=person
+    firstName    str
+    lastName     str
+    gender       str
+    birthday     date
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    email        str multi
+    language     str multi
+
+# Post & Comment share one id space (group=Message -> the msg_ vid prefix); the concrete
+# label still rides in storage, so a query recovers Post-vs-Comment, never from the vid.
+vertex Post prefix=msg group=Message
+    imageFile    str nullable
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    language     str nullable
+    content      str nullable
+    length       int
+
+vertex Comment prefix=msg group=Message
+    creationDate date
+    locationIP   str
+    browserUsed  str
+    content      str
+    length       int
+
+vertex Forum prefix=forum
+    title        str
+    creationDate date
+
+vertex Organisation prefix=org
+    type str
+    name str
+    url  str
+
+vertex Place prefix=place
+    name str
+    url  str
+    type str
+
+vertex Tag prefix=tag
+    name str
+    url  str
+
+vertex TagClass prefix=tagclass
+    name str
+    url  str
+
+# ------------------------------------------------------------------- edges ----
+# `reverse` = the workload traverses it backward (dgraph @reverse, per-predicate). One etype
+# can span many endpoint pairs. Edge props are read by name from the CSV.
+edge knows reverse
+    Person->Person
+    creationDate date
+
+edge likes reverse
+    Person->Post Person->Comment
+    creationDate date
+
+edge hasCreator reverse
+    Post->Person Comment->Person
+
+edge hasTag reverse
+    Post->Tag Comment->Tag Forum->Tag
+
+edge hasType reverse
+    Tag->TagClass
+
+edge isLocatedIn reverse
+    Person->Place Post->Place Comment->Place Organisation->Place
+
+edge replyOf reverse
+    Comment->Post Comment->Comment
+
+edge containerOf reverse
+    Forum->Post
+
+edge hasMember reverse
+    Forum->Person
+    joinDate date
+
+edge hasModerator reverse
+    Forum->Person
+
+edge isPartOf reverse
+    Place->Place
+
+edge isSubclassOf reverse
+    TagClass->TagClass
+
+# forward-only (no @reverse)
+edge hasInterest
+    Person->Tag
+
+edge studyAt
+    Person->Organisation
+    classYear int
+
+edge workAt
+    Person->Organisation
+    workFrom int
+
+# ----------------------------------------------------------------- indexes ----
+# NO property/date indexes -- the only index is the per-type membership index (index <Label>)
+# on every label. That is the enumeration structure the label-only plans scan
+# (read_vertices_by_label), and it is what makes every type filter here enter via the index.
+index Person
+index Post
+index Comment
+index Forum
+index Organisation
+index Place
+index Tag
+index TagClass

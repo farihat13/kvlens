@@ -1,0 +1,12 @@
+# dgraph-use-local-badger.patch: build Dgraph against the patched Badger beside it (engines/dgraph/badger). Found missing at the 2026-10-26 patch check: the old repo carried this go.mod line in its tracked tree, and dgraph-profile.patch needs it.
+diff --git dgraph/dgraph-25.0.0/go.mod dgraph/dgraph-25.0.0/go.mod
+--- dgraph/dgraph-25.0.0/go.mod
++++ dgraph/dgraph-25.0.0/go.mod
+@@ -179,3 +179,6 @@
+ 	gopkg.in/yaml.v2 v2.4.0 // indirect
+ 	gotest.tools/v3 v3.5.2 // indirect
+ )
++
++// Use local BadgerDB for development
++replace github.com/dgraph-io/badger/v4 => ../badger
+\ No newline at end of file

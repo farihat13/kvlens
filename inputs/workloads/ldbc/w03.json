@@ -1,0 +1,58 @@
+{
+ "id": "w03",
+ "name": "like_storm",
+ "title": "Like storm: edge writes",
+ "items": [
+  {"family": "writes", "query": "iu2", "frequency": 1000, "params": null},
+  {"family": "microbench", "query": "hop1_knows", "frequency": 10, "params": null}
+ ],
+ "expect": "Split adjacency (Condensed/Split): 2 small keys per like",
+ "why": "a like appends to two lists (the person's likes, the post's likers). Split writes two new small keys ({sp_like} and 2 PUTs per like); Condensed reads both whole lists and rewrites them ({cc_like} written and {cc_like_ops} ops per like), Chunked their chunks ({ch_like}). So Split wins the writes in bytes and in ops. The few friend-list reads go the other way ({cc_knows} ops Condensed against {sp_knows} Split). A mixed layout takes both: likes Split, knows Condensed.",
+ "why_numbers": {
+  "sp_like": [
+   "run",
+   "write_bytes",
+   "iu2",
+   "likes lists",
+   "props_split_adj_split"
+  ],
+  "cc_like": [
+   "run",
+   "write_bytes",
+   "iu2",
+   "likes lists",
+   "props_condensed_adj_condensed"
+  ],
+  "cc_like_ops": [
+   "run",
+   "ops",
+   "iu2",
+   "likes lists",
+   "props_condensed_adj_condensed"
+  ],
+  "ch_like": [
+   "run",
+   "write_bytes",
+   "iu2",
+   "likes lists",
+   "props_chunked_adj_chunked"
+  ],
+  "cc_knows": [
+   "runs",
+   "ops",
+   "hop1_knows",
+   "knows lists",
+   "props_condensed_adj_condensed"
+  ],
+  "sp_knows": [
+   "runs",
+   "ops",
+   "hop1_knows",
+   "knows lists",
+   "props_split_adj_split"
+  ]
+ },
+ "why_scale_free": {
+  "2": "one new record per list: likes is declared in both directions (schema)"
+ }
+}

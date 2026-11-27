@@ -1,0 +1,59 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=5.08
+# Q4. New topics
+#
+# Given a start Person with ID $personId, find Tags that are attached to Posts that were created by 
+# thatPerson’s friends. Only include Tags that were attached to friends’ Posts created within a given time
+# interval [$startDate, $startDate + $durationDays) (closed-open) and that were never attached
+# to friends’ Posts created before this interval.
+#
+# Sort    postCount(desc)    tagName(asc)
+# Limit   10
+# 
+# NOTE: Dgraph support multi-key ordering only when all keys are predicates, it does not support 
+# multi-key ordering when one of the keys is a computed value. Therefore, the client must tie-break 
+# by tagName ASC, and then apply the LIMIT 10.
+# So the last block returns EVERY tag with a count > 0 (no `first`); the client sorts them by
+# (postCount desc, tagName asc) and keeps 10. (A `first: N` by count alone would
+# return an arbitrary slice of a count tie -- Dgraph's value sort is not stable -- and a wrong top 10.)
+#
+# Params:
+#   $personId   : int
+#   $startDate : string  (ISO-8601 UTC, inclusive lower bound)
+#   $endDate   : string  (ISO-8601 UTC, exclusive upper bound)
+query Q4($personId: int, $startDate: string, $endDate: string) {
+  P as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { 
+    a as knows  
+    b as ~knows 
+  }
+  F as var(func: uid(a, b)) @filter(type(person) AND NOT uid(P))
+
+  # Tags on FRIEND posts in [start, end)
+  var(func: uid(F)) {
+    ~hasCreator @filter(type(post) AND ge(creationDate, $startDate) AND lt(creationDate, $endDate)) {
+      TW as hasTag @filter(type(tag))
+    }
+  }
+
+  # Count how many friend posts in-window use each tag
+  var(func: uid(TW)) {
+    pc as count(~hasTag @filter(
+      type(post) AND ge(creationDate, $startDate) AND lt(creationDate, $endDate) AND
+      uid_in(hasCreator, uid(F))
+    ))
+  }
+
+  # Count how many friend posts used the tag before the window
+  var(func: uid(TW)) {
+    ic as count(~hasTag @filter(
+      type(post) AND lt(creationDate, $startDate) AND
+      uid_in(hasCreator, uid(F))
+    ))
+  }
+
+  # Filter TW by postCount > 0 and ic == 0, then order by postCount desc
+  tags(func: uid(TW), orderdesc: val(pc)) @filter(gt(val(pc), 0) AND eq(val(ic), 0)) {
+    tagName: name
+    postCount: val(pc)
+  }
+}

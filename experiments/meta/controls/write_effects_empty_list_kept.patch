@@ -1,0 +1,15 @@
+diff --git a/cpp/kvevaluator/src/store/unit_list.cc b/cpp/kvevaluator/src/store/unit_list.cc
+index 4162d64..73627ad 100644
+--- a/cpp/kvevaluator/src/store/unit_list.cc
++++ b/cpp/kvevaluator/src/store/unit_list.cc
+@@ -38,8 +38,8 @@ bool list_remove(CountingStore& st, const std::string& key, uint64_t other, List
+   st.count_used_write(key.size(), 0);
+   // a split unit's first part (start 0) stays, empty: every id of the unit lands on a part at or below it
+   bool first_part = pk.size() != key.size() && part_start(pk, key.size()) == 0;
+-  if (entries.empty() && !first_part) dels.push_back(pk);   // an emptied whole unit or later part is DELed
+-  else puts.emplace_back(pk, lists::encode(entries, label_bits, cols));
++  (void)first_part;
++  puts.emplace_back(pk, lists::encode(entries, label_bits, cols));   // (control: an emptied list kept as an empty value)
+   return true;
+ }
+ 

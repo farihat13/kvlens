@@ -1,0 +1,16 @@
+{
+  "name": "microbench",
+  "order": 2,
+  "title": "one access path per query, on the LDBC store",
+  "dataset": "ldbc",
+  "kind": "read",
+  "pick_params": "in-sample",
+  "plan_dirs": [
+    "microbench/plans"
+  ],
+  "formats": [
+    "dgraph",
+    "nebula",
+    "arangodb"
+  ]
+}

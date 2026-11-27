@@ -1,0 +1,6 @@
+personId|startDate|durationDays|countryXName|countryYName
+32985348834326|1291161600000|30|Puerto_Rico|Republic_of_Macedonia
+17592186046083|1298937600000|38|Switzerland|Uruguay
+17592186044897|1325376000000|28|Oman|Dominican_Republic
+19791209301168|1304208000000|29|Chad|Dominican_Republic
+6597069767884|1325376000000|34|Uruguay|Puerto_Rico

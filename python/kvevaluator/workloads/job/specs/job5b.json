@@ -1,0 +1,104 @@
+{
+ "query": "job5b",
+ "aliases": {
+  "ct": "company_type",
+  "it": "info_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "it": [],
+  "mc": [
+   [
+    "like",
+    "mc",
+    "note",
+    "%(VHS)%",
+    false
+   ],
+   [
+    "like",
+    "mc",
+    "note",
+    "%(USA)%",
+    false
+   ],
+   [
+    "like",
+    "mc",
+    "note",
+    "%(1994)%",
+    false
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "USA",
+     "America"
+    ]
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2010
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "american_vhs_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

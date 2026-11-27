@@ -1,0 +1,6 @@
+tagA|dateA|tagB|dateB|maxKnowsLimit|countA|countB|stratum
+Muammar_Gaddafi|1318723200000|Joe_Strummer|1319241600000|4|1834|1064|max+partner
+Charles_III_of_Spain|1318377600000|Edgar_Prado|1324252800000|4|11|547|p99+partner
+Luxembourg|1335657600000|Siad_Barre|1276646400000|4|5|528|p90+partner
+Wheels_of_Fire|1276732800000|Siad_Barre|1276646400000|4|2|528|p50+partner
+Bertrand_Russell|1343952000000|Sammy_Sosa|1280016000000|4|2|252|p20+partner

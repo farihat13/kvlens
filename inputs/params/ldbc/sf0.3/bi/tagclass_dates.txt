@@ -1,0 +1,6 @@
+tagClass|date|messagesInClass|stratum
+Politician|1306967480075|1558|p50-class
+Monarch|1306967480075|11157|p75-class
+OfficeHolder|1306967480075|67030|p90-class
+Country|1306967480075|184989|max-class
+Country|1319443819577|184989|max-class-p50date

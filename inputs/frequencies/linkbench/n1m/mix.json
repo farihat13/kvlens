@@ -1,0 +1,41 @@
+{
+ "requests": 100000,
+ "per_query_sample": 2000,
+ "requests_sha256": "b2699de65c9318f8b69501052e2a0c1294e692fed71b9b876791206e6290a757",
+ "share": {
+  "addlink_link1": 0.07171,
+  "addlink_link2": 0.07933,
+  "addnode": 0.02641,
+  "countlink_link1": 0.02409,
+  "countlink_link2": 0.02458,
+  "deletelink_link1": 0.01459,
+  "deletelink_link2": 0.01512,
+  "deletenode": 0.00977,
+  "getlink_link1": 0.00266,
+  "getlink_link2": 0.00274,
+  "getlinklist_link1": 0.25375,
+  "getlinklist_link2": 0.25253,
+  "getnode": 0.12959,
+  "updatelink_link1": 0.01412,
+  "updatelink_link2": 0.0057,
+  "updatenode": 0.07331
+ },
+ "count": {
+  "addlink_link1": 7171,
+  "addlink_link2": 7933,
+  "addnode": 2641,
+  "countlink_link1": 2409,
+  "countlink_link2": 2458,
+  "deletelink_link1": 1459,
+  "deletelink_link2": 1512,
+  "deletenode": 977,
+  "getlink_link1": 266,
+  "getlink_link2": 274,
+  "getlinklist_link1": 25375,
+  "getlinklist_link2": 25253,
+  "getnode": 12959,
+  "updatelink_link1": 1412,
+  "updatelink_link2": 570,
+  "updatenode": 7331
+ }
+}

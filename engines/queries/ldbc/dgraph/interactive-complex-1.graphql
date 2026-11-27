@@ -1,0 +1,143 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=2.11
+# Q1. Transitive friends with certain name
+#
+# Given a start Person with ID $personId, find Persons with a given first name ($firstName) that the
+# start Person is connected to (excluding start Person) by at most 3 steps via the knows relationships.
+# Return Persons, including the distance (1..3), summaries of the Persons workplaces and places of
+# study.
+# Sort    DistanceFromPerson (Asc.), otherPerson.lastName(Asc.), otherPerson.id(Asc.)
+# Limit   20
+#
+# NOTE: Since Dgraph does not support multi-key ordering, the client must perform the final sort 
+# by (distance, lastName, id) after concatenating results from friends1, friends2, and friends3,
+# and then apply the LIMIT 20 on the concatenated result set.
+#
+# Params:
+#   $personId  : int        (e.g., 933)
+#   $firstName : string     (e.g., "John")
+
+query Q1($personId: int, $firstName: string) {
+  # Anchor person
+  P as var(func: eq(id, $personId)) @filter(type(person))
+
+  # --- 1 hop ---------------------------------------------------------------
+  _l1_from_p(func: uid(P)) {
+    l1a as knows
+    l1b as ~knows
+  }
+  # Minimal-distance set at 1 hop; exclude self
+  F1 as var(func: uid(l1a, l1b))
+        @filter(type(person) AND NOT uid(P) AND eq(firstName, $firstName))
+
+  # --- 2 hops --------------------------------------------------------------
+  _l2_expand(func: uid(l1a, l1b)) {
+    l2a as knows
+    l2b as ~knows
+  }
+  # Exclude self and F1 to preserve minimal distance = 2
+  F2 as var(func: uid(l2a, l2b))
+        @filter(type(person) AND NOT uid(P, F1) AND eq(firstName, $firstName))
+
+  # --- 3 hops --------------------------------------------------------------
+  _l3_expand(func: uid(l2a, l2b)) {
+    l3a as knows
+    l3b as ~knows
+  }
+  # Exclude self, F1, F2 to preserve minimal distance = 3
+  F3 as var(func: uid(l3a, l3b))
+        @filter(type(person) AND NOT uid(P, F1, F2) AND eq(firstName, $firstName))
+
+  # --- attach explicit distance values for client-side tie-breaks ----------
+  var(func: uid(F1)) { d1 as math(1) }
+  var(func: uid(F2)) { d2 as math(2) }
+  var(func: uid(F3)) { d3 as math(3) }
+
+  # --- Per-distance projections -------------------------------------------
+  # NOTE: Dgraph supports only one order key; we use lastName here.
+  # Global ordering by (distance,lastName,id) must be done client-side,
+  # after concatenating friends1 ∪ friends2 ∪ friends3, then LIMIT 20.
+
+  friends1(func: uid(F1), orderasc: lastName, first: 20) @normalize {
+    friendDistance: val(d1)
+    friendId: id
+    friendLastName:  lastName
+    friendFirstName: firstName # did not ask
+    friendBirthday:  birthday
+    friendCreationDate: creationDate
+    friendGender:    gender
+    friendBrowserUsed: browserUsed
+    friendLocationIp:  locationIP
+    friendEmails:      email
+    friendLanguages:   language
+
+    isLocatedIn @filter(type(place)) { 
+      friendCityName: name 
+    }
+
+    studyAt @facets(classYear) {
+      uniName: name
+      isLocatedIn @filter(type(place)) { uniCityName: name }
+    }
+    
+    workAt @facets(workFrom) {
+      companyName: name
+      isLocatedIn @filter(type(place)) { companyCountryName: name }
+    }
+  }
+
+  friends2(func: uid(F2), orderasc: lastName, first: 20) @normalize {
+    friendDistance: val(d2)
+    friendId: id
+    friendLastName:  lastName
+    friendFirstName: firstName
+    friendBirthday:  birthday
+    friendCreationDate: creationDate
+    friendGender:    gender
+    friendBrowserUsed: browserUsed
+    friendLocationIp:  locationIP
+    friendEmails:      email
+    friendLanguages:   language
+
+    isLocatedIn @filter(type(place)) { 
+      friendCityName: name 
+    }
+
+    studyAt @facets(classYear) {
+      uniName: name
+      isLocatedIn @filter(type(place)) { uniCityName: name }
+    }
+    
+    workAt @facets(workFrom) {
+      companyName: name
+      isLocatedIn @filter(type(place)) { companyCountryName: name }
+    }
+  }
+
+  friends3(func: uid(F3), orderasc: lastName, first: 20) @normalize {
+    friendDistance: val(d3)
+    friendId: id
+    friendLastName:  lastName
+    friendFirstName: firstName
+    friendBirthday:  birthday
+    friendCreationDate: creationDate
+    friendGender:        gender
+    friendBrowserUsed: browserUsed
+    friendLocationIp:  locationIP
+    friendEmails:      email
+    friendLanguages:   language
+
+    isLocatedIn @filter(type(place)) { 
+      friendCityName: name 
+    }
+
+    studyAt @facets(classYear) {
+      uniName: name
+      isLocatedIn @filter(type(place)) { uniCityName: name }
+    }
+    
+    workAt @facets(workFrom) {
+      companyName: name
+      isLocatedIn @filter(type(place)) { companyCountryName: name }
+    }
+  }
+}

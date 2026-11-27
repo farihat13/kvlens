@@ -1,0 +1,512 @@
+# set shell := ["bash", "-uc"]
+# export BASH_ENV := justfile_directory() / "../.env"
+# Auto-activate venv so recipes work without manual `source .venv/bin/activate`
+export VIRTUAL_ENV := justfile_directory() / ".." / ".." / ".venv"     # the repo venv (just setup)
+export PATH := justfile_directory() / ".." / ".." / ".venv" / "bin" + ":" + env("PATH")
+
+default:
+    @just --list --unsorted
+
+# ----------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------
+
+# Wait for a tmux session to end before proceeding
+wait-for-session-end SESSION:
+	until ! tmux has-session -t {{SESSION}} 2>/dev/null; do sleep 1; done
+
+# does not duplicate line in file, does not expand variables
+append-if-missing line file:
+    grep -qxF '{{line}}' '{{file}}' || echo '{{line}}' >> '{{file}}'
+
+# =============================
+# Lifecycle
+# =============================
+
+# one-time setup for python dependencies
+py:
+    #!/bin/bash
+    set -euxo pipefail
+    [ -d .venv ] && { echo ".venv already exists" ; exit 0; }
+    uv venv
+    uv sync
+
+# one-time setup
+setup:
+    bash ../setup.sh --db dgraph   # engines/needs.tsv
+    bash -c 'source ../.env && just setup-dirs'
+
+setup-dirs:
+    mkdir -p ${DGRAPH_RUNSDIR}
+    mkdir -p ${DGRAPH_LOGDIR}
+    mkdir -p ${DGRAPH_BINARYDIR}
+    mkdir -p logs
+
+# =============================
+# Build
+# =============================
+
+# build dgraph from source, binary is placed in $GOPATH/bin
+# `set -o pipefail` so a failed make is not hidden by tee's exit status.
+build flags="":
+    bash scripts/build.sh {{flags}}
+
+build-debug:
+    bash -c "set -o pipefail; cd ${DGRAPH_SRCDIR} && make install BUILD_DEBUG=1 BUILD_TAGS=debug |& tee build.log"
+
+build-trace:
+    bash -c "set -o pipefail; cd ${DGRAPH_SRCDIR} && make install BUILD_TAGS=\"functrace badgerbusy histogram\" |& tee build.log"
+
+dbuild:
+    cd code/dgraph-key && go build -o dkey && mv dkey $GOPATH/bin/dkey
+
+# Apply source patches: just patch [dgraph|badger|all] [-f patchfile]
+patch *args:
+    bash scripts/apply-patch.sh {{args}}
+
+# Create source patches: just create-patch [dgraph|badger|all] [-f patchfile]
+create-patch *args:
+    bash scripts/create-patch.sh {{args}}
+
+reset-patches:
+    git -C ${DGRAPH_SRCDIR} restore . && git -C ${DGRAPH_SRCDIR} clean -fd
+    git -C ${BADGER_SRCDIR} restore . && git -C ${BADGER_SRCDIR} clean -fd
+
+# =============================
+# Run
+# =============================
+
+alias run := start
+
+# Start Dgraph Zero and Alpha nodes
+start v="3" cache="100":
+    bash scripts/start.sh {{v}} {{cache}}
+
+stop:
+    bash scripts/stop.sh
+
+# Kill dgraph processes (works with any dgraph variant binary)
+kill:
+    bash scripts/kill.sh
+
+# Kill dgraph processes and remove all data directories
+reset:
+    bash scripts/reset.sh
+
+status:
+    bash scripts/status.sh || true
+
+status-verbose:
+    #!/bin/bash
+    echo "=== Processes ==="
+    ps aux | grep dgraph | grep -v grep
+    echo -e "\n=== Ports ==="
+    netstat -tlnp 2>/dev/null | grep -E ":(5080|6080|7080|8080|9080)"
+    echo -e "\n=== Health ==="
+    curl -s localhost:8080/health | jq
+    echo -e "\n=== State Summary ==="
+    curl -s localhost:8080/state | jq '{maxUID, maxTxnTs, groups: .groups | keys}'
+
+# Show the LIVE value of each of the 5 dgraph profile knobs. dgraph-profile.patch serves a GET status on
+# each bare knob path (the /path/mode form sets, the bare /path reads). Use this to confirm the running
+# alpha matches the DGRAPH_* knobs declared in .env after start-server pins them. 000/empty = stock binary
+# (patch not built) or alpha down.
+knob-status:
+    #!/bin/bash
+    http="${DGRAPH_ALPHA_HTTP:-http://localhost:8080}"
+    for k in localcache detsort eqfilterpath typefilterpath ineqfilterpath; do
+        printf '%-16s ' "$k"
+        curl -s "$http/$k" || echo "(unreachable)"
+        echo
+    done
+    echo -e "\n=== Disk Usage ==="
+    du -sh ${DGRAPH_RUNSDIR}/{p,w,zw,t} 2>/dev/null || true
+
+# Start Dgraph Zero node (cluster coordinator)
+zero:
+    #!/bin/bash
+    rm -f ${DGRAPH_RUNSDIR}/runinfo || true
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    tmux new-session -d -s zero 'dgraph zero 2>&1 | tee zero.log'
+
+# Start Dgraph Alpha node (main database server)
+alpha v="3" cache="100":
+    #!/bin/bash
+    set -euo pipefail
+    rm -f ${DGRAPH_RUNSDIR}/runinfo || true
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    # Optional load knobs from the environment (unset = the defaults below):
+    #   DGRAPH_ALPHA_CACHE_PCT        cache size-mb percentage split   (default 40,40,20)
+    #   DGRAPH_ALPHA_NUMGOROUTINES    --badger numgoroutines=N         (default: unset -> omitted)
+    #   DGRAPH_ALPHA_MUTATIONS_NQUAD  --limit mutations-nquad=N;        (default: unset -> omitted; bulk loads need this)
+    #   DGRAPH_ALPHA_EXTRA            any extra alpha flags, verbatim   (default: empty)
+    pct="${DGRAPH_ALPHA_CACHE_PCT:-40,40,20}"
+    flags=(alpha --v {{v}} --cache "size-mb={{cache}}; percentage=${pct}" --security whitelist=0.0.0.0/0)
+    if [ -n "${DGRAPH_ALPHA_NUMGOROUTINES:-}" ]; then flags+=(--badger "numgoroutines=${DGRAPH_ALPHA_NUMGOROUTINES}"); fi
+    if [ -n "${DGRAPH_ALPHA_MUTATIONS_NQUAD:-}" ]; then flags+=(--limit "mutations-nquad=${DGRAPH_ALPHA_MUTATIONS_NQUAD};"); fi
+    if [ -n "${DGRAPH_ALPHA_EXTRA:-}" ]; then read -r -a _extra <<< "${DGRAPH_ALPHA_EXTRA}"; flags+=("${_extra[@]}"); fi
+    # %q-quote each arg so the space + ';' in --cache/--limit survive tmux's shell re-parse.
+    printf -v cmd '%q ' dgraph "${flags[@]}"
+    tmux new-session -d -s alpha "${cmd}2>&1 | tee alpha.log"
+
+alpha-debug:
+    #!/bin/bash
+    rm -f ${DGRAPH_RUNSDIR}/runinfo || true
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    tmux new-session -d -s alpha 'dgraph alpha --v 5 --feature-flags "enable-detailed-metrics=true"  --security whitelist=0.0.0.0/0 2>&1 | tee alpha.log'
+
+alpha-now:
+    #!/bin/bash
+    rm -f ${DGRAPH_RUNSDIR}/runinfo || true
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    tmux new-session -d -s alpha 'dgraph alpha --v 0 --cache "size-mb=4096; percentage=0,80,20" --security whitelist=0.0.0.0/0 2>&1 | tee alpha.log'
+
+alias run-variant := start-variant
+
+# Archive the data dirs by MOVING them into ckpt/<timestamp>/.
+# WARNING: this relocates (not copies) p/w/zw/t — run only with zero+alpha STOPPED,
+# or the running instance loses its data and crashes. For a safe backup use `ldbc-backup`.
+ckpt:
+    #!/bin/bash
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    dirname=$(date +%Y%m%d-%H%M%S)
+    mkdir -p ./ckpt/$dirname
+    mv alpha.log ./ckpt/$dirname/alpha.log
+    mv zero.log ./ckpt/$dirname/zero.log
+    mv p ./ckpt/$dirname/p
+    mv w ./ckpt/$dirname/w
+    mv zw ./ckpt/$dirname/zw
+    mv t ./ckpt/$dirname/t
+
+# =============================
+# Variant
+# =============================
+
+# list configurable dgraph binary variants
+build-variants-list:
+    python3 ../../python/kvengines/dgraph/variant_build.py --list
+
+# build a named variant from scripts/dgraph-binaries.conf into ${DGRAPH_BINARYDIR}
+# The shebang + pipefail matter: without them just runs this line under `sh -c`,
+# where a pipeline's status is tee's (always 0), so a failed build reports
+# success: variant_build.py can die with a traceback while the recipe exits 0.
+build-variant name *args:
+    #!/bin/bash
+    set -euo pipefail
+    python3 ../../python/kvengines/dgraph/variant_build.py {{name}} {{args}} 2>&1 | tee build-{{name}}.log
+
+# build all variants from scripts/dgraph-binaries.conf into ${DGRAPH_BINARYDIR}
+build-variants-all *args:
+    #!/bin/bash
+    set -euo pipefail
+    python3 ../../python/kvengines/dgraph/variant_build.py --all {{args}} 2>&1 | tee build-all.log
+
+# Start a specific variant binary (e.g., just start-variant profile)
+start-variant name v="1" cache="100":
+    bash scripts/variant-run.sh {{name}} {{v}} {{cache}}
+
+# Which variant is running now
+which-variant:
+    #!/bin/bash
+    runinfo="${DGRAPH_RUNSDIR}/runinfo"
+    if [ ! -f "$runinfo" ]; then
+        echo "No variant running (using default build or not started via start-variant)"
+        exit 0
+    fi
+    cat "$runinfo"
+
+# =============================
+# Data
+# =============================
+
+# Download the LDBC dataset for a given scale factor (sf) and place it in the data directory.
+# Main RDF is GENERATED from CsvBasic CSV via csv_to_rdf.py (posts+comments unified to msg_
+# vids), NOT the published golden RDF — golden uses split post_/comment_ vids, which we no
+# longer want. `scripts/ldbc/download-ldbc-rdf.sh` is kept for reference but off the default path.
+ldbc-download sf="0.3":
+    #!/bin/bash
+    set -euxo pipefail
+    mkdir -p data/ldbc/sf{{sf}}
+    # main data: generate RDF from CsvBasic CSV (needs `just fetch-dataset ldbc={{sf}}` from the repo root first)
+    # "Present" means real .rdf files (a checkout made by an older get.sh holds Git LFS placeholders here).
+    bash scripts/ldbc/rdf-dir-ready.sh "data/ldbc/sf{{sf}}/ldbc_rdf_{{sf}}" || {
+        [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter" ] || {
+            echo "ERROR: CsvBasic CSV for sf{{sf}} not found at ${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter"
+            echo "       Run first, from the repo root: just fetch-dataset ldbc={{sf}}"
+            exit 1
+        }
+        just ldbc-csv2rdf {{sf}}
+        # fail loudly if a placeholder the converter does not overwrite is still there (the loader reads every *.rdf)
+        bash scripts/ldbc/rdf-dir-ready.sh "data/ldbc/sf{{sf}}/ldbc_rdf_{{sf}}"
+    }
+    # substitution parameters
+    params=$(bash ../ldbc-params-dir.sh {{sf}})     # LDBC's download, else the tracked copy (sf0.3, sf1)
+    ln -sfn "$params" data/ldbc/substitution_parameters-sf{{sf}}
+    # update streams
+    [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" ] || { echo "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" not found; exit 1; }
+    ln -sfn ${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams data/ldbc/sf{{sf}}/update_streams
+
+# Convert LDBC CsvBasic CSV -> Dgraph RDF + ldbcTypes.schema. Use for scale factors
+# with no pre-packaged RDF upstream (e.g. sf0.1). `mapping` selects a schema variant
+# from ../../python/kvengines/dgraph/ldbc/rdf_mappings.py ('default' reproduces the published sf0.3 format;
+# 'per_type_dates' gives per-type creationDate predicates). One mapping drives BOTH
+# the RDF and the schema, so they can't drift.
+ldbc-csv2rdf sf="0.1" mapping="default":
+    python3 ../../python/kvengines/dgraph/ldbc/csv_to_rdf.py \
+        --csv-root ${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter \
+        --out data/ldbc/sf{{sf}}/ldbc_rdf_{{sf}} \
+        --mapping {{mapping}}
+
+# Correctness test for the converter: regenerate sf{{sf}} into /tmp and assert it
+# matches a reference RDF triple-for-triple (semantic set equality, since node-field
+# order is non-deterministic). Needs a reference RDF present (sf0.3/3/10).
+# CAVEAT: the `default` mapping now unifies message vids to `msg_`, so it will NOT match
+# the published golden RDF (`_:post_`/`_:comment_`) on any message triple. Only run this
+# against a reference produced with the same vid convention.
+ldbc-csv2rdf-check sf="0.3" mapping="default":
+    python3 ../../python/kvengines/dgraph/ldbc/csv_to_rdf.py \
+        --csv-root ${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter \
+        --out /tmp/ldbc_rdf_check_sf{{sf}} \
+        --schema-out /tmp/ldbc_rdf_check_sf{{sf}}.schema \
+        --mapping {{mapping}} \
+        --check data/ldbc/sf{{sf}}/ldbc_rdf_{{sf}}
+
+ldbc-setschema:
+    bash scripts/ldbc/schema-set.sh
+
+ldbc-verifyschema:
+    bash scripts/ldbc/schema-verify.sh
+
+ldbc-load sf="0.3" cache="1024" outdir="logs":
+    just reset
+    sleep 1
+    just run 0 {{cache}}
+    sleep 10
+    mkdir -p {{outdir}}
+    bash scripts/ldbc/load.sh --sf {{sf}} -o {{outdir}} | tee {{outdir}}/load_sf{{sf}}.log
+
+ldbc-backup sf="0.3":
+    bash scripts/ldbc/backup-data.sh {{sf}}
+
+# Generate LDBC loaded data and backup (patch+build → load → rollup → sync → backup)
+ldbc-prepare-data sf='0.3' variant='rollup':
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    just build-variant {{variant}} --skip-existing
+    # Symlink variant binary to $GOPATH/bin (same pattern as variant-run.sh)
+    VARIANT_RELPATH=$(python3 ../../python/kvengines/dgraph/variant_build.py --list | awk -v name="{{variant}}" '$1 == name {print $2}')
+    ln -sf "${DGRAPH_BINARYDIR}/${VARIANT_RELPATH}/dgraph" "$GOPATH/bin/dgraph"
+    just reset
+    # Bulk load: writes p/ directory directly, no running Alpha needed, no rollup needed
+    bash scripts/ldbc/bulk-load.sh --sf {{sf}}
+    sync   # plain sync: flush to disk, no root needed
+    sleep 2
+    bash scripts/ldbc/backup-data.sh {{sf}}
+
+
+# =============================
+# Queries
+# =============================
+
+# Run a single query from string, e.g., `just q '{ me(func: uid(0x1)) { name } }' --pretty`
+q query *args:
+    python3 ../../python/kvengines/dgraph/query_run.py -s "{{query}}" {{args}}
+
+# Run queries from a file, e.g., `just qfile queries/interactive-complex-1.graphql -v personId=933`
+qfile file *args:
+    python3 ../../python/kvengines/dgraph/query_run.py -f {{file}} {{args}}
+
+# ==============================
+# LDBC SNB Interactive workload
+# ==============================
+
+# Run a single LDBC interactive-complex query
+ldbc-icq q="1" param="1":
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --num {{q}} --param {{param}} -v
+
+# Run all LDBC interactive-complex queries
+ldbc-ic:
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --all --nparam 35 -c
+
+# Run all LDBC interactive-short queries
+ldbc-short:
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py -qt short --all -c
+
+# Run a single LDBC interactive-short query
+ldbc-isq q="1":
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py -qt short --num {{q}} --nparam 20 --show-raw
+
+# Run a single LDBC IC query and capture its plan (requires profile patch + v=1)
+ldbc-plan q="1" param="1":
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --num {{q}} --param {{param}} --explain --save-results
+
+# Run all LDBC IC queries and capture plans
+ldbc-plan-all:
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --all --nparam 1 --explain -c
+
+# Parse and display the latest plan from alpha.log
+show-plan *args:
+    python3 ../../python/kvengines/dgraph/parse_plan.py {{args}}
+
+# Compare two Dgraph query variants for equivalence
+check-qeq q="1" nparam="1":
+    python3 -u ../../python/kvengines/dgraph/query_check_equivalence.py \
+    --query1 queries/interactive-complex-{{q}}.graphql \
+    --query2 queries/interactive-complex-{{q}}.v2.graphql \
+    --params data/ldbc/substitution_parameters-sf0.3/interactive_{{q}}_param.txt \
+    --nparam {{nparam}} \
+    --continue \
+    --save-report logs/ic{{q}}_comparison.json
+
+## ============================
+# Microbench
+# ============================
+
+
+
+
+
+
+
+
+
+
+## ============================
+# Microbench2 (node selection)
+# ============================
+
+
+
+
+# =============================
+# Tests
+# =============================
+
+
+# =============================
+# Experiment
+# =============================
+
+# Run all IC queries with hooks (metrics collection)
+ldbc-ic-collect:
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --all --nparam 35 --hooks --save-results
+
+warmup:
+    just ldbc-ic > warmup.log 2>&1
+
+# Profile the LDBC interactive queries with detailed tracing enabled
+ldbc-icq-seqrun:
+    rm -f badger/y/functrace.go || true
+    rm -f badger/y/nofunctrace.go || true
+    rm -f dgraph-25.0.0/posting/badger_busy_time.go || true
+    bash scripts/apply-patch.sh badger -f badger.patch
+    bash scripts/apply-patch.sh dgraph -f dgraph.profile.patch
+    just build
+    sleep 1
+    just kill
+    sleep 2
+    just zero
+    just alpha-now
+    sleep 10
+    echo "warmup..."
+    just ldbc-ic > ic.log 2>&1
+    echo "profile run..."
+    python3 -u ../../python/kvengines/dgraph/ldbc/run_ldbc.py --all --nparam 35 --hooks --save-results 2>&1 | tee profile.log
+
+# =============================
+# Metrics
+# =============================
+
+# Snapshot metrics before an experiment
+before:
+    curl -s localhost:8080/metrics > 0metrics.log
+    curl -s localhost:8080/debug/vars | jq > 0debug_vars.log
+    curl -s localhost:8080/kvstats | jq > 0kvstats.log
+
+# Snapshot metrics after an experiment
+after:
+    curl -s localhost:8080/metrics > 1metrics.log
+    curl -s localhost:8080/debug/vars | jq > 1debug_vars.log
+    curl -s localhost:8080/kvstats | jq > 1kvstats.log
+
+metrics:
+    curl -s localhost:8080/metrics | tee metrics.txt
+
+vars:
+    curl -s localhost:8080/debug/vars | jq | tee debug_vars.txt
+
+pprof-heap:
+    curl -s localhost:8080/debug/pprof/heap > heap.prof
+    go tool pprof -http=:8081 heap.prof
+
+pprof-cpu seconds="30":
+    curl -s "localhost:8080/debug/pprof/profile?seconds={{seconds}}" > cpu.prof
+    go tool pprof -http=:8081 cpu.prof
+
+jemalloc:
+    curl -s localhost:8080/debug/jemalloc
+
+# =============================
+# DB-specific (Dgraph)
+# =============================
+
+shutdown:
+    curl -X GET localhost:8080/admin/shutdown | jq
+
+# Get/set cache memory limit
+cache-size:
+    curl -X GET localhost:8080/admin/config/cache_mb | jq
+
+cache-set mb="2048":
+    curl -X PUT localhost:8080/admin/config/cache_mb -d '{{mb}}' | jq
+
+# Zero state
+state-zero:
+    curl -s localhost:6080/state | jq
+# Alpha state
+state-alpha:
+    curl -s localhost:8080/state | jq
+
+setschema path="data/ldbcTypes.schema":
+    curl -X POST localhost:8080/alter -H "Content-Type: application/dql" --data-binary @{{path}} | jq
+
+getschema:
+    curl -s -X POST localhost:8080/query -H "Content-Type: application/graphql+-" -d 'schema {}' | jq
+
+# Assume alpha and zero are running
+rollup:
+    curl -X POST localhost:8080/rollup/pause
+    sleep 1
+    curl -X POST localhost:8080/rollup/forceall
+
+pause-rollup:
+    curl -X POST localhost:8080/rollup/pause | jq
+resume-rollup:
+    curl -X POST localhost:8080/rollup/resume | jq
+force-rollup:
+    curl -X POST localhost:8080/rollup/forceall | jq
+
+gettrace:
+    curl -X POST localhost:8080/trace/counts | jq | tee trace_count.log
+
+resettrace:
+    curl -X POST localhost:8080/trace/reset
+
+jaeger:
+    -bash -c "docker rm -f jaeger"
+    docker run -d --name jaeger \
+        -e COLLECTOR_OTLP_ENABLED=true \
+        -p 16686:16686 \
+        -p 14268:14268 \
+        -p 4317:4317 \
+        -p 4318:4318 \
+        jaegertracing/all-in-one:1.56
+
+# Start Dgraph Alpha node with Jaeger tracing
+jalpha:
+    #!/bin/bash
+    mkdir -p ${DGRAPH_RUNSDIR} && cd ${DGRAPH_RUNSDIR}
+    tmux new-session -d -s alpha 'dgraph alpha --trace "jaeger=localhost:4318;ratio=1" --security whitelist=0.0.0.0/0 2>&1 | tee alpha.log'
+    # Open http://localhost:16686/
+
+

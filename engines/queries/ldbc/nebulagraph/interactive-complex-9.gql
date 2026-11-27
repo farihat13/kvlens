@@ -1,0 +1,43 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=10.08 
+# Q9. Recent messages by friends or friends of friends (1..2 hops)
+#
+# Given a start Person with ID $personId, find the most recent Messages created by that Person’s
+# friends or friends of friends (excluding the start Person). Only consider Messages created before
+# the given $maxDate (excluding that day).
+# 
+# Params:
+#   $personId : int
+#   $maxDate : string   # ISO-8601 UTC, e.g., "2010-11-16T12:00:00Z"
+# Result:
+# 1 otherPerson.id ID R
+# 2 otherPerson.firstName String R
+# 3 otherPerson.lastName String R
+# 4 message.id ID R
+# 5message.content or message.imageFile (for photos)Text R
+# 6 message.creationDate DateTime R
+# sort 
+# 1 message.creationDate ↓
+# 2 message.id ↑
+# limit 20
+
+MATCH (n:Person)-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(message)
+WHERE id(n) == $personId 
+  AND id(friend) != $personId
+  AND coalesce(message.Post.creationDate, message.`Comment`.creationDate) < $maxDate
+RETURN DISTINCT
+    id(friend) AS friendId,
+    friend.Person.firstName AS friendFirstName,
+    friend.Person.lastName AS friendLastName,
+    id(message) AS messageId,
+    CASE
+        WHEN (message.Post.content IS NOT NULL AND message.Post.content != "") THEN message.Post.content
+        WHEN (message.`Comment`.content IS NOT NULL AND message.`Comment`.content != "") THEN message.`Comment`.content
+        ELSE message.Post.imageFile
+    END AS messageContent,
+    coalesce(
+        message.Post.creationDate,
+        message.`Comment`.creationDate
+    ) AS messageCreationDate,
+    toInteger(split(tostring(id(message)), "_")[1]) AS messageIdInt
+ORDER BY messageCreationDate DESC, messageIdInt ASC
+LIMIT 20;

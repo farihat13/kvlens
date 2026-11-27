@@ -1,0 +1,4 @@
+firstName|freq|stratum
+Ryszard|8|p50
+Choi|125|p90
+John|3958|max

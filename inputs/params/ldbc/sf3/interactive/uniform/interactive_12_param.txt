@@ -1,0 +1,6 @@
+personId|tagClassName
+10995116289814|MartialArtist
+30786325590286|SportsTeamMember
+18423|Congressman
+4398046523737|MemberOfParliament
+13194139536353|SnookerChamp

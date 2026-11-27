@@ -1,0 +1,2195 @@
+{
+ "sfs": {
+  "0.1": {
+   "csv": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "6d74fe98479b46cd5dad7cf8a0d04e1832b774518424d3bbcf4d5c1dca007007"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      214660,
+      "4aec2ca4fbbdda909d225138a3f55e616d5c8efb35cb6e1123bdbec70e33dd6f"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      436,
+      "aabeee3bf85c845ededfb05f654ad6b461b41b3bc69774c9294cfa3c11d6d5d5"
+     ],
+     "dynamic/.comment_0_0.csv.crc": [
+      103280,
+      "dbed8eaee58e66496b36d24ea5c3fc12a19c4ce391278edf91924a2bdb7b138f"
+     ],
+     "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+      30900,
+      "6ecb398961beba1796fc03657fab0317789905ab50f7c7f7c17ccc3043a44dbc"
+     ],
+     "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+      27040,
+      "6b48f4019e937a189481f923a6ad7dc1d46dbe8b4243c809c29e67f8490f4827"
+     ],
+     "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+      18748,
+      "09458da4f74f86655bdd6f8c9f8f10b8b531847b97b68747f557491469f7cb58"
+     ],
+     "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+      15688,
+      "76cf24bb8776f6cb83c52db98e937f826625223c27845fc12635b04d40e938cc"
+     ],
+     "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+      15184,
+      "53c992a52ae4a22a9fb8ca5c029a57b7f8d2ceb61441dec4d3c4ca76fca58e67"
+     ],
+     "dynamic/.forum_0_0.csv.crc": [
+      5584,
+      "4bee2c69deeabc8516ea3d7b6f3b07d276428d21e2ca2cf9c1612e5eba35d10b"
+     ],
+     "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+      27628,
+      "f4dd0c06817dee44ca2ac4e632b3b2dc7481bfc4ecc6d038191992e111653ea2"
+     ],
+     "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+      39332,
+      "f09acfc6d2303eb5189b4c0d8d2ad93741f02da91c171e1238477c681c3fa047"
+     ],
+     "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+      2856,
+      "0910c27e8752b68d2aa32ee88e42d32f5c1eac74c1bb649eb42db4ab67e56676"
+     ],
+     "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+      6560,
+      "7488075cd997f00acdddf238ea01ec22529a3e19431992c3a3279e7d249ee2f9"
+     ],
+     "dynamic/.person_0_0.csv.crc": [
+      1016,
+      "555d62ea55647ea10cf5074f3a2502c198ad85e0e3b85a7e9c6f1c04acd6b714"
+     ],
+     "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+      1152,
+      "82938dd6ccd850cb298e5ecd0d71c7f2de5bd04cf4d538fcd335ba3d2074b497"
+     ],
+     "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+      5296,
+      "768ea99cd4d590a80909848cd7862906458317c11189042a8a6017a9b1623b9d"
+     ],
+     "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+      232,
+      "da074cfa6307712439b9acfa9b6445e3bc99c09644e1d0159a52590132058583"
+     ],
+     "dynamic/.person_knows_person_0_0.csv.crc": [
+      4640,
+      "136c33d0b110411cbc8463a9114a60c684aa85af56fac9476c7f8e073964acea"
+     ],
+     "dynamic/.person_likes_comment_0_0.csv.crc": [
+      20068,
+      "6498bcf868a3fcf0844b2cbe9ce7da539c66602595d3c86cb1679e548fc0a459"
+     ],
+     "dynamic/.person_likes_post_0_0.csv.crc": [
+      15160,
+      "a904bdfd00e1494dd5bbbefa1e91a8368ddb0bb2ec9a6343136654dc95d7335b"
+     ],
+     "dynamic/.person_speaks_language_0_0.csv.crc": [
+      464,
+      "34e2fdecbbb638ffff39b7131617cbf28de436507d43dcc58695e1540bcda1db"
+     ],
+     "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+      240,
+      "6308fd2cb63a54db304b9859a6be7d0dc1e98440e4a560bf053b901459c610c7"
+     ],
+     "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+      616,
+      "16b8b429c5345ebc8c7a23c233259d2e588ed93230c2fceb42db0ec03bdbef35"
+     ],
+     "dynamic/.post_0_0.csv.crc": [
+      93788,
+      "b86590caa3b499500412d8046c9443bb18a7e190252516aa9e23c29b06537e64"
+     ],
+     "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+      28072,
+      "623ce4fe2e9e339c22e7cf44a395aed8dc5b66e503da1aba1fafb12fe83c00ea"
+     ],
+     "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+      7128,
+      "60835836c3a8f00e37e4853a80c88f78aa22d1073c7225fdc0af69a75d191c9d"
+     ],
+     "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+      16852,
+      "12a35e3542eeed41c4e4f838379a342d8fd8d21942fb5711cba4e0a4e669d39b"
+     ],
+     "dynamic/comment_0_0.csv": [
+      13218305,
+      "7a61fad9c9230c0a512e3097cc9de9789c6ca23beafb26f25fda3785746ffee3"
+     ],
+     "dynamic/comment_hasCreator_person_0_0.csv": [
+      3953993,
+      "d8216c90b519a22fbfcdd9f8c4da9cd7c10ab9c01d9923cef66dbf3dc5cd93b1"
+     ],
+     "dynamic/comment_hasTag_tag_0_0.csv": [
+      3459591,
+      "3eb683f632f8a40b8b0a0e93c2567afb267e5f8a0904a74db33f4e295e37b75b"
+     ],
+     "dynamic/comment_isLocatedIn_place_0_0.csv": [
+      2398376,
+      "f1392ead20af1262e116520a3bfea5c9b0b98034973a9bb10a07318403246aec"
+     ],
+     "dynamic/comment_replyOf_comment_0_0.csv": [
+      2006899,
+      "e021bdf50628abec989e26b8c193c67d6374a727efe51b9ef273781f962868ca"
+     ],
+     "dynamic/comment_replyOf_post_0_0.csv": [
+      1942023,
+      "faea7f994a5aa16679d595602e2dc387db1c8f085acd1c86fbdd3a8c555b2584"
+     ],
+     "dynamic/forum_0_0.csv": [
+      713464,
+      "f881c221bb3cf45c2a521871781dca515edb8765ec3a5457e9e545c0de1e9311"
+     ],
+     "dynamic/forum_containerOf_post_0_0.csv": [
+      3535256,
+      "d049bc05cd1477569c170bb984f77bfa2cada4276f1aca2b5348f2f32b4f01d9"
+     ],
+     "dynamic/forum_hasMember_person_0_0.csv": [
+      5033179,
+      "ecc6ac977063e918d5bf2787647328ff724c16ba8c8614118ef5408d0f3ac0c6"
+     ],
+     "dynamic/forum_hasModerator_person_0_0.csv": [
+      364464,
+      "62acdc36dd39a0f2379b5f1eac96b7fb066c437c069c526f263656bcf715c856"
+     ],
+     "dynamic/forum_hasTag_tag_0_0.csv": [
+      838260,
+      "714acb5f812ab7b0e802134db03f22bbff05986931690f1b61dd16259cbdf616"
+     ],
+     "dynamic/person_0_0.csv": [
+      128884,
+      "fe79de0f2fe6cd23da5919a3207f4f7cda8988fcf22d5309c1cdf296edda82bc"
+     ],
+     "dynamic/person_email_emailaddress_0_0.csv": [
+      146096,
+      "e99c8db739d54e46e9b6c0b9aa97db245cae1057e05942994ffacd896dfdbb83"
+     ],
+     "dynamic/person_hasInterest_tag_0_0.csv": [
+      676851,
+      "32ddc6453110fa646e669782f529d2f73b4ca0555e326f126b2995e0c2967468"
+     ],
+     "dynamic/person_isLocatedIn_place_0_0.csv": [
+      28404,
+      "bd3b43330b765ac1af51651f937fdae95abbf9a0dd511370f685527c0b195ca4"
+     ],
+     "dynamic/person_knows_person_0_0.csv": [
+      592535,
+      "6a6fa1ef658e0fbfe8b0184575772217d5563ea9e8aa859b2d96d737e2ff3d25"
+     ],
+     "dynamic/person_likes_comment_0_0.csv": [
+      2567488,
+      "f1e4bb5b142cd9dae41041f8a8be191d29a2ce6b2bde7961f080ae4c6d6b8896"
+     ],
+     "dynamic/person_likes_post_0_0.csv": [
+      1939177,
+      "24fda1be6785da83fe4b7d15a4594157cf7813c0b23a03d4458da4561e8cea91"
+     ],
+     "dynamic/person_speaks_language_0_0.csv": [
+      58282,
+      "52b1da354b80c7f76d0bac697d973a7c07fbafc0987785007a63511de8321a35"
+     ],
+     "dynamic/person_studyAt_organisation_0_0.csv": [
+      29287,
+      "c1ca2230c1d693f4b3d389569eb2c8ce795210696de9e5d617c3fe0cd5640aa1"
+     ],
+     "dynamic/person_workAt_organisation_0_0.csv": [
+      77429,
+      "b1a6424f226e3d8082865183193faac5b13791ad7808b543bb6c186602a8848a"
+     ],
+     "dynamic/post_0_0.csv": [
+      12003836,
+      "92b35849a71fb33c48f233d0e4ac1c3341c6ca6f5bc15fff6a4e18b585455dc3"
+     ],
+     "dynamic/post_hasCreator_person_0_0.csv": [
+      3591800,
+      "36e6da71ecb1bf789d126d81c4f5e2fb32553a8e1343a547a797bdafb8062afc"
+     ],
+     "dynamic/post_hasTag_tag_0_0.csv": [
+      911075,
+      "cabbdf6b6912f737811639038bdb54ae67ece7e0a1390adc6a63d839be866957"
+     ],
+     "dynamic/post_isLocatedIn_place_0_0.csv": [
+      2155859,
+      "0d8035b49aaa07b7be466e58defb06b56ca4402b18df308e4ceef5f5a7d58915"
+     ],
+     "params.ini": [
+      674,
+      "a725b7bf6447fb6b504c1f572a8fa201a5a736cb2cd8400a7b2e8fc128d4edeb"
+     ],
+     "static/.organisation_0_0.csv.crc": [
+      6416,
+      "9f76096f091a26bc6f8e0e02514484b191616741d3b2db6b240969d1fe9a3d9c"
+     ],
+     "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+      564,
+      "8c0b4ea9ef46f5a2172ecf8001ffa6bd62c7315bc34acaa33b88e7b15202a5b4"
+     ],
+     "static/.place_0_0.csv.crc": [
+      648,
+      "f3c3b6d122a598ec09a8a8d9002ca668901d787496d6f34236b9c31c6748a3df"
+     ],
+     "static/.place_isPartOf_place_0_0.csv.crc": [
+      92,
+      "a6a9f1394dfe4b3f5263a601dd60a80ea7fd8dac56e9533cc1c68dd580194af2"
+     ],
+     "static/.tag_0_0.csv.crc": [
+      8652,
+      "14dcae6baaa63c1acc18ef7ac43b31a3d0617ab5d66e6fb1136fe418d94286a8"
+     ],
+     "static/.tag_hasType_tagclass_0_0.csv.crc": [
+      1160,
+      "eb0ea370f1311733127e6b5e39eb00aae963ec8e3ce6ba3bfcd0132b0f441103"
+     ],
+     "static/.tagclass_0_0.csv.crc": [
+      40,
+      "7f48a854e380eac27fbdb2fef0af2dcc14e7885037987de02a1c0d504d17c30a"
+     ],
+     "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+      16,
+      "43a449719fdbeebad7514bd802d7f23cdc4de4ee43aa887e0501b04f7a8c7c6f"
+     ],
+     "static/organisation_0_0.csv": [
+      819926,
+      "37415355e0d524be6f2f8321e4dd9290da7f94b955284bf8be443478fcbfe366"
+     ],
+     "static/organisation_isLocatedIn_place_0_0.csv": [
+      70928,
+      "9783fac3ea1293775c80e9657c107679b4b9ac458555eae014a284ed2d9e8465"
+     ],
+     "static/place_0_0.csv": [
+      81884,
+      "f2ecc4db415c122d5de97931f4b0c3aea93c318c849390ed01006fe860c48236"
+     ],
+     "static/place_isPartOf_place_0_0.csv": [
+      10458,
+      "b3892a6708fe8315f3212382d903cde7b06238dece86d8c15776d64b996762b8"
+     ],
+     "static/tag_0_0.csv": [
+      1106348,
+      "a1c976ef974519d52261800631e9038ddd9cd29e99727b06f1eda130b7700f1f"
+     ],
+     "static/tag_hasType_tagclass_0_0.csv": [
+      147267,
+      "6afdf21e6a8c96b72e33f384a335b6cc69297b690376a367a9af05ca00ac4205"
+     ],
+     "static/tagclass_0_0.csv": [
+      3874,
+      "433b19e0b95b0c9b8a3a1a4ca1c638fadc6fbd28f7501e57abd0b3f5b8d56a92"
+     ],
+     "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+      545,
+      "9302ffa1c37648743864e32c2cca872abea3bf34f841729d5448f53976aa9d4d"
+     ],
+     "updateStream.properties": [
+      253,
+      "23f60d2499aec18bb30f163a0601417fcc3a8311e728ac2079b5cf7a3838ecc7"
+     ],
+     "updateStream_0_0_forum.csv": [
+      27475286,
+      "9324c34c54e60d4424b9a0faaacf37a1b0122448b9724a9df23520f154eb8380"
+     ],
+     "updateStream_0_0_person.csv": [
+      54446,
+      "7bfb5b9e277e6ca63270187d662de5bf2de1bf6546a719e289fcb9f710932f0e"
+     ]
+    },
+    "hosted": true,
+    "sha256": "5c476e25e9074f5b37cfe569f718aa43bef0187747b2c3bb2f02d5714c96820b",
+    "size": 18369356,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/social_network-sf0.1-CsvBasic-LongDateFormatter.tar.zst"
+   },
+   "params": {
+    "files": {
+     "bi_10_param.txt": [
+      15097,
+      "7bdd0f7b39cd0d5d353a131a7918d74c1a59d8e5bf9cab43dd2d5e44856b8092"
+     ],
+     "bi_11_param.txt": [
+      2091,
+      "f7f356be271bf2174b7b512f36605dcd430d0bdbeb2cc1808c00bbf89af38ed1"
+     ],
+     "bi_12_param.txt": [
+      433,
+      "e9e0e75968e9109c39f20bf2dd3217ee1d641f90d0cac3ac23f4491c77a4681b"
+     ],
+     "bi_13_param.txt": [
+      269,
+      "90fb0eca64b3b0aa2f103540076987a80d80713b85b5fd7594c8acb7e11ce2b0"
+     ],
+     "bi_14_param.txt": [
+      326,
+      "536875280f86d84b90ba30102f35647fa80bcecbefcce94c880d6a780463173c"
+     ],
+     "bi_15_param.txt": [
+      269,
+      "90fb0eca64b3b0aa2f103540076987a80d80713b85b5fd7594c8acb7e11ce2b0"
+     ],
+     "bi_16_param.txt": [
+      3453,
+      "55c84c96465ed59103b8fd217c822fd47514f481da54eab2a1eec50647b0364d"
+     ],
+     "bi_17_param.txt": [
+      269,
+      "90fb0eca64b3b0aa2f103540076987a80d80713b85b5fd7594c8acb7e11ce2b0"
+     ],
+     "bi_18_param.txt": [
+      31219,
+      "dceb0cac67c8b8016ec1f8013ebab7f5ab053f7864994373d7b95661d43e6d56"
+     ],
+     "bi_19_param.txt": [
+      590,
+      "d8062ab3523d5c8706886506b5ee5d53dfbe676c3a95c548a4c8d7c1e3a851fb"
+     ],
+     "bi_1_param.txt": [
+      327,
+      "494c6ab867bd35ed66ebab04ecd6c9adbc055deee04c273d7d52d3702051d355"
+     ],
+     "bi_20_param.txt": [
+      116,
+      "936aea15e44a150b828eb36934355643f7d0c78069f3911860d1ac8b8b2ac706"
+     ],
+     "bi_21_param.txt": [
+      711,
+      "6bedb1f933c15a78a743ae0b23a228f555f59bbe41bf773a5349ae48cd266194"
+     ],
+     "bi_22_param.txt": [
+      7018,
+      "40d8f5079f4ad741cc4918fa9b75df328c7a70a3c8e98c0828efcec2538b9096"
+     ],
+     "bi_23_param.txt": [
+      269,
+      "90fb0eca64b3b0aa2f103540076987a80d80713b85b5fd7594c8acb7e11ce2b0"
+     ],
+     "bi_24_param.txt": [
+      148,
+      "8aaa098f733c6de28a0e93e89ec339fe7d9f922e2295d48a354a26292b81b48e"
+     ],
+     "bi_25_param.txt": [
+      6289,
+      "eea35494fd55743b692c645761ad8874336ff470b9fbf2691c8e51881db9cfb1"
+     ],
+     "bi_2_param.txt": [
+      5942280,
+      "a6e42c3e1ac6504775f678108bdbd92203290382b4f3e30b52424a13898e9952"
+     ],
+     "bi_3_param.txt": [
+      91,
+      "e1f3374fa732e00d73518408ad152a118bf57db00cdd3aadcf999d797d92bdd2"
+     ],
+     "bi_4_param.txt": [
+      2162,
+      "ab818e86e28458afae30209304769f8297a5229a17536b81e9eafdc6c02446e1"
+     ],
+     "bi_5_param.txt": [
+      269,
+      "90fb0eca64b3b0aa2f103540076987a80d80713b85b5fd7594c8acb7e11ce2b0"
+     ],
+     "bi_6_param.txt": [
+      807,
+      "c310a6c48c28cdd7b77f8008769bb21132b58083727408a215d5afe85969f94c"
+     ],
+     "bi_7_param.txt": [
+      338,
+      "cee4536c99e03cee45023824157a1bae7bfb23a21e19e546b02057e51e9994b5"
+     ],
+     "bi_8_param.txt": [
+      212,
+      "d2efe67f6099a28a95a4bb208382bbbc77da97e8c7aad164a0abd118298b9f75"
+     ],
+     "bi_9_param.txt": [
+      201,
+      "fcddc76357ae711dd85d605a9e59d229ebfd5effc21621fe9332a3812ac4ad92"
+     ],
+     "interactive_10_param.txt": [
+      261,
+      "a70895429ca0c536bf8df8b243831b3a09368e860ed387c6a892f5110fa71c7a"
+     ],
+     "interactive_11_param.txt": [
+      460,
+      "a483d6619fee658b1dc4b01856b134097f285429cfa3e4b233ba420f7578f051"
+     ],
+     "interactive_12_param.txt": [
+      423,
+      "23041fd55a304dad5b6610168d8e1e9912694b6c55a0832e2aff83d868cd249e"
+     ],
+     "interactive_13_param.txt": [
+      460,
+      "dd742c0a1300191fcbb6244fd1eef0e1be9d77dd5ed58f8f1b49884660872211"
+     ],
+     "interactive_14_param.txt": [
+      457,
+      "2d43aef9773c018dc882cc42da4836d267776d3b6273b785b2e8a087537b0843"
+     ],
+     "interactive_1_param.txt": [
+      333,
+      "e31440018bc298d24c755f4dab0791d4ee11f969e873c7ede8f3b0f9e32d4195"
+     ],
+     "interactive_2_param.txt": [
+      439,
+      "58ab2685ec3fe541863fef0a29135569c8b1b47452b62c188e944376aaeb61cd"
+     ],
+     "interactive_3_param.txt": [
+      880,
+      "ef25c7b205a697a40aeb27d3a4646b8dc6c64ad499c07e25da83e3ac366b5686"
+     ],
+     "interactive_4_param.txt": [
+      508,
+      "c5d4a73dcc96be50ba29df9276d5fb8a364e94c210d6fc81f2d524d1be19b778"
+     ],
+     "interactive_5_param.txt": [
+      446,
+      "4ebddcea1c2f9f0bdfbb4658c3694778b4a8bf58b6da364e2ad279a884c0509b"
+     ],
+     "interactive_6_param.txt": [
+      459,
+      "3070f5f59082fdca6d07e797d6a6e487c58b93413903372082492bf42ae94efd"
+     ],
+     "interactive_7_param.txt": [
+      221,
+      "237523a1c65c22177e8d8d4159e0d397b193c3439a883b615183c0eedf4c407b"
+     ],
+     "interactive_8_param.txt": [
+      162,
+      "149ecf5692b0971494d455969fb863764578ac9b0afb55509c1eb7b670edc9f9"
+     ],
+     "interactive_9_param.txt": [
+      437,
+      "3f38071b1b4bbb6efa3c2d8a4a3df8c1ad666a3d525db96591eff8907b1859ec"
+     ]
+    },
+    "hosted": true,
+    "sha256": "c1ac2db1c1b8166dd2d466341e9682fb92e12d856f0b40e1be65da9cb9d008ff",
+    "size": 203161,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/substitution_parameters-sf0.1.tar.zst"
+   },
+   "updates": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "6d74fe98479b46cd5dad7cf8a0d04e1832b774518424d3bbcf4d5c1dca007007"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      214660,
+      "4aec2ca4fbbdda909d225138a3f55e616d5c8efb35cb6e1123bdbec70e33dd6f"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      436,
+      "aabeee3bf85c845ededfb05f654ad6b461b41b3bc69774c9294cfa3c11d6d5d5"
+     ],
+     "params.ini": [
+      582,
+      "b7983f8611aa7d4c13dcd44bb626b65d37b10abde8b2d1bb6e9215bce4e96841"
+     ],
+     "updateStream.properties": [
+      253,
+      "23f60d2499aec18bb30f163a0601417fcc3a8311e728ac2079b5cf7a3838ecc7"
+     ],
+     "updateStream_0_0_forum.csv": [
+      27475286,
+      "9324c34c54e60d4424b9a0faaacf37a1b0122448b9724a9df23520f154eb8380"
+     ],
+     "updateStream_0_0_person.csv": [
+      54446,
+      "7bfb5b9e277e6ca63270187d662de5bf2de1bf6546a719e289fcb9f710932f0e"
+     ]
+    },
+    "hosted": true,
+    "sha256": "6b2f00952a40119685e5428f798d823a096b577bcbb1b852c2b6f202b7521432",
+    "size": 6261392,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1-updates/social_network-sf0.1-numpart-1.tar.zst"
+   }
+  },
+  "0.3": {
+   "csv": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "8969856f982e87af63cd48599d49faf0aefe77c5f916d2c6dfc61693ba631b70"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      648000,
+      "185cbb75de5e1917128e979dc87a2a1800e347c0c43292ce31519586b2abbd1b"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      984,
+      "610d70e518cfb5e5721837f7c1727d1b61bf1ddc85f2f54bbec8f043290541eb"
+     ],
+     "dynamic/.comment_0_0.csv.crc": [
+      358104,
+      "b5393163b430befbd87b51656f1c7fd51209a7d80ac6654ff37904a944080531"
+     ],
+     "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+      106796,
+      "74c86f892557aa7ba00287f37465f28aa8a08627595070c1da7c3a73fc6b8a50"
+     ],
+     "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+      96168,
+      "dd386a5ffbbe564088f552d08013148da034f152a32dfa3b9a0c584b944f8951"
+     ],
+     "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+      64744,
+      "2b1adb89a7947fbaea13fc38a21f548c4473a321f7c65c91511327ee065d9365"
+     ],
+     "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+      54268,
+      "6285b5af32d3710e3a94e1139c3d25cab3f26f796e0c1da1526c2a98c63ab53f"
+     ],
+     "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+      52492,
+      "1e6b9cf8d89289735df3c14418807c0be56f72b0fc32237e33a41f5f9fc2b639"
+     ],
+     "dynamic/.forum_0_0.csv.crc": [
+      12608,
+      "bd281fad966899a86b27224de49c178ca18f796910b0a3492ea34936b0e041ea"
+     ],
+     "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+      65944,
+      "fba41ea40a4e9a573818acd3a2cdf97a765ec06146df4f2eefb7f42f7596b0c7"
+     ],
+     "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+      129060,
+      "c5b48f53ac149b12b9e31433d3c317e5a2552899a58bb295af628029cfc1d46b"
+     ],
+     "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+      6452,
+      "14de2e77890009ac14cb12831f7f5c9600d4b1b6e128d26aa21d087bd0068c3e"
+     ],
+     "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+      14920,
+      "f806e2286a64a730813dfe2ff684f462d730270f54d602cc8e86fc998e3480f5"
+     ],
+     "dynamic/.person_0_0.csv.crc": [
+      2324,
+      "7dcf6e6fcfa9dc14948d2ba65ae87767d808e506cdbbefd6726cef5e63ff8195"
+     ],
+     "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+      2604,
+      "c2cc7bd7c0df85d2c6416d7424a472c69a809bc2dc54825f3884a1cee158cedc"
+     ],
+     "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+      12068,
+      "98a619118338a140bb0f3c8478fb77793198aa6e680a86e9f7c087bf1c710b24"
+     ],
+     "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+      520,
+      "ff371d2df57e1fa7140597614a3d9e76c006794b5b7c8b94d445ca2e0121671d"
+     ],
+     "dynamic/.person_knows_person_0_0.csv.crc": [
+      14708,
+      "7179fb38c7d1fc65fe8ddf63497bf7e477a85c76818840b9041d5df8d408f6c6"
+     ],
+     "dynamic/.person_likes_comment_0_0.csv.crc": [
+      94008,
+      "485f78d9e3488c54b7ec9ef23a96364fb56c292a3acc5993a818b4226543d016"
+     ],
+     "dynamic/.person_likes_post_0_0.csv.crc": [
+      56860,
+      "7c15d46aa4304bbc3b9d59a787929a39ce88f8fe24ea53f429a94e3d392f94ca"
+     ],
+     "dynamic/.person_speaks_language_0_0.csv.crc": [
+      1048,
+      "beda5262938184b282bfcb49c7733cc7c3e6b29844556b217fffd30b779c5ed1"
+     ],
+     "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+      536,
+      "3e763ff1f8ec3e77e0ec8ebe0dbdbcf15c71945c0283fd073b5628f5ac378c64"
+     ],
+     "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+      1412,
+      "3100a2822244170107349f9b7f35c0c1f3f34844ea9726a92a3b4f78f38b3180"
+     ],
+     "dynamic/.post_0_0.csv.crc": [
+      236104,
+      "808e26623b2fe2075ea4749270f6505c53a310a2ba85f4fd2fa6fc8e8bc3f124"
+     ],
+     "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+      67100,
+      "d81e26931b3748456d2397e1478693a334e8f8717489275e7210468176d10257"
+     ],
+     "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+      25052,
+      "220fdbede8c2e39e8c75dc4fe52d89cd4fa17be968eb2f73808875087fc6e16c"
+     ],
+     "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+      40356,
+      "29080fd47d259a23e0459173627f4420292cfda12691e914edaf4f67268103cb"
+     ],
+     "dynamic/comment_0_0.csv": [
+      45835797,
+      "89db91d8dfb5af9d39655cea32dd85afd87e96d1cf9833d08c71aad5041f8b63"
+     ],
+     "dynamic/comment_hasCreator_person_0_0.csv": [
+      13668604,
+      "48c9dd1a554f6c2f667d440105f4b3974393e0253bb20f532ca673902c5c7bd6"
+     ],
+     "dynamic/comment_hasTag_tag_0_0.csv": [
+      12308040,
+      "261e4c3ac4b1fc8bc9a67880bcefffc6af14d4d16addaff1b0463f69b098bffd"
+     ],
+     "dynamic/comment_isLocatedIn_place_0_0.csv": [
+      8285892,
+      "0412824d440706101a8247d56c5924017d282c9b02ff8c3cdbccae3d05f90e14"
+     ],
+     "dynamic/comment_replyOf_comment_0_0.csv": [
+      6945109,
+      "5465229d0d2c6f0a62096c0e6c03fe895c2cdd9432d9b2b98083622e11268c67"
+     ],
+     "dynamic/comment_replyOf_post_0_0.csv": [
+      6717885,
+      "19bd2981c07ea3157630b8d69b0edb2c82f852b39927aab857f6466f9ed72137"
+     ],
+     "dynamic/forum_0_0.csv": [
+      1612530,
+      "5eaca7d1748a20064167c68b437d547d1935946c5a4ee03ff50d8da86837c473"
+     ],
+     "dynamic/forum_containerOf_post_0_0.csv": [
+      8439638,
+      "5ae4b1677de8603d7cf8fb2245cc75f3c00f47a4c60d2a0ec34bfd79d2dce215"
+     ],
+     "dynamic/forum_hasMember_person_0_0.csv": [
+      16518187,
+      "1809382defb8dec558cc1403cd92abdc9a43e40142be7dc5ba783f318834e0e0"
+     ],
+     "dynamic/forum_hasModerator_person_0_0.csv": [
+      824781,
+      "e247cf9c39083b9c3a4f7607439bcb83ad99938449f1d6c573328e63dd925d82"
+     ],
+     "dynamic/forum_hasTag_tag_0_0.csv": [
+      1908272,
+      "b9128c5bd14cd8724fbf8c66ad544016eead06d1d5cc798890904bdfe020c9ec"
+     ],
+     "dynamic/person_0_0.csv": [
+      296067,
+      "58bd6bf9d8bbcf415fbcae2e8ba8e7ad67b2f8fd15d0d1022d07b9c749d128c8"
+     ],
+     "dynamic/person_email_emailaddress_0_0.csv": [
+      332250,
+      "41f9654c4b4cbe5371a2e38e14f279f85c54b557644b7fd50ccddecc3da9bd81"
+     ],
+     "dynamic/person_hasInterest_tag_0_0.csv": [
+      1543605,
+      "9fc41da2b5406e1a6af815b4d6cd81c98c28e920d0c51c77823aea23ff282f8e"
+     ],
+     "dynamic/person_isLocatedIn_place_0_0.csv": [
+      65131,
+      "7ba96267872be2129f09648a787d99d30741c98b58401fb7e11f91f6530261ff"
+     ],
+     "dynamic/person_knows_person_0_0.csv": [
+      1881498,
+      "3aecb38d144058f7553c6441841ebb94d911eacec394f92d2db6a014331a9b11"
+     ],
+     "dynamic/person_likes_comment_0_0.csv": [
+      12031505,
+      "ae1b12855e1e9f24246d2d2c403c4dee531a30efed559499196319499048b7e2"
+     ],
+     "dynamic/person_likes_post_0_0.csv": [
+      7276887,
+      "450597d9bda0e4c607d5a214ac4695aaaacd6df2cb68ca1a1e0cdad6b6bd01b0"
+     ],
+     "dynamic/person_speaks_language_0_0.csv": [
+      132895,
+      "63b1b3537b719f6b9fe95b4901eaf24b879c57b7661e56115e89fd21cddb488a"
+     ],
+     "dynamic/person_studyAt_organisation_0_0.csv": [
+      67472,
+      "88930ed6a5d5fe7c8eeda01e2ee1060cc69e0831a1672bcd75826086c2f4f995"
+     ],
+     "dynamic/person_workAt_organisation_0_0.csv": [
+      179546,
+      "17bfa2fd25715c43727f4a32de385537a07f8469a81cba9dfc28b52aaedeb395"
+     ],
+     "dynamic/post_0_0.csv": [
+      30220235,
+      "c0f2b49547c35e2b8f466eb3beb711534f25217d75fc363c6b10b2bfcfce371d"
+     ],
+     "dynamic/post_hasCreator_person_0_0.csv": [
+      8587499,
+      "20fdb5de8eb4612d9676566e666243e288cd91e168f7b45a177762d273af26b6"
+     ],
+     "dynamic/post_hasTag_tag_0_0.csv": [
+      3205339,
+      "36c4346da2405d37e58ed182fff20ff5c0879d91cf7aa4081652109daa868eb2"
+     ],
+     "dynamic/post_isLocatedIn_place_0_0.csv": [
+      5164536,
+      "c21be4348c26c4ed755186da5f6c2522e3ad1e1d7c1bb19357e4139e33ea16bb"
+     ],
+     "params.ini": [
+      674,
+      "aef18326fdbc40fc4608642dfc4d9c368024436aa603174f726e976679ec23e5"
+     ],
+     "static/.organisation_0_0.csv.crc": [
+      6416,
+      "9f76096f091a26bc6f8e0e02514484b191616741d3b2db6b240969d1fe9a3d9c"
+     ],
+     "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+      564,
+      "8c0b4ea9ef46f5a2172ecf8001ffa6bd62c7315bc34acaa33b88e7b15202a5b4"
+     ],
+     "static/.place_0_0.csv.crc": [
+      648,
+      "f3c3b6d122a598ec09a8a8d9002ca668901d787496d6f34236b9c31c6748a3df"
+     ],
+     "static/.place_isPartOf_place_0_0.csv.crc": [
+      92,
+      "a6a9f1394dfe4b3f5263a601dd60a80ea7fd8dac56e9533cc1c68dd580194af2"
+     ],
+     "static/.tag_0_0.csv.crc": [
+      8652,
+      "14dcae6baaa63c1acc18ef7ac43b31a3d0617ab5d66e6fb1136fe418d94286a8"
+     ],
+     "static/.tag_hasType_tagclass_0_0.csv.crc": [
+      1160,
+      "eb0ea370f1311733127e6b5e39eb00aae963ec8e3ce6ba3bfcd0132b0f441103"
+     ],
+     "static/.tagclass_0_0.csv.crc": [
+      40,
+      "7f48a854e380eac27fbdb2fef0af2dcc14e7885037987de02a1c0d504d17c30a"
+     ],
+     "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+      16,
+      "43a449719fdbeebad7514bd802d7f23cdc4de4ee43aa887e0501b04f7a8c7c6f"
+     ],
+     "static/organisation_0_0.csv": [
+      819926,
+      "37415355e0d524be6f2f8321e4dd9290da7f94b955284bf8be443478fcbfe366"
+     ],
+     "static/organisation_isLocatedIn_place_0_0.csv": [
+      70928,
+      "9783fac3ea1293775c80e9657c107679b4b9ac458555eae014a284ed2d9e8465"
+     ],
+     "static/place_0_0.csv": [
+      81884,
+      "f2ecc4db415c122d5de97931f4b0c3aea93c318c849390ed01006fe860c48236"
+     ],
+     "static/place_isPartOf_place_0_0.csv": [
+      10458,
+      "b3892a6708fe8315f3212382d903cde7b06238dece86d8c15776d64b996762b8"
+     ],
+     "static/tag_0_0.csv": [
+      1106348,
+      "a1c976ef974519d52261800631e9038ddd9cd29e99727b06f1eda130b7700f1f"
+     ],
+     "static/tag_hasType_tagclass_0_0.csv": [
+      147267,
+      "6afdf21e6a8c96b72e33f384a335b6cc69297b690376a367a9af05ca00ac4205"
+     ],
+     "static/tagclass_0_0.csv": [
+      3874,
+      "433b19e0b95b0c9b8a3a1a4ca1c638fadc6fbd28f7501e57abd0b3f5b8d56a92"
+     ],
+     "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+      545,
+      "9302ffa1c37648743864e32c2cca872abea3bf34f841729d5448f53976aa9d4d"
+     ],
+     "updateStream.properties": [
+      253,
+      "5a3c3043c6fcdce0512f254c48350b2f8bfd0b23bafb1e52f0bf5972c2d0a550"
+     ],
+     "updateStream_0_0_forum.csv": [
+      82942586,
+      "5e2ecfd9328cf4cd1f9929538e9814bea721ac40fca372104228694982f079e9"
+     ],
+     "updateStream_0_0_person.csv": [
+      124678,
+      "a4bd1179f67086bcf16dac19c6e92d4d4e8a98dbcc099fe2c8712f421a4c9ce7"
+     ]
+    },
+    "hosted": true,
+    "sha256": "07a403a93d0f1136d7c8564ca2cf8fdcb408a6e1d46a730cf1a4ca71a64c29e1",
+    "size": 58993382,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/social_network-sf0.3-CsvBasic-LongDateFormatter.tar.zst"
+   },
+   "params": {
+    "hosted": false,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/substitution_parameters-sf0.3.tar.zst"
+   },
+   "updates": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "8969856f982e87af63cd48599d49faf0aefe77c5f916d2c6dfc61693ba631b70"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      648000,
+      "185cbb75de5e1917128e979dc87a2a1800e347c0c43292ce31519586b2abbd1b"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      984,
+      "610d70e518cfb5e5721837f7c1727d1b61bf1ddc85f2f54bbec8f043290541eb"
+     ],
+     "params.ini": [
+      582,
+      "63c2749625745accf9180074d8dfc08a1eb66a4e8e14e0dc49b7cc38208030f1"
+     ],
+     "updateStream.properties": [
+      253,
+      "5a3c3043c6fcdce0512f254c48350b2f8bfd0b23bafb1e52f0bf5972c2d0a550"
+     ],
+     "updateStream_0_0_forum.csv": [
+      82942586,
+      "5e2ecfd9328cf4cd1f9929538e9814bea721ac40fca372104228694982f079e9"
+     ],
+     "updateStream_0_0_person.csv": [
+      124678,
+      "a4bd1179f67086bcf16dac19c6e92d4d4e8a98dbcc099fe2c8712f421a4c9ce7"
+     ]
+    },
+    "hosted": true,
+    "sha256": "188d5c1c3e48b7d508c84f76a4007bfd341d267ce3ee9fa7734abb6958a06efb",
+    "size": 20192966,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1-updates/social_network-sf0.3-numpart-1.tar.zst"
+   }
+  },
+  "1": {
+   "csv": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "fb81422a62b5a52d638051df6591dd6025e35d30ca27e6eaccefddba16a1a639"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      2356740,
+      "383053a02877875745ee29fd7e90f16fa0e6d3876fd2a798a36eb1fd0d3f70a3"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      2824,
+      "3c0e06a160eb6a9e31c482bb3ff62268d8f26f678e2080b6febb0bae9314fae4"
+     ],
+     "dynamic/.comment_0_0.csv.crc": [
+      1412152,
+      "178d57e5dc7c64ba09ae173c8d27d8d216bb0a592fb48d8e112cb6b972d4ed34"
+     ],
+     "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+      428920,
+      "33a618c5db9ba0225162616cf36c43dd1a3a6745ea5c04b4d179f66011cd07bb"
+     ],
+     "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+      393752,
+      "0a1cb612fdf18e8b0c3d2f8654981b1f21a1244f84e181b1da5265ed19bf3188"
+     ],
+     "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+      263412,
+      "17b9117210f2aca79bd24873dc44a9832e0398c3ac2a022e1b78c3c2cfb550b6"
+     ],
+     "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+      222128,
+      "8f2e3ffdad3d83662713e6d42abd29bcc1d111eec64e6fac44e9d1f709caafd0"
+     ],
+     "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+      215884,
+      "efd4d93a4a460b303701002b7442c9aa2a1ca486e98a42f3585503b8779e1c05"
+     ],
+     "dynamic/.forum_0_0.csv.crc": [
+      36976,
+      "2a239b1d511c5f0963d8551867f62dcef28a160fb990a3bad9be42333add1cf7"
+     ],
+     "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+      212732,
+      "700eefd7cbe7ecd23c474be0a316698c425be71a582e0638e27a004cfc665b58"
+     ],
+     "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+      521784,
+      "01085354e07f9dce6cfce8e2f216ae05f5afc05f717fe899be90ba49adeb8763"
+     ],
+     "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+      19136,
+      "dd61ca8e0aa71a01b22cae0620a0637ae59127ffa4c2dc7c281a02f764419d29"
+     ],
+     "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+      43744,
+      "9f952c7f1660f2169417c655466fe4dbd8633249db34a66870964d94bd065a57"
+     ],
+     "dynamic/.person_0_0.csv.crc": [
+      6504,
+      "75d23592411ec7052c9fe7d5423611c6ece325c56b5949983d58b279e037d20d"
+     ],
+     "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+      7188,
+      "b064a6bab33e9719a4136f03f4ace670321726bb59a0f012751d1b70e5030402"
+     ],
+     "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+      33988,
+      "622f77abaa4281a908056f5380b9ead06f009a86cabfa45b4d2156c0a8ae2abc"
+     ],
+     "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+      1436,
+      "42af5e169648b373f5f9504a30f8fe42ffbb32e404df88f12cb15f984070e1a4"
+     ],
+     "dynamic/.person_knows_person_0_0.csv.crc": [
+      59412,
+      "b3b10d4d8bf7a72959821b139be182bba72eefa6d293ff2dd895873a833a51ad"
+     ],
+     "dynamic/.person_likes_comment_0_0.csv.crc": [
+      470344,
+      "8ce1504cf2760cffbb7762285d0272c272c4e0462725f0430399be928dc4c1ed"
+     ],
+     "dynamic/.person_likes_post_0_0.csv.crc": [
+      245256,
+      "23dd22c7b6fec54f4f92cbac4aadd9451bcfd82ab9e3de4199e357c15332a880"
+     ],
+     "dynamic/.person_speaks_language_0_0.csv.crc": [
+      2924,
+      "db7f365997ebd9d12e4e97cc3904f02200865600fea97c22f9efbe2b5861ed11"
+     ],
+     "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+      1508,
+      "1e06f8984fb26ba6a732415213a14284968b77c0119dd71e0bb219dd86b82a75"
+     ],
+     "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+      3952,
+      "d1b37e61ec4d559b28c5ccaa4cb5a47cb0327db9b301edef9f047c8b5004f617"
+     ],
+     "dynamic/.post_0_0.csv.crc": [
+      770776,
+      "2a32d714f0f0cacd7101334524110200127095aace83f6d6ca99276815cbd6cc"
+     ],
+     "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+      211696,
+      "213d19cfdc3800de5f9e823da45d34343af611082eeaffbcbf65d38b9b0f6c95"
+     ],
+     "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+      102892,
+      "528195326708598523cabd39eff4d507027c17f2cbb83189d11753a52c905498"
+     ],
+     "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+      129312,
+      "97a691a4af18e67e1e79dcbad4af9cb6c05db0a525922d275778831bb735dba0"
+     ],
+     "dynamic/comment_0_0.csv": [
+      180754035,
+      "6f15020b0edddef968ad4da320400cbc260a0755efb5683cd5a0ce6d1a641fed"
+     ],
+     "dynamic/comment_hasCreator_person_0_0.csv": [
+      54900516,
+      "5fa45fe568ab79e4ab60c04eabaa4132092cc5a6494b29a5554ccf4ff8100046"
+     ],
+     "dynamic/comment_hasTag_tag_0_0.csv": [
+      50398781,
+      "6c30d492764001db51f8ef7c2200987d0e71b132f6bfcec61ef7161e17f1c822"
+     ],
+     "dynamic/comment_isLocatedIn_place_0_0.csv": [
+      33715224,
+      "35f1f71f9a5b4c840bc39be63f9a9940a9c4bad693f531fdee16a5aa1b1761fc"
+     ],
+     "dynamic/comment_replyOf_comment_0_0.csv": [
+      28431004,
+      "d83ec9ae58e9e31c2dd117d03401afc8e00269f93d4ac1de794e9a8c0c09fb89"
+     ],
+     "dynamic/comment_replyOf_post_0_0.csv": [
+      27631951,
+      "82beff6b69dccbf062bd86487451bc108d3ebb10a8b15c89428db48a1a0ce22f"
+     ],
+     "dynamic/forum_0_0.csv": [
+      4731488,
+      "5aad54245874ebe1a847180621e5dc985236db649f1cfa5588277ecdbce45884"
+     ],
+     "dynamic/forum_containerOf_post_0_0.csv": [
+      27228450,
+      "d4fcf8961ac741f50da825a38cdcfadeee675ff19a0e82b094c21f70dcd7ff08"
+     ],
+     "dynamic/forum_hasMember_person_0_0.csv": [
+      66786892,
+      "b457c97867a3b95801585b918d48308a5a9cf5f884f54b98c833254bd66aa83b"
+     ],
+     "dynamic/forum_hasModerator_person_0_0.csv": [
+      2448045,
+      "43604c63d63d6b42f66356695681cd92d1538178875f2879ddadc5e32e2f1f40"
+     ],
+     "dynamic/forum_hasTag_tag_0_0.csv": [
+      5597697,
+      "fc6279f37ccb634d385e654500b3eecb18f67e7e6c37d0b2d097c527e22810f5"
+     ],
+     "dynamic/person_0_0.csv": [
+      831398,
+      "f4d9bd5ac135caffb96baa5363c168aba0202970a53fff276f1d50741a0a095f"
+     ],
+     "dynamic/person_email_emailaddress_0_0.csv": [
+      918946,
+      "c8cfe50b460d383feb594887febd82b9d917192b9ef719b544986b8d75bf4cc9"
+     ],
+     "dynamic/person_hasInterest_tag_0_0.csv": [
+      4349250,
+      "f821c661f54ff33f4e9ec41da3cd062e43369b22da08341fa87738229c2ac237"
+     ],
+     "dynamic/person_isLocatedIn_place_0_0.csv": [
+      182737,
+      "6e9ed83e7bbef638fa2fa27a6db6e1349533f4d9a851040ec2b011f0f746181c"
+     ],
+     "dynamic/person_knows_person_0_0.csv": [
+      7603268,
+      "81fdc7987bd51640741845bd84345a95afa4e7b09622aaee2de352e438698254"
+     ],
+     "dynamic/person_likes_comment_0_0.csv": [
+      60202832,
+      "9fc0d9eae03bd0c530ed35d49b0810c56b396cdc6c9107d2cd53fdcb347666e5"
+     ],
+     "dynamic/person_likes_post_0_0.csv": [
+      31391369,
+      "336af3467a9766f189b4ad7c3065aaa1576d24c0f3ce22ffaede8d7e52c53ec2"
+     ],
+     "dynamic/person_speaks_language_0_0.csv": [
+      372800,
+      "fffc78390e09664f154c9753247ed4e9699eed0363a000831c5bb709066a898b"
+     ],
+     "dynamic/person_studyAt_organisation_0_0.csv": [
+      191683,
+      "7544505ebe0077c3e174ae1123f9b723fbb0d60c1bd9d55870513e8108c4b213"
+     ],
+     "dynamic/person_workAt_organisation_0_0.csv": [
+      504443,
+      "f0a8c88942a8e0675f9b5c56206fa1270d17f31167b9aa9b62ec87eaf3c9ac4d"
+     ],
+     "dynamic/post_0_0.csv": [
+      98658042,
+      "5929147a5d15e70315945fbaf668a6d26abee816dfff499f2f72e641e00321b4"
+     ],
+     "dynamic/post_hasCreator_person_0_0.csv": [
+      27095719,
+      "a22559d3c90b4ede4e069c603a9ad5eb8a72ee0121768b39e48b4e3d31112a2a"
+     ],
+     "dynamic/post_hasTag_tag_0_0.csv": [
+      13168929,
+      "0f168b7c19191643c852c585fb68dd4d7827332c7c0cf5c031edff71510177da"
+     ],
+     "dynamic/post_isLocatedIn_place_0_0.csv": [
+      16550759,
+      "1def00b0e52695703568292787abe4353104e66c404be3de7a4c5dddd6720d98"
+     ],
+     "params.ini": [
+      672,
+      "42e66481571f40e104d90b46fd20652782a46bec1c1627c8642773e822b67a51"
+     ],
+     "static/.organisation_0_0.csv.crc": [
+      6416,
+      "9f76096f091a26bc6f8e0e02514484b191616741d3b2db6b240969d1fe9a3d9c"
+     ],
+     "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+      564,
+      "8c0b4ea9ef46f5a2172ecf8001ffa6bd62c7315bc34acaa33b88e7b15202a5b4"
+     ],
+     "static/.place_0_0.csv.crc": [
+      648,
+      "f3c3b6d122a598ec09a8a8d9002ca668901d787496d6f34236b9c31c6748a3df"
+     ],
+     "static/.place_isPartOf_place_0_0.csv.crc": [
+      92,
+      "a6a9f1394dfe4b3f5263a601dd60a80ea7fd8dac56e9533cc1c68dd580194af2"
+     ],
+     "static/.tag_0_0.csv.crc": [
+      8652,
+      "14dcae6baaa63c1acc18ef7ac43b31a3d0617ab5d66e6fb1136fe418d94286a8"
+     ],
+     "static/.tag_hasType_tagclass_0_0.csv.crc": [
+      1160,
+      "eb0ea370f1311733127e6b5e39eb00aae963ec8e3ce6ba3bfcd0132b0f441103"
+     ],
+     "static/.tagclass_0_0.csv.crc": [
+      40,
+      "7f48a854e380eac27fbdb2fef0af2dcc14e7885037987de02a1c0d504d17c30a"
+     ],
+     "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+      16,
+      "43a449719fdbeebad7514bd802d7f23cdc4de4ee43aa887e0501b04f7a8c7c6f"
+     ],
+     "static/organisation_0_0.csv": [
+      819926,
+      "37415355e0d524be6f2f8321e4dd9290da7f94b955284bf8be443478fcbfe366"
+     ],
+     "static/organisation_isLocatedIn_place_0_0.csv": [
+      70928,
+      "9783fac3ea1293775c80e9657c107679b4b9ac458555eae014a284ed2d9e8465"
+     ],
+     "static/place_0_0.csv": [
+      81884,
+      "f2ecc4db415c122d5de97931f4b0c3aea93c318c849390ed01006fe860c48236"
+     ],
+     "static/place_isPartOf_place_0_0.csv": [
+      10458,
+      "b3892a6708fe8315f3212382d903cde7b06238dece86d8c15776d64b996762b8"
+     ],
+     "static/tag_0_0.csv": [
+      1106348,
+      "a1c976ef974519d52261800631e9038ddd9cd29e99727b06f1eda130b7700f1f"
+     ],
+     "static/tag_hasType_tagclass_0_0.csv": [
+      147267,
+      "6afdf21e6a8c96b72e33f384a335b6cc69297b690376a367a9af05ca00ac4205"
+     ],
+     "static/tagclass_0_0.csv": [
+      3874,
+      "433b19e0b95b0c9b8a3a1a4ca1c638fadc6fbd28f7501e57abd0b3f5b8d56a92"
+     ],
+     "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+      545,
+      "9302ffa1c37648743864e32c2cca872abea3bf34f841729d5448f53976aa9d4d"
+     ],
+     "updateStream.properties": [
+      253,
+      "5dd99b64ebe78864077515930a3627c20d07c27ac48e8c8a2c9752a4d0d58659"
+     ],
+     "updateStream_0_0_forum.csv": [
+      301661317,
+      "c1a021ecb28f04a43c8f9bf825944019c8dba8cdcabd25be717e84a31fbe0b07"
+     ],
+     "updateStream_0_0_person.csv": [
+      360087,
+      "66d725e724520c2c80e0fbf5f28f952e70eec1d131cf51092fedd3a277c41710"
+     ]
+    },
+    "hosted": true,
+    "sha256": "3c34eca7f8e8632d5f3bf95921d3adc9cf0dce080acd6a94e3d2624ab704eb63",
+    "size": 230446796,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/social_network-sf1-CsvBasic-LongDateFormatter.tar.zst"
+   },
+   "params": {
+    "hosted": false,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/substitution_parameters-sf1.tar.zst"
+   },
+   "updates": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "fb81422a62b5a52d638051df6591dd6025e35d30ca27e6eaccefddba16a1a639"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      2356740,
+      "383053a02877875745ee29fd7e90f16fa0e6d3876fd2a798a36eb1fd0d3f70a3"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      2824,
+      "3c0e06a160eb6a9e31c482bb3ff62268d8f26f678e2080b6febb0bae9314fae4"
+     ],
+     "params.ini": [
+      580,
+      "f44858e6cdcc117252cbbeca9651346696056eeabe03249bf4230a74ab2ae7ae"
+     ],
+     "updateStream.properties": [
+      253,
+      "5dd99b64ebe78864077515930a3627c20d07c27ac48e8c8a2c9752a4d0d58659"
+     ],
+     "updateStream_0_0_forum.csv": [
+      301661317,
+      "c1a021ecb28f04a43c8f9bf825944019c8dba8cdcabd25be717e84a31fbe0b07"
+     ],
+     "updateStream_0_0_person.csv": [
+      360087,
+      "66d725e724520c2c80e0fbf5f28f952e70eec1d131cf51092fedd3a277c41710"
+     ]
+    },
+    "hosted": true,
+    "sha256": "cb8d0e7b21d659a6909e76467cab4d79aa4a6e5c7cec6eb7d410a759001a2a07",
+    "size": 79580826,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1-updates/social_network-sf1-numpart-1.tar.zst"
+   }
+  },
+  "3": {
+   "csv": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "3c576d8291ef67026231b2fc3d4c030966da6e47c621a30064189af300080d8b"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      6962800,
+      "f421ea3e79257d2f3bf6b0056f944ed0a3cabe86adf25dddc5712cb064e79be2"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      6796,
+      "33e0980f9149674f37953b8d8f4459a6b9e01dbb6abf3902c3e92e8fe0054223"
+     ],
+     "dynamic/.comment_0_0.csv.crc": [
+      4414240,
+      "90286f77427a998827429df2763821cfe4ac994db1c39924272bc68c54c02142"
+     ],
+     "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+      1359656,
+      "3151095fc4e445a3cdcf986176d893e26ddc02bd2cf475958e04d34ac0b1c9f1"
+     ],
+     "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+      1246544,
+      "679d2a920009520fdbf45615e771055fe36c2b00b0990836ed45f054c800033b"
+     ],
+     "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+      835180,
+      "d15aa18b92143fe55bfc1a7ad2d5b27816df02be428d1a49cea8819c9cb314e8"
+     ],
+     "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+      705840,
+      "37b5360413b00ccd41325bae1da09b0759add1b516b9a4b55cec272a22c0bcd1"
+     ],
+     "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+      686408,
+      "b5f301ec7747dca4d5bac7c2a08ed9b6852ab2777a7e7849160e3508729c9f3a"
+     ],
+     "dynamic/.forum_0_0.csv.crc": [
+      90900,
+      "8f169429d169707a8dd82d0a29b295ca26997b4d208f5818f1ae0f46c4875ed7"
+     ],
+     "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+      559264,
+      "f0a1acbbe99217442705eebf061f71e93d8f7cfff62fd25a4f60bb4b6eea318a"
+     ],
+     "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+      1625448,
+      "6478865b76b22a2c8b6cc2479d7ea28e2cf8c6ed088aa6603bf56fdfa52fa185"
+     ],
+     "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+      47448,
+      "ab44bc8b008d8cd2155c60541c3e3c5b525b5e55a25d6778b2bde3d244a7df60"
+     ],
+     "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+      110248,
+      "bfff027d3d46c88b255bc7bae41f58a8eb84e37311909e421319fe963a3dd1e8"
+     ],
+     "dynamic/.person_0_0.csv.crc": [
+      15980,
+      "420e8b885a73d4e913347644579be6d403107e9f42a18d6766ecc4fa89f184a7"
+     ],
+     "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+      17732,
+      "e93280176e4b950dc4d5abe9125812b7c31ae367d9eefc0004bcb25799054687"
+     ],
+     "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+      84896,
+      "44d0d83ede343c099acce45db9fda7f25b2b420f28b9a7c9457510c1d8541a70"
+     ],
+     "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+      3528,
+      "c89171d2ca075dd04526fbfa2a2bbe485381ec14d20646469fb579f36734d43b"
+     ],
+     "dynamic/.person_knows_person_0_0.csv.crc": [
+      186536,
+      "f31f05e7b6ffa5a6de75506c3a8623b3e76ac32ed8d323255870e557e2919dc3"
+     ],
+     "dynamic/.person_likes_comment_0_0.csv.crc": [
+      1742716,
+      "d2e4269a6444505a38f47bed9eac2a6d9d3e6b3943719397646364a4fedf4c7e"
+     ],
+     "dynamic/.person_likes_post_0_0.csv.crc": [
+      822108,
+      "16b54a6b487d69d55c7e6a8c76e61b65cc8920fedb131d57369b3bfc80c6af9b"
+     ],
+     "dynamic/.person_speaks_language_0_0.csv.crc": [
+      7208,
+      "8c235376510fad3a8001ad3572c0c4f32eb79ebec53e1735505b3495e3cb9971"
+     ],
+     "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+      3692,
+      "f959b0f139a97cf64d737c174953e4c65a3c28ac155ed01a17796135d274eb4c"
+     ],
+     "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+      9676,
+      "7e1c1f61200219599127b5bfde2b1388f9723694efc851e30c11299fd8e06a82"
+     ],
+     "dynamic/.post_0_0.csv.crc": [
+      2084672,
+      "c2fdbeadb3bd172c51da338a27108a2733d5884d75767373c4c058c66425b8ee"
+     ],
+     "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+      554908,
+      "a9b1e456a5c6a2fbb27f69346c177ea0ce3a6a79055499b40ede3e17d6c1178c"
+     ],
+     "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+      326216,
+      "0c496c465439dc47b98673db30d5d12f07c096a36c969db2ef05effc39d8e472"
+     ],
+     "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+      338676,
+      "092e41d53ffeec293c234af598811026f505f34936639f8efd53d254d9cc462c"
+     ],
+     "dynamic/comment_0_0.csv": [
+      565021576,
+      "bf5726933548181bae8826e3773a566dc82e8def89d922893e34e0a1e910d23f"
+     ],
+     "dynamic/comment_hasCreator_person_0_0.csv": [
+      174034694,
+      "b1242f3c7149b503584bc5d5e9045ec35c4b3116a5f7680892c901b7674089ca"
+     ],
+     "dynamic/comment_hasTag_tag_0_0.csv": [
+      159556393,
+      "d0ad2641000687a1e69607ec8019a4248e59365e088ddec68a400629a7095e6d"
+     ],
+     "dynamic/comment_isLocatedIn_place_0_0.csv": [
+      106901773,
+      "63a100c27f50a22405d4c1d42a663356c5c468c83c27030e30c30b1c4f0ab99e"
+     ],
+     "dynamic/comment_replyOf_comment_0_0.csv": [
+      90346185,
+      "e09198c9206dc907c3ce9d4cb6cdbb24bdbfb65a04ae9240a612c819db0e9740"
+     ],
+     "dynamic/comment_replyOf_post_0_0.csv": [
+      87859058,
+      "2f7eac36e5df0bed4c4c4538fef5a08b42471e2aa228ad956d7967f48fffd9f6"
+     ],
+     "dynamic/forum_0_0.csv": [
+      11633738,
+      "52ab6e9b639bfa6244ff8cc58fd8f8fc27dbfa1c70c4641cb2dcb465f2353df6"
+     ],
+     "dynamic/forum_containerOf_post_0_0.csv": [
+      71584739,
+      "9a4162c2b80f614e3a67034d511d57f9dff554144580b1e2749908f88c6d132e"
+     ],
+     "dynamic/forum_hasMember_person_0_0.csv": [
+      208056317,
+      "e1a1e4bbcee2e860942c9ce916c5217a15eb39b27586705bae9ce32a3449058f"
+     ],
+     "dynamic/forum_hasModerator_person_0_0.csv": [
+      6071889,
+      "5223586b2b2e9675aea6e6aec57c767c23eef1553c4c62e1435a970b27b7d538"
+     ],
+     "dynamic/forum_hasTag_tag_0_0.csv": [
+      14110572,
+      "1c67c66a128c2dfcc060a8f7c1e28194589396ec305e7f8c0bb33f0bc288948a"
+     ],
+     "dynamic/person_0_0.csv": [
+      2044006,
+      "808c31cfd4baea1dd3c19446c81c54f3d73d9ca315b5bca4b0eaebdf7ede499c"
+     ],
+     "dynamic/person_email_emailaddress_0_0.csv": [
+      2268192,
+      "9276978f5e4399f5fadbf62c1c8820bc4e105e5d35e1ca61e374b7c2739fce38"
+     ],
+     "dynamic/person_hasInterest_tag_0_0.csv": [
+      10865471,
+      "45ec8d2136479a624280db3adcb114825bc92d4724205601be3df8a75b2a33d7"
+     ],
+     "dynamic/person_isLocatedIn_place_0_0.csv": [
+      450230,
+      "582e9daaebcaa931c04d8c1346882a243681d2f5f5e2ce76858052f520cb0d6a"
+     ],
+     "dynamic/person_knows_person_0_0.csv": [
+      23875372,
+      "8148cad9e99e03697c8cfbcfb5e80e18f8d23114f1888847a4917f89e0ecf2f3"
+     ],
+     "dynamic/person_likes_comment_0_0.csv": [
+      223066464,
+      "41cc1029e4e48dab514183001b939186eed29736532f2efe17b2cf72caea5606"
+     ],
+     "dynamic/person_likes_post_0_0.csv": [
+      105228789,
+      "7a491e0b9ed21eadb4224bd9990053cce478bc963369df2993c1aa475d97a466"
+     ],
+     "dynamic/person_speaks_language_0_0.csv": [
+      921308,
+      "4745b041ae3dd65f9cc1980686ed8499ba3db36047ace1557dc6dbd1cc170141"
+     ],
+     "dynamic/person_studyAt_organisation_0_0.csv": [
+      471150,
+      "7c18dc4092e89eedf02a90b21e681078afe087ddcdec3a67f11ac7aa68931e84"
+     ],
+     "dynamic/person_workAt_organisation_0_0.csv": [
+      1237162,
+      "d81ef5f1b85ad23d4c9d2de0480045aff419bd689b587e5c8e4194ea9d7677f2"
+     ],
+     "dynamic/post_0_0.csv": [
+      266836596,
+      "8feecc485fd3745e1368a2b86a1d23a62890b60f06b8e9cc1fed25d952dd0332"
+     ],
+     "dynamic/post_hasCreator_person_0_0.csv": [
+      71026879,
+      "b298fdb332543cf19771dc261011c29660797b621ae030aa1d9f28f6c63f1c42"
+     ],
+     "dynamic/post_hasTag_tag_0_0.csv": [
+      41754283,
+      "5609c5cc97aa762ae99d37b887ad05291a488452618c7834b68112547aa62713"
+     ],
+     "dynamic/post_isLocatedIn_place_0_0.csv": [
+      43349029,
+      "ec7e93a01ce7fecdc9aaec43dff75be8c99dba562e1e64b6afdfbbb04b47ce9f"
+     ],
+     "params.ini": [
+      672,
+      "20a9925024ebc6f9e5456a1c12d488c90fdaef46b12f9a3910545f91eb99e11c"
+     ],
+     "static/.organisation_0_0.csv.crc": [
+      6416,
+      "9f76096f091a26bc6f8e0e02514484b191616741d3b2db6b240969d1fe9a3d9c"
+     ],
+     "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+      564,
+      "8c0b4ea9ef46f5a2172ecf8001ffa6bd62c7315bc34acaa33b88e7b15202a5b4"
+     ],
+     "static/.place_0_0.csv.crc": [
+      648,
+      "f3c3b6d122a598ec09a8a8d9002ca668901d787496d6f34236b9c31c6748a3df"
+     ],
+     "static/.place_isPartOf_place_0_0.csv.crc": [
+      92,
+      "a6a9f1394dfe4b3f5263a601dd60a80ea7fd8dac56e9533cc1c68dd580194af2"
+     ],
+     "static/.tag_0_0.csv.crc": [
+      8652,
+      "14dcae6baaa63c1acc18ef7ac43b31a3d0617ab5d66e6fb1136fe418d94286a8"
+     ],
+     "static/.tag_hasType_tagclass_0_0.csv.crc": [
+      1160,
+      "eb0ea370f1311733127e6b5e39eb00aae963ec8e3ce6ba3bfcd0132b0f441103"
+     ],
+     "static/.tagclass_0_0.csv.crc": [
+      40,
+      "7f48a854e380eac27fbdb2fef0af2dcc14e7885037987de02a1c0d504d17c30a"
+     ],
+     "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+      16,
+      "43a449719fdbeebad7514bd802d7f23cdc4de4ee43aa887e0501b04f7a8c7c6f"
+     ],
+     "static/organisation_0_0.csv": [
+      819926,
+      "37415355e0d524be6f2f8321e4dd9290da7f94b955284bf8be443478fcbfe366"
+     ],
+     "static/organisation_isLocatedIn_place_0_0.csv": [
+      70928,
+      "9783fac3ea1293775c80e9657c107679b4b9ac458555eae014a284ed2d9e8465"
+     ],
+     "static/place_0_0.csv": [
+      81884,
+      "f2ecc4db415c122d5de97931f4b0c3aea93c318c849390ed01006fe860c48236"
+     ],
+     "static/place_isPartOf_place_0_0.csv": [
+      10458,
+      "b3892a6708fe8315f3212382d903cde7b06238dece86d8c15776d64b996762b8"
+     ],
+     "static/tag_0_0.csv": [
+      1106348,
+      "a1c976ef974519d52261800631e9038ddd9cd29e99727b06f1eda130b7700f1f"
+     ],
+     "static/tag_hasType_tagclass_0_0.csv": [
+      147267,
+      "6afdf21e6a8c96b72e33f384a335b6cc69297b690376a367a9af05ca00ac4205"
+     ],
+     "static/tagclass_0_0.csv": [
+      3874,
+      "433b19e0b95b0c9b8a3a1a4ca1c638fadc6fbd28f7501e57abd0b3f5b8d56a92"
+     ],
+     "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+      545,
+      "9302ffa1c37648743864e32c2cca872abea3bf34f841729d5448f53976aa9d4d"
+     ],
+     "updateStream.properties": [
+      254,
+      "d7a7452876b81760b109bd4958151ccad20e3fbd6d9fdbef55ebeb33ab714afe"
+     ],
+     "updateStream_0_0_forum.csv": [
+      891237371,
+      "1b700de8b9d494e8c19c8f2415228f5ee675b1ead6380e907d6c07dd27071529"
+     ],
+     "updateStream_0_0_person.csv": [
+      868665,
+      "47a0611c8e72f06c5105e3086bcf70bd41746d5ba7477ddf50f86107fad5ee94"
+     ]
+    },
+    "hosted": true,
+    "sha256": "29c5638a90e20d4efcbbe70ec6dfa68518e2476606d8864e1f4fdd05da24a4f9",
+    "size": 723899294,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/social_network-sf3-CsvBasic-LongDateFormatter.tar.zst"
+   },
+   "params": {
+    "files": {
+     "bi_10_param.txt": [
+      20974,
+      "51df70faf6cc20dbc9186f117dc67d5ae6db4b09845637b151fc2152e5e0a806"
+     ],
+     "bi_11_param.txt": [
+      992,
+      "63e3687c9f9989de1d896d94c7e5e4b3f5f5d245985ddf7c6aec119fd82929ec"
+     ],
+     "bi_12_param.txt": [
+      649,
+      "76e72675739ffd36ea923b7c41d5c59a59666fe6865f3e706b4fd0f6019388f2"
+     ],
+     "bi_13_param.txt": [
+      446,
+      "f5085781cb42fcb6df06410b2059745074df09819f4656c20e2660f04a776843"
+     ],
+     "bi_14_param.txt": [
+      186,
+      "4ae561a6c38698a70843e083adac930cdbea7b5fa04058eb26c6bd49710998d6"
+     ],
+     "bi_15_param.txt": [
+      446,
+      "f5085781cb42fcb6df06410b2059745074df09819f4656c20e2660f04a776843"
+     ],
+     "bi_16_param.txt": [
+      1620,
+      "979cbf2b1ec8aa43d4acaaa9b6a4134038878a819a1a26774232dca0dfaff229"
+     ],
+     "bi_17_param.txt": [
+      446,
+      "f5085781cb42fcb6df06410b2059745074df09819f4656c20e2660f04a776843"
+     ],
+     "bi_18_param.txt": [
+      47491,
+      "653932929b6da0d2fb1d9213d4470d7baec8d48b0788b5c37f38a7e9694e965a"
+     ],
+     "bi_19_param.txt": [
+      590,
+      "d8062ab3523d5c8706886506b5ee5d53dfbe676c3a95c548a4c8d7c1e3a851fb"
+     ],
+     "bi_1_param.txt": [
+      495,
+      "076a7514286077cb3df955cbbaf9678d705531f089b9488840040d51b8e1ea0f"
+     ],
+     "bi_20_param.txt": [
+      116,
+      "936aea15e44a150b828eb36934355643f7d0c78069f3911860d1ac8b8b2ac706"
+     ],
+     "bi_21_param.txt": [
+      1140,
+      "fd381fb68ec7e5f91d8c3099d1509e21050fe3b00ca9bf503661738e2f3d9964"
+     ],
+     "bi_22_param.txt": [
+      774,
+      "a2eb0d867e7f5a272a3a6ff8b1e0b4ec90f2c48bf75811b3111cff6a9d480984"
+     ],
+     "bi_23_param.txt": [
+      446,
+      "f5085781cb42fcb6df06410b2059745074df09819f4656c20e2660f04a776843"
+     ],
+     "bi_24_param.txt": [
+      155,
+      "2e1e3a565c2e8e78a49099038a094cf7c15c5c6e5675c274ed94f34dd04a1f65"
+     ],
+     "bi_25_param.txt": [
+      3449,
+      "d51ed7025a87853c68478139773b757a60201b165bbd9a034067d8d7209f8170"
+     ],
+     "bi_2_param.txt": [
+      20663646,
+      "c4b1a2dd68fc01055072fb74a561440a03631c8c6fd541591d82c665a2ffedb4"
+     ],
+     "bi_3_param.txt": [
+      54,
+      "e4cc620f5a55ae32de4b45d25554e1f7d35e37b6d154556908de0b86a16e859f"
+     ],
+     "bi_4_param.txt": [
+      1113,
+      "f63d26973036408ae4f7c8c93abd0d4b6ec2d9c121eda7796a6f0f99f9958e5f"
+     ],
+     "bi_5_param.txt": [
+      446,
+      "f5085781cb42fcb6df06410b2059745074df09819f4656c20e2660f04a776843"
+     ],
+     "bi_6_param.txt": [
+      581,
+      "c30875994ea09278a1de5d295194280faabf7808a0e3b6b0e3abc0d2bbf06332"
+     ],
+     "bi_7_param.txt": [
+      309,
+      "390217fd3fbca51450a2a823538bca14dbe2e46fb7edca2f710473de497fe9c6"
+     ],
+     "bi_8_param.txt": [
+      189,
+      "e24945a91b0844fe971b33350d53c8f437aa96bd872a8f0f954626b5b4ed930f"
+     ],
+     "bi_9_param.txt": [
+      2190,
+      "e859737fb1fb91fde3767fb2241d5fd4341c79b37d9d283ebb9eb66958c3d857"
+     ],
+     "interactive_10_param.txt": [
+      4071,
+      "8061e32fd617b00827be31449f9e4a8732d9e3af489c6f79fe94e893548e8c62"
+     ],
+     "interactive_11_param.txt": [
+      7519,
+      "7a4b0321c2d4f25c2be89101f3e914cd710e500916baeb98cf7bd7ab096a7bb1"
+     ],
+     "interactive_12_param.txt": [
+      7051,
+      "08c29f90d6737b0be70fc07ad6c68f3516f1873be48ea311156d9a7dcf9c676a"
+     ],
+     "interactive_13_param.txt": [
+      6925,
+      "fdd5b8028aa60a8e81c5ddc907acf410efd3e273879e24a44c93584446d8f0f5"
+     ],
+     "interactive_14_param.txt": [
+      6914,
+      "5d3b078b7e4c6612b3bb456ac1283466c3ea2d869c23a1a82f011c3db8e56908"
+     ],
+     "interactive_1_param.txt": [
+      5187,
+      "540b376584bed850f992284ecb4774c0d88df779817051f79699baf409d5836b"
+     ],
+     "interactive_2_param.txt": [
+      6824,
+      "ecd5d0d43f64a18eac3d77a46190840a2dcd54ffffcd3dc7db3d8df0175ed3c9"
+     ],
+     "interactive_3_param.txt": [
+      13040,
+      "356f50cf446a56277cc357624814d8ab57667c27a9d05773d0f8dffe12fd1648"
+     ],
+     "interactive_4_param.txt": [
+      7612,
+      "d274f7236edb0eea21c84aaf51c65976b85ec8579e5c9fcbb636e4fbb08aa838"
+     ],
+     "interactive_5_param.txt": [
+      6854,
+      "5e0087c53a032cf815affdc6d965eea6a9b31b97914dad33d4776e4566c6233f"
+     ],
+     "interactive_6_param.txt": [
+      7121,
+      "7c620a75b59cb1fa9a059e92c5380edc10a6552f833632a3ec8f6fa894763b68"
+     ],
+     "interactive_7_param.txt": [
+      3359,
+      "98dd9974ede517192f1f1f9bca7fdb74a15beff012450582d291566bf2254d1a"
+     ],
+     "interactive_8_param.txt": [
+      2939,
+      "8ee50e45df78e45742b74ee8e32a431306ec83dc4ac76e7a1803d85de22bc079"
+     ],
+     "interactive_9_param.txt": [
+      6927,
+      "56744a580da87a92a2c370d2fbfa1d2f72e34ebac65ddafb28638d0873a664f7"
+     ]
+    },
+    "hosted": true,
+    "sha256": "dd251629ea241a67b750ff83d87611d7ab59d2264d1c0288d29476f5cb7061d0",
+    "size": 608592,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/substitution_parameters-sf3.tar.zst"
+   },
+   "updates": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "3c576d8291ef67026231b2fc3d4c030966da6e47c621a30064189af300080d8b"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      6962800,
+      "f421ea3e79257d2f3bf6b0056f944ed0a3cabe86adf25dddc5712cb064e79be2"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      6796,
+      "33e0980f9149674f37953b8d8f4459a6b9e01dbb6abf3902c3e92e8fe0054223"
+     ],
+     "params.ini": [
+      580,
+      "859ef263092ce8acf2fa04ac7b21623a71803beb7d46630a3d6ac4ead8749c02"
+     ],
+     "updateStream.properties": [
+      254,
+      "d7a7452876b81760b109bd4958151ccad20e3fbd6d9fdbef55ebeb33ab714afe"
+     ],
+     "updateStream_0_0_forum.csv": [
+      891237371,
+      "1b700de8b9d494e8c19c8f2415228f5ee675b1ead6380e907d6c07dd27071529"
+     ],
+     "updateStream_0_0_person.csv": [
+      868665,
+      "47a0611c8e72f06c5105e3086bcf70bd41746d5ba7477ddf50f86107fad5ee94"
+     ]
+    },
+    "hosted": true,
+    "sha256": "7d3450ed6813ceae5503adf221e2adfdc3014b8cdca6a080dab720ded7b24665",
+    "size": 252712661,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1-updates/social_network-sf3-numpart-1.tar.zst"
+   }
+  },
+  "30": {
+   "csv": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "6b6e06f537de521fe4e01e49804eeeab5f74e3f51cd2ae7ecc4d5d99f716a6e2"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      69355216,
+      "4d741cfd7d21be50393349fc044c3d1fd494c313e08cbfdb52d8bfaacbcf3435"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      46792,
+      "dcd3ca3f5ad464b0c7e07ce59cc004c3e103aad845e15b67ab4fef9937b0d482"
+     ],
+     "dynamic/.comment_0_0.csv.crc": [
+      46750876,
+      "645710601a1be0564b3150b9f1bf8d782224293687a30ca0b08df8cb5a9f5feb"
+     ],
+     "dynamic/.comment_hasCreator_person_0_0.csv.crc": [
+      14785924,
+      "dcbebc5cf902d2d2be34f0fd60184006718bbd440b46b13ec05daacfd9245554"
+     ],
+     "dynamic/.comment_hasTag_tag_0_0.csv.crc": [
+      13777880,
+      "3226d76b2cede78cfdfe7b80b29dfde2c61600abff65717a9e41bebc184cdb88"
+     ],
+     "dynamic/.comment_isLocatedIn_place_0_0.csv.crc": [
+      9235912,
+      "c0d76bcb4368e2123675f08fe1ba4d156118ea60afc9dd47bcaad272b5f95c96"
+     ],
+     "dynamic/.comment_replyOf_comment_0_0.csv.crc": [
+      7891592,
+      "79c2159734878d38b892f5f04088786c2dad68e89aea300c6581271920d00fdd"
+     ],
+     "dynamic/.comment_replyOf_post_0_0.csv.crc": [
+      7664596,
+      "5823042baf34c606930bd29fa1b244568b232359a058e2bc6712901f2dabcb14"
+     ],
+     "dynamic/.forum_0_0.csv.crc": [
+      628044,
+      "cb12cc20bcad82fbc14ec317304578cf4a835ff37c8a74bead1964efe8f14494"
+     ],
+     "dynamic/.forum_containerOf_post_0_0.csv.crc": [
+      4581484,
+      "80ddbdc88864895df6fdcf05d00cd2b80a05b8f64a6a36605b846665100af624"
+     ],
+     "dynamic/.forum_hasMember_person_0_0.csv.crc": [
+      18029596,
+      "7d1f2ddc751b723c90c8cfbc16dbec76625edcfa6c9f5dbd5edfddf856e7348e"
+     ],
+     "dynamic/.forum_hasModerator_person_0_0.csv.crc": [
+      334116,
+      "5aabc641869d326957c473b667437ba66de29f8b3d81424feb0ef7f7e2ef22d6"
+     ],
+     "dynamic/.forum_hasTag_tag_0_0.csv.crc": [
+      784076,
+      "25aef096a7304e4026d24aac28388a40de8effc8082c6689af3b86785878e7d5"
+     ],
+     "dynamic/.person_0_0.csv.crc": [
+      108780,
+      "5b0db252bec21b2cc3f3ef4f3e48e4f2af854b77210954036e6ae84075f9613c"
+     ],
+     "dynamic/.person_email_emailaddress_0_0.csv.crc": [
+      121284,
+      "6efdbcb952787b5bfff98ed84ab45c7de45a8b569c78b089d91a65146a2b8c5b"
+     ],
+     "dynamic/.person_hasInterest_tag_0_0.csv.crc": [
+      575088,
+      "f63b7bd8d112b03fcbcda3a84775628f396fa7194717bc36cf273c05333e1f57"
+     ],
+     "dynamic/.person_isLocatedIn_place_0_0.csv.crc": [
+      23992,
+      "cdd33a44948291c5fffb7cdbaf6fb89a9780098323073e2c62f2f66afc82d61d"
+     ],
+     "dynamic/.person_knows_person_0_0.csv.crc": [
+      1992348,
+      "95f3c1a381e946acf11a76b09583ff29dcc4d7720d08d80842e8217a46f730fb"
+     ],
+     "dynamic/.person_likes_comment_0_0.csv.crc": [
+      22746680,
+      "da7726571998ff2ada36b9291c9d7340309a2ddcb8554f55833f075f05237700"
+     ],
+     "dynamic/.person_likes_post_0_0.csv.crc": [
+      9667080,
+      "114055d89dffbf3c083582239c8eda4893b0b79943b48d546021e2acbcce48e0"
+     ],
+     "dynamic/.person_speaks_language_0_0.csv.crc": [
+      48988,
+      "46481902912da3f175f65bcfa6ea0f022ecd18c18cc3182544db62403d6422d7"
+     ],
+     "dynamic/.person_studyAt_organisation_0_0.csv.crc": [
+      25112,
+      "ca2d0dbde72e7b575035f5475b2992703e45c61055a3189c38af2d2792b40f90"
+     ],
+     "dynamic/.person_workAt_organisation_0_0.csv.crc": [
+      65924,
+      "06a1572a31e0b571877eef307c6ee9ca277b82446ae597694b3dc117e651bdc9"
+     ],
+     "dynamic/.post_0_0.csv.crc": [
+      17660316,
+      "51fbae8d4ed76b89ea126bc98684947a1ab62adfeb01906504b063b47ce39ff8"
+     ],
+     "dynamic/.post_hasCreator_person_0_0.csv.crc": [
+      4428240,
+      "1a79144b996e7925690af2eceec7eab00e46f167b95f5bf5ec468c1a60f6a66f"
+     ],
+     "dynamic/.post_hasTag_tag_0_0.csv.crc": [
+      3606960,
+      "5773558334ff0186e601ba93f28da9fcfb950a381975eb809f542ebd9c061542"
+     ],
+     "dynamic/.post_isLocatedIn_place_0_0.csv.crc": [
+      2754096,
+      "85cc4e2f4a0b313b6956abd3906426e30b14c93d34d0306dc743f568227c1c83"
+     ],
+     "dynamic/comment_0_0.csv": [
+      5984111066,
+      "58eff2daa225c0501cfb14c9f01587e560ab1381050efe815414fd72c24ad51f"
+     ],
+     "dynamic/comment_hasCreator_person_0_0.csv": [
+      1892597034,
+      "185e5ea24b09972f5203b01a292d24a65db4df8b4f09a994b8d780076b09055d"
+     ],
+     "dynamic/comment_hasTag_tag_0_0.csv": [
+      1763567105,
+      "d6c5e0e0e23f1af18d66b743ce8edb659eb71c3acb1bbdc4ebee1582a2ff91c2"
+     ],
+     "dynamic/comment_isLocatedIn_place_0_0.csv": [
+      1182195606,
+      "3d184dc659e9fa6b7e0af46966d591e9f2678704b4f21ec37792948ea9461d41"
+     ],
+     "dynamic/comment_replyOf_comment_0_0.csv": [
+      1010122358,
+      "8e77546fe3742176395084ca9b9fe4453a06482d06e4c6126e13d6e8e39c395d"
+     ],
+     "dynamic/comment_replyOf_post_0_0.csv": [
+      981066782,
+      "e47399397a0307bb72f7f67d509638ef5c939dc873cff4c7cbb2c88324eb0597"
+     ],
+     "dynamic/forum_0_0.csv": [
+      80388585,
+      "2561ac7a575482cc740d658a59d630b037475f4c920dc554eeff729966b771b8"
+     ],
+     "dynamic/forum_containerOf_post_0_0.csv": [
+      586428866,
+      "0ccbdbe6dfa8e0471efd1504ea38f2c87a09379af3fe45f0b1e2f9d2679fb7a6"
+     ],
+     "dynamic/forum_hasMember_person_0_0.csv": [
+      2307787121,
+      "e8d770114fb8a31cb0eb7e280269663d9d0ea0f4eb06f2535d344706688315c0"
+     ],
+     "dynamic/forum_hasModerator_person_0_0.csv": [
+      42765563,
+      "745be0982fc5d0a533752559054ca66c1df88f1b5324474ebbceb5629a1dcc1d"
+     ],
+     "dynamic/forum_hasTag_tag_0_0.csv": [
+      100360378,
+      "82c589ba9708df129f8c380101321e2a23d7d398b3cc6bf39918a535e1834527"
+     ],
+     "dynamic/person_0_0.csv": [
+      13922618,
+      "53f4136c061f81bdc6f084b9e07b56ffaf535ca41508f54bc42bb0b1049eaf01"
+     ],
+     "dynamic/person_email_emailaddress_0_0.csv": [
+      15522878,
+      "baa2e30d970657359b0d56f90bb37c4216780c4cae39d51faefa784fbcbb63b2"
+     ],
+     "dynamic/person_hasInterest_tag_0_0.csv": [
+      73609914,
+      "1221c2d84b136a3fe6d226f3888f2008c4792c0ae94b63916c8939d1d5ff9610"
+     ],
+     "dynamic/person_isLocatedIn_place_0_0.csv": [
+      3069658,
+      "32e59351d9d6ee8c447a618298a3c453b3a17a51cf9e27c95b362b2ba9a404c9"
+     ],
+     "dynamic/person_knows_person_0_0.csv": [
+      255019511,
+      "9408dbd7764f2f91bec0b85b24883613b33330290ae66a5554e75dda190b5dda"
+     ],
+     "dynamic/person_likes_comment_0_0.csv": [
+      2911573698,
+      "115064eab1235333a3a817e12ca193ebffff699d586cca0d320a9a3bacae7489"
+     ],
+     "dynamic/person_likes_post_0_0.csv": [
+      1237384910,
+      "37ed2b13d6334f469f55d5b448101a12ab689686d2f6cb8d167fae39def31a01"
+     ],
+     "dynamic/person_speaks_language_0_0.csv": [
+      6269187,
+      "3a9726fab54dbd7fc29e6c855230427bddcfc82555b6d33c5352e846ebbfed90"
+     ],
+     "dynamic/person_studyAt_organisation_0_0.csv": [
+      3212868,
+      "f8e44e654a52d1e667089b9e372d5e1eeabb42a08d32ae6ded5b686fc7d6d041"
+     ],
+     "dynamic/person_workAt_organisation_0_0.csv": [
+      8436846,
+      "b14430dd151a99330564a6f5652d618e03e0d6006ea90f2f7a8ab3eee37741db"
+     ],
+     "dynamic/post_0_0.csv": [
+      2260519078,
+      "9246800cd236b96f0169c9347bc91c2a2145d356a2245877d25d087140fe9d10"
+     ],
+     "dynamic/post_hasCreator_person_0_0.csv": [
+      566813447,
+      "3e49109618393109aa9c5c30d1eb07a808a22c597d496bd672e6b9d59fadaa8e"
+     ],
+     "dynamic/post_hasTag_tag_0_0.csv": [
+      461689455,
+      "c49f64ada26b9bfb0da1ddf42ed76e070976692fc3168efbc5c8362e5f10bc3e"
+     ],
+     "dynamic/post_isLocatedIn_place_0_0.csv": [
+      352523227,
+      "67441e273bd929d6cbc3a31340a9240c4fb3d30d187001e230db24fe6d70d96b"
+     ],
+     "params.ini": [
+      673,
+      "68635be5a67c88d929831c92f3ceaeb29cec0efb003c34485e24d1050685f25f"
+     ],
+     "static/.organisation_0_0.csv.crc": [
+      6416,
+      "9f76096f091a26bc6f8e0e02514484b191616741d3b2db6b240969d1fe9a3d9c"
+     ],
+     "static/.organisation_isLocatedIn_place_0_0.csv.crc": [
+      564,
+      "8c0b4ea9ef46f5a2172ecf8001ffa6bd62c7315bc34acaa33b88e7b15202a5b4"
+     ],
+     "static/.place_0_0.csv.crc": [
+      648,
+      "f3c3b6d122a598ec09a8a8d9002ca668901d787496d6f34236b9c31c6748a3df"
+     ],
+     "static/.place_isPartOf_place_0_0.csv.crc": [
+      92,
+      "a6a9f1394dfe4b3f5263a601dd60a80ea7fd8dac56e9533cc1c68dd580194af2"
+     ],
+     "static/.tag_0_0.csv.crc": [
+      8652,
+      "14dcae6baaa63c1acc18ef7ac43b31a3d0617ab5d66e6fb1136fe418d94286a8"
+     ],
+     "static/.tag_hasType_tagclass_0_0.csv.crc": [
+      1160,
+      "eb0ea370f1311733127e6b5e39eb00aae963ec8e3ce6ba3bfcd0132b0f441103"
+     ],
+     "static/.tagclass_0_0.csv.crc": [
+      40,
+      "7f48a854e380eac27fbdb2fef0af2dcc14e7885037987de02a1c0d504d17c30a"
+     ],
+     "static/.tagclass_isSubclassOf_tagclass_0_0.csv.crc": [
+      16,
+      "43a449719fdbeebad7514bd802d7f23cdc4de4ee43aa887e0501b04f7a8c7c6f"
+     ],
+     "static/organisation_0_0.csv": [
+      819926,
+      "37415355e0d524be6f2f8321e4dd9290da7f94b955284bf8be443478fcbfe366"
+     ],
+     "static/organisation_isLocatedIn_place_0_0.csv": [
+      70928,
+      "9783fac3ea1293775c80e9657c107679b4b9ac458555eae014a284ed2d9e8465"
+     ],
+     "static/place_0_0.csv": [
+      81884,
+      "f2ecc4db415c122d5de97931f4b0c3aea93c318c849390ed01006fe860c48236"
+     ],
+     "static/place_isPartOf_place_0_0.csv": [
+      10458,
+      "b3892a6708fe8315f3212382d903cde7b06238dece86d8c15776d64b996762b8"
+     ],
+     "static/tag_0_0.csv": [
+      1106348,
+      "a1c976ef974519d52261800631e9038ddd9cd29e99727b06f1eda130b7700f1f"
+     ],
+     "static/tag_hasType_tagclass_0_0.csv": [
+      147267,
+      "6afdf21e6a8c96b72e33f384a335b6cc69297b690376a367a9af05ca00ac4205"
+     ],
+     "static/tagclass_0_0.csv": [
+      3874,
+      "433b19e0b95b0c9b8a3a1a4ca1c638fadc6fbd28f7501e57abd0b3f5b8d56a92"
+     ],
+     "static/tagclass_isSubclassOf_tagclass_0_0.csv": [
+      545,
+      "9302ffa1c37648743864e32c2cca872abea3bf34f841729d5448f53976aa9d4d"
+     ],
+     "updateStream.properties": [
+      254,
+      "348c0322f16f11f84454bb8a63cb04569bb30fd70120e6dba1596e6477d32bea"
+     ],
+     "updateStream_0_0_forum.csv": [
+      8877466615,
+      "dd5921efa2c8ceea34b939594c24279bd67cf1ee18d6fb832c678f28c09920fc"
+     ],
+     "updateStream_0_0_person.csv": [
+      5988299,
+      "2b75e727ee6cd2163650551be5b0d0d3a2208249ccc7859cc50c495390be40d4"
+     ]
+    },
+    "hosted": true,
+    "sha256": "fde664daea2215b5904ef14d7ee0f0cb38bce0665e81094d02864c3e881f2b08",
+    "size": 7857083718,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/social_network-sf30-CsvBasic-LongDateFormatter.tar.zst"
+   },
+   "params": {
+    "files": {
+     "bi_10_param.txt": [
+      21723,
+      "5205733c5fb29eb73f82e6f8c2d68d7ab067369e2f14d9f0875863fc11d56912"
+     ],
+     "bi_11_param.txt": [
+      992,
+      "29094e094fcec01ad7274122cdb6d5071b6286de1651dded7bcd8b912d0431b4"
+     ],
+     "bi_12_param.txt": [
+      775,
+      "0353c64f356766647af902fa9303ff8d269d67f3a5c3c62659d0010e7ca95eec"
+     ],
+     "bi_13_param.txt": [
+      467,
+      "9f26518a28c026f45cc1c693242e6b4e9c3c0283e126d962a89e4fe40f1dc62a"
+     ],
+     "bi_14_param.txt": [
+      242,
+      "d419814603e7b328712d7e8b6668ace902286dea76c250ea89d68e96389b8160"
+     ],
+     "bi_15_param.txt": [
+      467,
+      "9f26518a28c026f45cc1c693242e6b4e9c3c0283e126d962a89e4fe40f1dc62a"
+     ],
+     "bi_16_param.txt": [
+      1641,
+      "c4d880ea401394ec3351649362129edba74bc141529f4a395431b7220ba0ffbf"
+     ],
+     "bi_17_param.txt": [
+      467,
+      "9f26518a28c026f45cc1c693242e6b4e9c3c0283e126d962a89e4fe40f1dc62a"
+     ],
+     "bi_18_param.txt": [
+      56983,
+      "576bd0eb25654cb4cae960accff68eee549ffd8af4aafbb19385636b1762376b"
+     ],
+     "bi_19_param.txt": [
+      590,
+      "d8062ab3523d5c8706886506b5ee5d53dfbe676c3a95c548a4c8d7c1e3a851fb"
+     ],
+     "bi_1_param.txt": [
+      593,
+      "a9623ca713c245fb33ea57b57bb9a5d914f5f4c247fa763b56c2974270347da3"
+     ],
+     "bi_20_param.txt": [
+      116,
+      "823cca58d306fd28ca3b973c50e7f21930e6a082250f7529a146eef35a3db52b"
+     ],
+     "bi_21_param.txt": [
+      1203,
+      "5d6f9d5bb6be1acf5af2e7a014b99aeaa6adb12b7e76f972979d28c9370ccc9c"
+     ],
+     "bi_22_param.txt": [
+      810,
+      "bd94c8372343d1a9baee5113d5c20b639f68002fae21d5dc0c1789b1844bf32f"
+     ],
+     "bi_23_param.txt": [
+      467,
+      "9f26518a28c026f45cc1c693242e6b4e9c3c0283e126d962a89e4fe40f1dc62a"
+     ],
+     "bi_24_param.txt": [
+      155,
+      "c7e243352ba5bb61428c545cbed2f24014267d4cbfffd9369b7835fc3fef68ee"
+     ],
+     "bi_25_param.txt": [
+      4560,
+      "3200e266ae23ce71415d70b0acfc223b41c14f308f02cc3198da4fae7df168b5"
+     ],
+     "bi_2_param.txt": [
+      24275367,
+      "a082b61efb7edee5f8c848eba14a56316801f5d85637f1c5d92d94600b38b2b2"
+     ],
+     "bi_3_param.txt": [
+      68,
+      "bfd58def50727ef0b3c54f8c8d106cc930ccb1a3a8ea6de18ca28e3e9d6d12b0"
+     ],
+     "bi_4_param.txt": [
+      17,
+      "91f3d4df2704eacbe93a4d2e83cc06636d5115097bff98a7573b60131deaeeac"
+     ],
+     "bi_5_param.txt": [
+      467,
+      "9f26518a28c026f45cc1c693242e6b4e9c3c0283e126d962a89e4fe40f1dc62a"
+     ],
+     "bi_6_param.txt": [
+      533,
+      "6e70553eab5cc0afa5bf5ff0757b89c8128843372ea7ac71b775e4f99077c644"
+     ],
+     "bi_7_param.txt": [
+      269,
+      "3b183414453136ae2b960edd4c69814f8336641176471a80ecb001f93b8c13a5"
+     ],
+     "bi_8_param.txt": [
+      189,
+      "383dde3a24a6259243b1e2213f1e98ff15148ca46ee89af746969a78d22b7d52"
+     ],
+     "bi_9_param.txt": [
+      30,
+      "b62e8f032783aaa873d0f16c94c74612360d420b7905d1c0bcb087fb4d89ef50"
+     ],
+     "interactive_10_param.txt": [
+      27124,
+      "f0e82d7854f029147fe04a02bf23d015af1d8ad1469ff43b065e308756168bb4"
+     ],
+     "interactive_11_param.txt": [
+      48779,
+      "47517c928ca7bfa4e2f9b002dc37bcd6c424bc758b98789bfde4e1e503f2afb2"
+     ],
+     "interactive_12_param.txt": [
+      43191,
+      "de4025fba4c250415bd4e875de037975016f72052fd4db02389c67bf67da14b8"
+     ],
+     "interactive_13_param.txt": [
+      47287,
+      "43bcca5c98788289c5a43725982e8387cc0d80aebf48c3730073077977addbe8"
+     ],
+     "interactive_14_param.txt": [
+      47368,
+      "b546a8b35e15af65b855548c1fcd89acc0edb9f7cd7b1779cf95944043a388d2"
+     ],
+     "interactive_1_param.txt": [
+      31997,
+      "088d2eaf742c96d903b406d7b1998365139770fda5ec2594cf55efcb564e98a6"
+     ],
+     "interactive_2_param.txt": [
+      46563,
+      "9603805320f1dcf351e86535df50f5538c9e7d1c026ce8493c6e09f5921edf9f"
+     ],
+     "interactive_3_param.txt": [
+      86681,
+      "b05d6b3b43e9248d934c9391e803d78f22624a6f79a08428100a344d046b294f"
+     ],
+     "interactive_4_param.txt": [
+      51703,
+      "6541984ca0f5c4617021828344ebb9fc4fee7f56254ccd6c16074b13bacdcf5a"
+     ],
+     "interactive_5_param.txt": [
+      46811,
+      "dee6241db9d4968ff2b8846a97e1610c127244edf523a0b7f33bdc689cf07187"
+     ],
+     "interactive_6_param.txt": [
+      49262,
+      "5625943dee78b6f83afa5695d3cde0eebd49d825fb9c5f9cca58ce2499860915"
+     ],
+     "interactive_7_param.txt": [
+      22405,
+      "a03dec393d1570bf94c25c4b9ec2c15ca30af1f7e46271078a1da6a62f5344b7"
+     ],
+     "interactive_8_param.txt": [
+      19910,
+      "eaad985f85f6006a69b263772d4d5199a0a597c72481569e12dc173513a61a78"
+     ],
+     "interactive_9_param.txt": [
+      46559,
+      "4321323635c7b51cd3dab6e245a9ad9ae90c7e6577f3d3a939ee17a91230b2c4"
+     ]
+    },
+    "hosted": true,
+    "sha256": "eca3f478fe21b580492102bad206ebb2f207edc338650313741d9bc0c12a4aeb",
+    "size": 872125,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1/substitution_parameters-sf30.tar.zst"
+   },
+   "updates": {
+    "files": {
+     ".updateStream.properties.crc": [
+      12,
+      "6b6e06f537de521fe4e01e49804eeeab5f74e3f51cd2ae7ecc4d5d99f716a6e2"
+     ],
+     ".updateStream_0_0_forum.csv.crc": [
+      69355216,
+      "4d741cfd7d21be50393349fc044c3d1fd494c313e08cbfdb52d8bfaacbcf3435"
+     ],
+     ".updateStream_0_0_person.csv.crc": [
+      46792,
+      "dcd3ca3f5ad464b0c7e07ce59cc004c3e103aad845e15b67ab4fef9937b0d482"
+     ],
+     "params.ini": [
+      581,
+      "4fe89088dde93521f6940ebfab8a59c2c12dd559a5ef56525f9f2bb7cdd862cd"
+     ],
+     "updateStream.properties": [
+      254,
+      "348c0322f16f11f84454bb8a63cb04569bb30fd70120e6dba1596e6477d32bea"
+     ],
+     "updateStream_0_0_forum.csv": [
+      8877466615,
+      "dd5921efa2c8ceea34b939594c24279bd67cf1ee18d6fb832c678f28c09920fc"
+     ],
+     "updateStream_0_0_person.csv": [
+      5988299,
+      "2b75e727ee6cd2163650551be5b0d0d3a2208249ccc7859cc50c495390be40d4"
+     ]
+    },
+    "hosted": true,
+    "sha256": "b31aa3b90af070d9c7e5f5bb7e63dbc6d8d90ab119e40844c00fb5f620aa36ec",
+    "size": 2814839995,
+    "url": "https://datasets.ldbcouncil.org/snb-interactive-v1-updates/social_network-sf30-numpart-1.tar.zst"
+   }
+  }
+ },
+ "version": 1
+}

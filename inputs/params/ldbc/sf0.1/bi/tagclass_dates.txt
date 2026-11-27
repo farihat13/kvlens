@@ -1,0 +1,6 @@
+tagClass|date|messagesInClass|stratum
+ComicsCreator|1308092810095|506|p50-class
+President|1308092810095|3453|p75-class
+OfficeHolder|1308092810095|19519|p90-class
+Country|1308092810095|52216|max-class
+Country|1320784823098|52216|max-class-p50date

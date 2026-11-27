@@ -1,0 +1,55 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=7.08
+# Q6. Tag co-occurrence 
+#
+# Given a start Person with ID $personId and a Tag with name $tagName, find the other Tags that
+# occur together with this Tag on Posts that were created by start Person’s friends and friends of
+# friends (excluding start Person). Return top 10 Tags, and the count of Posts that were created by
+# these Persons, which contain both this Tag and the given Tag.
+#
+# Sort    postCount(desc), tagName(asc)
+# Limit   10
+#
+# NOTE: Dgraph support multi-key ordering only when all keys are predicates, it does not support 
+# multi-key ordering when one of the keys is a computed value. Therefore, the client must tie-break 
+# by tagName ASC, and then apply the LIMIT 10.
+# So the last block returns EVERY tag with a count > 0 (no `first`); the client sorts them by
+# (postCount desc, tagName asc) and keeps 10. (A `first: N` by count alone would
+# return an arbitrary slice of a count tie -- Dgraph's value sort is not stable -- and a wrong top 10.)
+#
+# Params:
+#   $personId : int
+#   $tagName  : string   (name of the tag, e.g., "GraphQL")
+
+query Q6($personId: int, $tagName: string) {
+  # Anchor tag K by name
+  K as var(func: eq(name, $tagName)) @filter(type(tag))
+
+  # Anchor Person and 1..2-hop friends (exclude self; dedup)
+  P  as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { l1a as knows  l1b as ~knows }
+  F1 as var(func: uid(l1a, l1b)) @filter(type(person) AND NOT uid(P))
+  _l2(func: uid(l1a, l1b)) { l2a as knows  l2b as ~knows }
+  F2 as var(func: uid(l2a, l2b)) @filter(type(person) AND NOT uid(P, F1))
+  F  as var(func: uid(F1, F2))
+
+  # Posts by those friends that contain K
+  var(func: uid(F)) {
+    PP as ~hasCreator @filter(type(post) AND uid_in(hasTag, uid(K)))
+  }
+
+  # Co-occurring tags on those posts, excluding K
+  var(func: uid(PP)) {
+    TT as hasTag @filter(type(tag) AND NOT uid(K))
+  }
+
+  # Count distinct posts per co-occurring tag among PP
+  var(func: uid(TT)) {
+    pc as count(~hasTag @filter(uid(PP)))
+  }
+
+  # Order by post count descending
+  tags(func: uid(TT), orderdesc: val(pc)) @filter(gt(val(pc), 0)) {
+    tagName: name
+    postCount: val(pc)
+  }
+}

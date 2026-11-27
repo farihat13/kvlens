@@ -1,0 +1,210 @@
+{
+ "query": "job21a",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "k": "keyword",
+  "lt": "link_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "ml": "movie_link",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "lt",
+   "id",
+   "ml",
+   "link_type_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "company_type_id",
+   "ct",
+   "id"
+  ],
+  [
+   "mc",
+   "company_id",
+   "cn",
+   "id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "!=",
+    "cn",
+    "country_code",
+    "[pl]"
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "cn",
+      "name",
+      "%Film%",
+      false
+     ],
+     [
+      "like",
+      "cn",
+      "name",
+      "%Warner%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "sequel"
+   ]
+  ],
+  "lt": [
+   [
+    "like",
+    "lt",
+    "link",
+    "%follow%",
+    false
+   ]
+  ],
+  "mc": [
+   [
+    "null",
+    "mc",
+    "note",
+    true
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Norway",
+     "Germany",
+     "Denmark",
+     "Swedish",
+     "Denish",
+     "Norwegian",
+     "German"
+    ]
+   ]
+  ],
+  "mk": [],
+  "ml": [],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    1950,
+    2000
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "company_name",
+   "cn",
+   "name"
+  ],
+  [
+   "link_type",
+   "lt",
+   "link"
+  ],
+  [
+   "western_follow_up",
+   "t",
+   "title"
+  ]
+ ]
+}

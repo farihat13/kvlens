@@ -1,0 +1,11 @@
+// microbench nhop2p: the persons at knows-distance exactly 2 from a person, with id,
+// firstName, lastName, sorted by id (TM1 + a 3-prop read of the final frontier).
+// Reads: the knows edge index (both sides) of every vertex expanded up to depth 1, then
+// the document of each depth-2 person.
+// Evaluator: queries/nhop.py _nhop(2, props=True) -- the nhop2 frontier + read_vertex_props
+// (id, firstName, lastName), one row per person.
+// mb2 lineage: MB41-44, 53-54 (no arango text in mb2).
+FOR v IN 2..2 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    SORT TO_NUMBER(v._key)
+    RETURN {id: TO_NUMBER(v._key), firstName: v.firstName, lastName: v.lastName}

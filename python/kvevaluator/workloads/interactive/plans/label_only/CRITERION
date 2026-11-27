@@ -1,0 +1,5 @@
+{
+ "criterion": "wops_bytes4k",
+ "spec": "scalar:G=1,S=1.1,N=0.01,total_bytes=0.000244140625",
+ "what": "the pick rule the searched bundles in this dir were derived under (optimizer/criteria.NAMED); regenerate with python/kvevaluator/plan_choice/dump_planir.py --criterion wops_bytes4k"
+}

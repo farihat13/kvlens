@@ -1,0 +1,123 @@
+{
+ "cells": [
+  {
+   "D": 0,
+   "G": 0,
+   "N": 0,
+   "P": 4,
+   "S": 0,
+   "format": "arangodb",
+   "lanes": {
+    "get_key": 0,
+    "get_miss_key": 0,
+    "get_value": 0,
+    "next_miss_key": 0,
+    "scan_key": 0,
+    "scan_value": 0,
+    "seek_miss_key": 0,
+    "used_key": 0,
+    "used_value": 0,
+    "used_write_key": 68,
+    "used_write_value": 92,
+    "write_key": 68,
+    "write_value": 100
+   },
+   "param": 1,
+   "query": "iu2",
+   "rocks_bytes_written": 228,
+   "rocks_keys_written": 4,
+   "rows": 1,
+   "write_key_bytes": 68,
+   "write_value_bytes": 100
+  },
+  {
+   "D": 0,
+   "G": 0,
+   "N": 0,
+   "P": 2,
+   "S": 2,
+   "format": "dgraph",
+   "lanes": {
+    "get_key": 0,
+    "get_miss_key": 0,
+    "get_value": 0,
+    "next_miss_key": 0,
+    "scan_key": 28,
+    "scan_value": 468,
+    "seek_miss_key": 0,
+    "used_key": 28,
+    "used_value": 0,
+    "used_write_key": 28,
+    "used_write_value": 32,
+    "write_key": 28,
+    "write_value": 501
+   },
+   "param": 1,
+   "query": "iu2",
+   "rocks_bytes_written": 560,
+   "rocks_keys_written": 2,
+   "rows": 1,
+   "write_key_bytes": 28,
+   "write_value_bytes": 501
+  },
+  {
+   "D": 0,
+   "G": 0,
+   "N": 0,
+   "P": 2,
+   "S": 0,
+   "format": "nebula",
+   "lanes": {
+    "get_key": 0,
+    "get_miss_key": 0,
+    "get_value": 0,
+    "next_miss_key": 0,
+    "scan_key": 0,
+    "scan_value": 0,
+    "seek_miss_key": 0,
+    "used_key": 0,
+    "used_value": 0,
+    "used_write_key": 42,
+    "used_write_value": 16,
+    "write_key": 42,
+    "write_value": 20
+   },
+   "param": 1,
+   "query": "iu2",
+   "rocks_bytes_written": 92,
+   "rocks_keys_written": 2,
+   "rows": 1,
+   "write_key_bytes": 42,
+   "write_value_bytes": 20
+  }
+ ],
+ "counting": {
+  "arangodb": {
+   "write_format": 1,
+   "write_seam": 1
+  },
+  "dgraph": {
+   "write_format": 1,
+   "write_seam": 1
+  },
+  "nebula": {
+   "write_format": 1,
+   "write_seam": 1
+  }
+ },
+ "how": "check_cpp_write_counts.py: a fresh arena per cell, shadow then apply mode, audited against RocksDB",
+ "param": 1,
+ "provenance": {
+  "binary_dirty": false,
+  "binary_git_sha": "1f7cedecd8f18c9574d8a310216ca34796253176",
+  "captured_utc": "2026-10-26T19:01:40Z",
+  "commit": "1f7cedecd8f18c9574d8a310216ca34796253176",
+  "python": "CPython 3.12.3, the packages at the versions uv.lock pins",
+  "source": "the commit above (tag artifact-freeze-20261026) of the repo this one was made from",
+  "tags": [
+   "artifact-freeze-20261026"
+  ]
+ },
+ "query": "iu2",
+ "sf": "0.1"
+}

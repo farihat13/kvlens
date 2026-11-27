@@ -1,0 +1,5 @@
+schema_sha256=b8e206f17e60692c830ba0c3c675fbc481a22f26011282ce523890eb09be8a74
+schema_path=data/schema/arangodb/ldbc_schema.json
+sf=0.1
+created=2026-09-28T18:43:58Z
+git_sha=12de8e641

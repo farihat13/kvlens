@@ -1,0 +1,53 @@
+# Python virtual envs and artifacts
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+pip-wheel-metadata/
+
+# Nebula
+nebula/build*/
+nebula/src/common/*
+install*/
+runs*/
+
+# Local developer tooling / containers
+nebula-dev-docker/
+nebula-console/
+nebula-importer/
+folly/
+NebulaGraph-Bench/
+
+# RocksDB and other build caches
+rocksdb/*.good
+
+# Built variant binaries
+bin/
+
+# Backups and logs
+backup*/*
+!backup/provenance-sf*.txt
+logs*/
+*.tar
+*.tar.gz
+*.tar.zst
+*.zip
+*.tgz
+*.log
+queries/*.v2.gql
+
+# Dataset
+data*/*
+!data/conf/
+!data/ldbc/
+data/ldbc/*
+!data/ldbc/importer.yaml
+!data/ldbc/schema.gql
+
+
+# This folder
+ic*old.txt
+temp
+data/sample-ldbc-dataset/importer.log

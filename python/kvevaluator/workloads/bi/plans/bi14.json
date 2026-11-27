@@ -1,0 +1,1030 @@
+{
+  "plan": "bi14",
+  "question": "Given two countries, find for each city of the first the pair of people who know each other across the two countries with the highest score for replies and likes, and list the best 100.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "country1": {
+      "type": "str"
+    },
+    "country2": {
+      "type": "str"
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a_c",
+          "op": "read_index_eq",
+          "label": "Place",
+          "prop": "name",
+          "value": {
+            "param": "country1"
+          }
+        },
+        {
+          "name": "a_ci0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a_c"
+          },
+          "etype": "isPartOf",
+          "dir": "in"
+        },
+        {
+          "name": "a_ci",
+          "op": "dedup",
+          "items": {
+            "ref": "a_ci0"
+          }
+        },
+        {
+          "name": "a_pc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a_ci"
+          },
+          "etype": "isLocatedIn",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "a_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "a_pc"
+          },
+          "names": {
+            "src": "_city",
+            "dst": "_person"
+          }
+        },
+        {
+          "name": "a_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "a_rows"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "b_c",
+          "op": "read_index_eq",
+          "label": "Place",
+          "prop": "name",
+          "value": {
+            "param": "country2"
+          }
+        },
+        {
+          "name": "b_ci0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "b_c"
+          },
+          "etype": "isPartOf",
+          "dir": "in"
+        },
+        {
+          "name": "b_ci",
+          "op": "dedup",
+          "items": {
+            "ref": "b_ci0"
+          }
+        },
+        {
+          "name": "b_pc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "b_ci"
+          },
+          "etype": "isLocatedIn",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "b_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "b_pc"
+          },
+          "names": {
+            "src": "_city",
+            "dst": "_person"
+          }
+        },
+        {
+          "name": "b_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "b_rows"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a_v"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "kn_b",
+          "op": "filter_in",
+          "rows": {
+            "ref": "kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "b_v"
+          }
+        },
+        {
+          "name": "pairs0",
+          "op": "rename",
+          "rows": {
+            "ref": "kn_b"
+          },
+          "names": {
+            "src": "_p1",
+            "dst": "_p2"
+          }
+        },
+        {
+          "name": "pairs",
+          "op": "join_multi",
+          "left": {
+            "ref": "pairs0"
+          },
+          "right": {
+            "ref": "a_rows"
+          },
+          "left_on": "_p1",
+          "right_on": "_person"
+        },
+        {
+          "name": "pa_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "pairs"
+          },
+          "field": "_p1"
+        },
+        {
+          "name": "pa_v",
+          "op": "dedup",
+          "items": {
+            "ref": "pa_v0"
+          }
+        },
+        {
+          "name": "pb_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "pairs"
+          },
+          "field": "_p2"
+        },
+        {
+          "name": "pb_v",
+          "op": "dedup",
+          "items": {
+            "ref": "pb_v0"
+          }
+        },
+        {
+          "name": "ia_m",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pa_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "ia_mv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ia_m"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ia_mv",
+          "op": "dedup",
+          "items": {
+            "ref": "ia_mv0"
+          }
+        },
+        {
+          "name": "ia_par",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ia_mv"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ia_pv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ia_par"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ia_pv",
+          "op": "dedup",
+          "items": {
+            "ref": "ia_pv0"
+          }
+        },
+        {
+          "name": "ia_pa",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ia_pv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ia_pa_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ia_pa"
+          },
+          "names": {
+            "src": "_parent",
+            "dst": "_author"
+          }
+        },
+        {
+          "name": "ia_par_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ia_par"
+          },
+          "names": {
+            "src": "_reply",
+            "dst": "_parent"
+          }
+        },
+        {
+          "name": "ia_m_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ia_m"
+          },
+          "names": {
+            "src": "_replier",
+            "dst": "_reply"
+          }
+        },
+        {
+          "name": "ia_r1",
+          "op": "join_multi",
+          "left": {
+            "ref": "ia_m_n"
+          },
+          "right": {
+            "ref": "ia_par_n"
+          },
+          "left_on": "_reply",
+          "right_on": "_reply"
+        },
+        {
+          "name": "ia_r2",
+          "op": "join_multi",
+          "left": {
+            "ref": "ia_r1"
+          },
+          "right": {
+            "ref": "ia_pa_n"
+          },
+          "left_on": "_parent",
+          "right_on": "_parent"
+        },
+        {
+          "name": "ia_reply",
+          "op": "derive",
+          "rows": {
+            "ref": "ia_r2"
+          },
+          "into": "_key",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_replier"
+              },
+              {
+                "field": "_author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ia_l",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pa_v"
+          },
+          "etype": "likes",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ia_lv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ia_l"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ia_lv",
+          "op": "dedup",
+          "items": {
+            "ref": "ia_lv0"
+          }
+        },
+        {
+          "name": "ia_la",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ia_lv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ia_la_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ia_la"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_author"
+          }
+        },
+        {
+          "name": "ia_l_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ia_l"
+          },
+          "names": {
+            "src": "_liker",
+            "dst": "_msg"
+          }
+        },
+        {
+          "name": "ia_l1",
+          "op": "join_multi",
+          "left": {
+            "ref": "ia_l_n"
+          },
+          "right": {
+            "ref": "ia_la_n"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "ia_like",
+          "op": "derive",
+          "rows": {
+            "ref": "ia_l1"
+          },
+          "into": "_key",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_liker"
+              },
+              {
+                "field": "_author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ib_m",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pb_v"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "ib_mv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ib_m"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ib_mv",
+          "op": "dedup",
+          "items": {
+            "ref": "ib_mv0"
+          }
+        },
+        {
+          "name": "ib_par",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ib_mv"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ib_pv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ib_par"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ib_pv",
+          "op": "dedup",
+          "items": {
+            "ref": "ib_pv0"
+          }
+        },
+        {
+          "name": "ib_pa",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ib_pv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ib_pa_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ib_pa"
+          },
+          "names": {
+            "src": "_parent",
+            "dst": "_author"
+          }
+        },
+        {
+          "name": "ib_par_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ib_par"
+          },
+          "names": {
+            "src": "_reply",
+            "dst": "_parent"
+          }
+        },
+        {
+          "name": "ib_m_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ib_m"
+          },
+          "names": {
+            "src": "_replier",
+            "dst": "_reply"
+          }
+        },
+        {
+          "name": "ib_r1",
+          "op": "join_multi",
+          "left": {
+            "ref": "ib_m_n"
+          },
+          "right": {
+            "ref": "ib_par_n"
+          },
+          "left_on": "_reply",
+          "right_on": "_reply"
+        },
+        {
+          "name": "ib_r2",
+          "op": "join_multi",
+          "left": {
+            "ref": "ib_r1"
+          },
+          "right": {
+            "ref": "ib_pa_n"
+          },
+          "left_on": "_parent",
+          "right_on": "_parent"
+        },
+        {
+          "name": "ib_reply",
+          "op": "derive",
+          "rows": {
+            "ref": "ib_r2"
+          },
+          "into": "_key",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_replier"
+              },
+              {
+                "field": "_author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ib_l",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "pb_v"
+          },
+          "etype": "likes",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ib_lv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "ib_l"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ib_lv",
+          "op": "dedup",
+          "items": {
+            "ref": "ib_lv0"
+          }
+        },
+        {
+          "name": "ib_la",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ib_lv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "ib_la_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ib_la"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_author"
+          }
+        },
+        {
+          "name": "ib_l_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ib_l"
+          },
+          "names": {
+            "src": "_liker",
+            "dst": "_msg"
+          }
+        },
+        {
+          "name": "ib_l1",
+          "op": "join_multi",
+          "left": {
+            "ref": "ib_l_n"
+          },
+          "right": {
+            "ref": "ib_la_n"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "ib_like",
+          "op": "derive",
+          "rows": {
+            "ref": "ib_l1"
+          },
+          "into": "_key",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_liker"
+              },
+              {
+                "field": "_author"
+              }
+            ]
+          }
+        },
+        {
+          "name": "k12",
+          "op": "derive",
+          "rows": {
+            "ref": "pairs"
+          },
+          "into": "_k12",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_p1"
+              },
+              {
+                "field": "_p2"
+              }
+            ]
+          }
+        },
+        {
+          "name": "k21",
+          "op": "derive",
+          "rows": {
+            "ref": "k12"
+          },
+          "into": "_k21",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_p2"
+              },
+              {
+                "field": "_p1"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ia_rk",
+          "op": "pluck",
+          "rows": {
+            "ref": "ia_reply"
+          },
+          "field": "_key"
+        },
+        {
+          "name": "ib_rk",
+          "op": "pluck",
+          "rows": {
+            "ref": "ib_reply"
+          },
+          "field": "_key"
+        },
+        {
+          "name": "ia_lk",
+          "op": "pluck",
+          "rows": {
+            "ref": "ia_like"
+          },
+          "field": "_key"
+        },
+        {
+          "name": "ib_lk",
+          "op": "pluck",
+          "rows": {
+            "ref": "ib_like"
+          },
+          "field": "_key"
+        },
+        {
+          "name": "f1",
+          "op": "flag_in",
+          "rows": {
+            "ref": "k21"
+          },
+          "field": "_k12",
+          "allowed": {
+            "ref": "ia_rk"
+          },
+          "into": "_r12"
+        },
+        {
+          "name": "f2",
+          "op": "flag_in",
+          "rows": {
+            "ref": "f1"
+          },
+          "field": "_k21",
+          "allowed": {
+            "ref": "ib_rk"
+          },
+          "into": "_r21"
+        },
+        {
+          "name": "f3",
+          "op": "flag_in",
+          "rows": {
+            "ref": "f2"
+          },
+          "field": "_k12",
+          "allowed": {
+            "ref": "ia_lk"
+          },
+          "into": "_l12"
+        },
+        {
+          "name": "f4",
+          "op": "flag_in",
+          "rows": {
+            "ref": "f3"
+          },
+          "field": "_k21",
+          "allowed": {
+            "ref": "ib_lk"
+          },
+          "into": "_l21"
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "f4"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "if": [
+                      {
+                        "field": "_r12"
+                      },
+                      {
+                        "lit": 4
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "field": "_r21"
+                      },
+                      {
+                        "lit": 1
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "add": [
+                  {
+                    "if": [
+                      {
+                        "field": "_l12"
+                      },
+                      {
+                        "lit": 10
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "field": "_l21"
+                      },
+                      {
+                        "lit": 1
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "percity",
+          "op": "group_top",
+          "rows": {
+            "ref": "scored"
+          },
+          "by": "_city",
+          "keys": [
+            [
+              "score",
+              "desc"
+            ],
+            [
+              "_p1",
+              "asc"
+            ],
+            [
+              "_p2",
+              "asc"
+            ]
+          ]
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "percity"
+          },
+          "keys": [
+            [
+              "score",
+              "desc"
+            ],
+            [
+              "_p1",
+              "asc"
+            ],
+            [
+              "_p2",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "p1v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_p1"
+        },
+        {
+          "name": "p2v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_p2"
+        },
+        {
+          "name": "cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_city"
+        },
+        {
+          "name": "p1i",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "p1v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "p1n",
+          "op": "rename",
+          "rows": {
+            "ref": "p1i"
+          },
+          "names": {
+            "id": "person1Id"
+          }
+        },
+        {
+          "name": "p2i",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "p2v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "p2n",
+          "op": "rename",
+          "rows": {
+            "ref": "p2i"
+          },
+          "names": {
+            "id": "person2Id"
+          }
+        },
+        {
+          "name": "cn0",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cv"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "cn",
+          "op": "rename",
+          "rows": {
+            "ref": "cn0"
+          },
+          "names": {
+            "name": "city1Name"
+          }
+        },
+        {
+          "name": "j1",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "p1n"
+          },
+          "left_on": "_p1",
+          "right_on": "_vid"
+        },
+        {
+          "name": "j2",
+          "op": "join",
+          "left": {
+            "ref": "j1"
+          },
+          "right": {
+            "ref": "p2n"
+          },
+          "left_on": "_p2",
+          "right_on": "_vid"
+        },
+        {
+          "name": "j3",
+          "op": "join",
+          "left": {
+            "ref": "j2"
+          },
+          "right": {
+            "ref": "cn"
+          },
+          "left_on": "_city",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "j3"
+          },
+          "fields": [
+            "person1Id",
+            "person2Id",
+            "city1Name",
+            "score"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "87e0ff97bea7",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

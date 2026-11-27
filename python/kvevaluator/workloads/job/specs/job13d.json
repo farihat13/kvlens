@@ -1,0 +1,150 @@
+{
+ "query": "job13d",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "it": "info_type",
+  "it2": "info_type",
+  "kt": "kind_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "miidx": "movie_info_idx",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "mi",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "kt",
+   "id",
+   "t",
+   "kind_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "miidx",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "it",
+   "id",
+   "miidx",
+   "info_type_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "miidx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "miidx",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "rating"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "release dates"
+   ]
+  ],
+  "kt": [
+   [
+    "cmp",
+    "=",
+    "kt",
+    "kind",
+    "movie"
+   ]
+  ],
+  "mc": [],
+  "mi": [],
+  "miidx": [],
+  "t": []
+ },
+ "outputs": [
+  [
+   "producing_company",
+   "cn",
+   "name"
+  ],
+  [
+   "rating",
+   "miidx",
+   "info"
+  ],
+  [
+   "movie",
+   "t",
+   "title"
+  ]
+ ]
+}

@@ -1,0 +1,911 @@
+{
+  "plan": "bi5",
+  "question": "Given a tag, find the 100 people with the highest activity score on messages with that tag, from their messages, replies and likes received.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tag": {
+      "type": "str"
+    }
+  },
+  "plans": {
+    "hand+probe": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "mv_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "mv",
+          "op": "concat",
+          "a": {
+            "ref": "mv_posts"
+          },
+          "b": {
+            "ref": "mv_comments"
+          }
+        },
+        {
+          "name": "creators",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "likes",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "like_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "likes"
+          },
+          "field": "src"
+        },
+        {
+          "name": "reply_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "replies"
+          },
+          "field": "src"
+        },
+        {
+          "name": "like_c",
+          "op": "group_count",
+          "items": {
+            "ref": "like_v"
+          }
+        },
+        {
+          "name": "reply_c",
+          "op": "group_count",
+          "items": {
+            "ref": "reply_v"
+          }
+        },
+        {
+          "name": "like_n",
+          "op": "rename",
+          "rows": {
+            "ref": "like_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "likeCount"
+          }
+        },
+        {
+          "name": "reply_n",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "replyCount"
+          }
+        },
+        {
+          "name": "with_l",
+          "op": "left_join",
+          "left": {
+            "ref": "creators"
+          },
+          "right": {
+            "ref": "like_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "likeCount": 0
+          }
+        },
+        {
+          "name": "with_r",
+          "op": "left_join",
+          "left": {
+            "ref": "with_l"
+          },
+          "right": {
+            "ref": "reply_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "replyCount": 0
+          }
+        },
+        {
+          "name": "per_person",
+          "op": "group_agg",
+          "rows": {
+            "ref": "with_r"
+          },
+          "by": [
+            "dst"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "likeCount": [
+              "sum",
+              "likeCount"
+            ],
+            "replyCount": [
+              "sum",
+              "replyCount"
+            ]
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "per_person"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "field": "messageCount"
+                  },
+                  {
+                    "mul": [
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "field": "replyCount"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "mul": [
+                  {
+                    "lit": 10
+                  },
+                  {
+                    "field": "likeCount"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "score",
+              "desc"
+            ],
+            [
+              "dst",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "replyCount",
+            "likeCount",
+            "messageCount",
+            "score"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~240b88": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "mv_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msgs"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "mv",
+          "op": "concat",
+          "a": {
+            "ref": "mv_posts"
+          },
+          "b": {
+            "ref": "mv_comments"
+          }
+        },
+        {
+          "name": "creators",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "likes",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "like_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "likes"
+          },
+          "field": "src"
+        },
+        {
+          "name": "reply_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "replies"
+          },
+          "field": "src"
+        },
+        {
+          "name": "like_c",
+          "op": "group_count",
+          "items": {
+            "ref": "like_v"
+          }
+        },
+        {
+          "name": "reply_c",
+          "op": "group_count",
+          "items": {
+            "ref": "reply_v"
+          }
+        },
+        {
+          "name": "like_n",
+          "op": "rename",
+          "rows": {
+            "ref": "like_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "likeCount"
+          }
+        },
+        {
+          "name": "reply_n",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "replyCount"
+          }
+        },
+        {
+          "name": "with_l",
+          "op": "left_join",
+          "left": {
+            "ref": "creators"
+          },
+          "right": {
+            "ref": "like_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "likeCount": 0
+          }
+        },
+        {
+          "name": "with_r",
+          "op": "left_join",
+          "left": {
+            "ref": "with_l"
+          },
+          "right": {
+            "ref": "reply_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "replyCount": 0
+          }
+        },
+        {
+          "name": "per_person",
+          "op": "group_agg",
+          "rows": {
+            "ref": "with_r"
+          },
+          "by": [
+            "dst"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "likeCount": [
+              "sum",
+              "likeCount"
+            ],
+            "replyCount": [
+              "sum",
+              "replyCount"
+            ]
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "per_person"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "field": "messageCount"
+                  },
+                  {
+                    "mul": [
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "field": "replyCount"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "mul": [
+                  {
+                    "lit": 10
+                  },
+                  {
+                    "field": "likeCount"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "score",
+              "desc"
+            ],
+            [
+              "dst",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "replyCount",
+            "likeCount",
+            "messageCount",
+            "score"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~c9d31e": {
+      "steps": [
+        {
+          "name": "tag",
+          "op": "read_index_eq",
+          "label": "Tag",
+          "prop": "name",
+          "value": {
+            "param": "tag"
+          }
+        },
+        {
+          "name": "msgs0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tag"
+          },
+          "etype": "hasTag",
+          "dir": "in"
+        },
+        {
+          "name": "msgs",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs0"
+          }
+        },
+        {
+          "name": "mv",
+          "op": "dedup",
+          "items": {
+            "ref": "msgs"
+          }
+        },
+        {
+          "name": "creators",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "likes",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "mv"
+          },
+          "etype": "replyOf",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "like_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "likes"
+          },
+          "field": "src"
+        },
+        {
+          "name": "reply_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "replies"
+          },
+          "field": "src"
+        },
+        {
+          "name": "like_c",
+          "op": "group_count",
+          "items": {
+            "ref": "like_v"
+          }
+        },
+        {
+          "name": "reply_c",
+          "op": "group_count",
+          "items": {
+            "ref": "reply_v"
+          }
+        },
+        {
+          "name": "like_n",
+          "op": "rename",
+          "rows": {
+            "ref": "like_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "likeCount"
+          }
+        },
+        {
+          "name": "reply_n",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_c"
+          },
+          "names": {
+            "item": "src",
+            "count": "replyCount"
+          }
+        },
+        {
+          "name": "with_l",
+          "op": "left_join",
+          "left": {
+            "ref": "creators"
+          },
+          "right": {
+            "ref": "like_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "likeCount": 0
+          }
+        },
+        {
+          "name": "with_r",
+          "op": "left_join",
+          "left": {
+            "ref": "with_l"
+          },
+          "right": {
+            "ref": "reply_n"
+          },
+          "left_on": "src",
+          "right_on": "src",
+          "default": {
+            "replyCount": 0
+          }
+        },
+        {
+          "name": "per_person",
+          "op": "group_agg",
+          "rows": {
+            "ref": "with_r"
+          },
+          "by": [
+            "dst"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "likeCount": [
+              "sum",
+              "likeCount"
+            ],
+            "replyCount": [
+              "sum",
+              "replyCount"
+            ]
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "per_person"
+          },
+          "into": "score",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "field": "messageCount"
+                  },
+                  {
+                    "mul": [
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "field": "replyCount"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "mul": [
+                  {
+                    "lit": 10
+                  },
+                  {
+                    "field": "likeCount"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "score",
+              "desc"
+            ],
+            [
+              "dst",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "id",
+            "replyCount",
+            "likeCount",
+            "messageCount",
+            "score"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand+probe": {
+      "sha": "248448994b4a",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~240b88": {
+      "sha": "240b889facec",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~c9d31e": {
+      "sha": "c9d31eda4830",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

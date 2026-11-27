@@ -1,0 +1,16 @@
+// w_ins_v_full -- insert a new person carrying the 7 scalar properties, the indexed firstName and creationDate
+//   included (mb2's 7; the evaluator's full person also carries email and language).
+// Writes: the document (primary index) and its two persistent-index entries.
+// Evaluator: workloads/writes/microbench/queries.py w_ins_v_full -- insert_vertex(new_vid, _FULL_PROPS).
+// mb2 lineage: MB84 (same statement; its key was inlined).
+// Id: the plan's own synthetic id, a bound variable, as w_ins_v_min.
+INSERT {
+  _key: @new_vid,
+  firstName: "Wtest",
+  lastName: "Writer",
+  gender: "other",
+  birthday: 631152000000,
+  creationDate: 1577836800000,
+  locationIP: "10.0.0.1",
+  browserUsed: "Chrome"
+} INTO Person

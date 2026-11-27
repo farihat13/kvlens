@@ -1,0 +1,646 @@
+{
+"kind_type": [
+{
+"id": 1,
+"kind": "movie"
+},
+{
+"id": 2,
+"kind": "tv series"
+},
+{
+"id": 3,
+"kind": "tv movie"
+},
+{
+"id": 4,
+"kind": "video movie"
+},
+{
+"id": 5,
+"kind": "tv mini series"
+},
+{
+"id": 6,
+"kind": "video game"
+},
+{
+"id": 7,
+"kind": "episode"
+}
+],
+"company_type": [
+{
+"id": 1,
+"kind": "distributors"
+},
+{
+"id": 2,
+"kind": "production companies"
+},
+{
+"id": 3,
+"kind": "special effects companies"
+},
+{
+"id": 4,
+"kind": "miscellaneous companies"
+}
+],
+"role_type": [
+{
+"id": 1,
+"role": "actor"
+},
+{
+"id": 2,
+"role": "actress"
+},
+{
+"id": 3,
+"role": "producer"
+},
+{
+"id": 4,
+"role": "writer"
+},
+{
+"id": 5,
+"role": "cinematographer"
+},
+{
+"id": 6,
+"role": "composer"
+},
+{
+"id": 7,
+"role": "costume designer"
+},
+{
+"id": 8,
+"role": "director"
+},
+{
+"id": 9,
+"role": "editor"
+},
+{
+"id": 10,
+"role": "miscellaneous crew"
+},
+{
+"id": 11,
+"role": "production designer"
+},
+{
+"id": 12,
+"role": "guest"
+}
+],
+"info_type": [
+{
+"id": 1,
+"info": "runtimes"
+},
+{
+"id": 2,
+"info": "color info"
+},
+{
+"id": 3,
+"info": "genres"
+},
+{
+"id": 4,
+"info": "languages"
+},
+{
+"id": 5,
+"info": "certificates"
+},
+{
+"id": 6,
+"info": "sound mix"
+},
+{
+"id": 7,
+"info": "tech info"
+},
+{
+"id": 8,
+"info": "countries"
+},
+{
+"id": 9,
+"info": "taglines"
+},
+{
+"id": 10,
+"info": "keywords"
+},
+{
+"id": 11,
+"info": "alternate versions"
+},
+{
+"id": 12,
+"info": "crazy credits"
+},
+{
+"id": 13,
+"info": "goofs"
+},
+{
+"id": 14,
+"info": "soundtrack"
+},
+{
+"id": 15,
+"info": "quotes"
+},
+{
+"id": 16,
+"info": "release dates"
+},
+{
+"id": 17,
+"info": "trivia"
+},
+{
+"id": 18,
+"info": "locations"
+},
+{
+"id": 19,
+"info": "mini biography"
+},
+{
+"id": 20,
+"info": "birth notes"
+},
+{
+"id": 21,
+"info": "birth date"
+},
+{
+"id": 22,
+"info": "height"
+},
+{
+"id": 23,
+"info": "death date"
+},
+{
+"id": 24,
+"info": "spouse"
+},
+{
+"id": 25,
+"info": "other works"
+},
+{
+"id": 26,
+"info": "birth name"
+},
+{
+"id": 27,
+"info": "salary history"
+},
+{
+"id": 28,
+"info": "nick names"
+},
+{
+"id": 29,
+"info": "books"
+},
+{
+"id": 30,
+"info": "agent address"
+},
+{
+"id": 31,
+"info": "biographical movies"
+},
+{
+"id": 32,
+"info": "portrayed in"
+},
+{
+"id": 33,
+"info": "where now"
+},
+{
+"id": 34,
+"info": "trade mark"
+},
+{
+"id": 35,
+"info": "interviews"
+},
+{
+"id": 36,
+"info": "article"
+},
+{
+"id": 37,
+"info": "magazine cover photo"
+},
+{
+"id": 38,
+"info": "pictorial"
+},
+{
+"id": 39,
+"info": "death notes"
+},
+{
+"id": 40,
+"info": "LD disc format"
+},
+{
+"id": 41,
+"info": "LD year"
+},
+{
+"id": 42,
+"info": "LD digital sound"
+},
+{
+"id": 43,
+"info": "LD official retail price"
+},
+{
+"id": 44,
+"info": "LD frequency response"
+},
+{
+"id": 45,
+"info": "LD pressing plant"
+},
+{
+"id": 46,
+"info": "LD length"
+},
+{
+"id": 47,
+"info": "LD language"
+},
+{
+"id": 48,
+"info": "LD review"
+},
+{
+"id": 49,
+"info": "LD spaciality"
+},
+{
+"id": 50,
+"info": "LD release date"
+},
+{
+"id": 51,
+"info": "LD production country"
+},
+{
+"id": 52,
+"info": "LD contrast"
+},
+{
+"id": 53,
+"info": "LD color rendition"
+},
+{
+"id": 54,
+"info": "LD picture format"
+},
+{
+"id": 55,
+"info": "LD video noise"
+},
+{
+"id": 56,
+"info": "LD video artifacts"
+},
+{
+"id": 57,
+"info": "LD release country"
+},
+{
+"id": 58,
+"info": "LD sharpness"
+},
+{
+"id": 59,
+"info": "LD dynamic range"
+},
+{
+"id": 60,
+"info": "LD audio noise"
+},
+{
+"id": 61,
+"info": "LD color information"
+},
+{
+"id": 62,
+"info": "LD group genre"
+},
+{
+"id": 63,
+"info": "LD quality program"
+},
+{
+"id": 64,
+"info": "LD close captions-teletext-ld-g"
+},
+{
+"id": 65,
+"info": "LD category"
+},
+{
+"id": 66,
+"info": "LD analog left"
+},
+{
+"id": 67,
+"info": "LD certification"
+},
+{
+"id": 68,
+"info": "LD audio quality"
+},
+{
+"id": 69,
+"info": "LD video quality"
+},
+{
+"id": 70,
+"info": "LD aspect ratio"
+},
+{
+"id": 71,
+"info": "LD analog right"
+},
+{
+"id": 72,
+"info": "LD additional information"
+},
+{
+"id": 73,
+"info": "LD number of chapter stops"
+},
+{
+"id": 74,
+"info": "LD dialogue intellegibility"
+},
+{
+"id": 75,
+"info": "LD disc size"
+},
+{
+"id": 76,
+"info": "LD master format"
+},
+{
+"id": 77,
+"info": "LD subtitles"
+},
+{
+"id": 78,
+"info": "LD status of availablility"
+},
+{
+"id": 79,
+"info": "LD quality of source"
+},
+{
+"id": 80,
+"info": "LD number of sides"
+},
+{
+"id": 81,
+"info": "LD video standard"
+},
+{
+"id": 82,
+"info": "LD supplement"
+},
+{
+"id": 83,
+"info": "LD original title"
+},
+{
+"id": 84,
+"info": "LD sound encoding"
+},
+{
+"id": 85,
+"info": "LD number"
+},
+{
+"id": 86,
+"info": "LD label"
+},
+{
+"id": 87,
+"info": "LD catalog number"
+},
+{
+"id": 88,
+"info": "LD laserdisc title"
+},
+{
+"id": 89,
+"info": "screenplay-teleplay"
+},
+{
+"id": 90,
+"info": "novel"
+},
+{
+"id": 91,
+"info": "adaption"
+},
+{
+"id": 92,
+"info": "book"
+},
+{
+"id": 93,
+"info": "production process protocol"
+},
+{
+"id": 94,
+"info": "printed media reviews"
+},
+{
+"id": 95,
+"info": "essays"
+},
+{
+"id": 96,
+"info": "other literature"
+},
+{
+"id": 97,
+"info": "mpaa"
+},
+{
+"id": 98,
+"info": "plot"
+},
+{
+"id": 99,
+"info": "votes distribution"
+},
+{
+"id": 100,
+"info": "votes"
+},
+{
+"id": 101,
+"info": "rating"
+},
+{
+"id": 102,
+"info": "production dates"
+},
+{
+"id": 103,
+"info": "copyright holder"
+},
+{
+"id": 104,
+"info": "filming dates"
+},
+{
+"id": 105,
+"info": "budget"
+},
+{
+"id": 106,
+"info": "weekend gross"
+},
+{
+"id": 107,
+"info": "gross"
+},
+{
+"id": 108,
+"info": "opening weekend"
+},
+{
+"id": 109,
+"info": "rentals"
+},
+{
+"id": 110,
+"info": "admissions"
+},
+{
+"id": 111,
+"info": "studios"
+},
+{
+"id": 112,
+"info": "top 250 rank"
+},
+{
+"id": 113,
+"info": "bottom 10 rank"
+}
+],
+"link_type": [
+{
+"id": 1,
+"link": "follows"
+},
+{
+"id": 2,
+"link": "followed by"
+},
+{
+"id": 3,
+"link": "remake of"
+},
+{
+"id": 4,
+"link": "remade as"
+},
+{
+"id": 5,
+"link": "references"
+},
+{
+"id": 6,
+"link": "referenced in"
+},
+{
+"id": 7,
+"link": "spoofs"
+},
+{
+"id": 8,
+"link": "spoofed in"
+},
+{
+"id": 9,
+"link": "features"
+},
+{
+"id": 10,
+"link": "featured in"
+},
+{
+"id": 11,
+"link": "spin off from"
+},
+{
+"id": 12,
+"link": "spin off"
+},
+{
+"id": 13,
+"link": "version of"
+},
+{
+"id": 14,
+"link": "similar to"
+},
+{
+"id": 15,
+"link": "edited into"
+},
+{
+"id": 16,
+"link": "edited from"
+},
+{
+"id": 17,
+"link": "alternate language version of"
+},
+{
+"id": 18,
+"link": "unknown link"
+}
+],
+"comp_cast_type": [
+{
+"id": 1,
+"kind": "cast"
+},
+{
+"id": 2,
+"kind": "crew"
+},
+{
+"id": 3,
+"kind": "complete"
+},
+{
+"id": 4,
+"kind": "complete+verified"
+}
+]
+}

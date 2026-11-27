@@ -1,0 +1,17 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=19
+# IS5. Creator of a message
+# 
+# Given a Message with ID $messageId, retrieve its author.
+# 
+# Params:
+#   $messageId  : string     (e.g., "933")
+
+query IS5($messageId: string) {
+  message(func: eq(id, $messageId)) @filter(type(post) OR type(comment)) {
+    hasCreator @filter(type(person)) {
+      authorId: id
+      authorFirstName: firstName
+      authorLastName: lastName
+    }
+  }
+}

@@ -1,0 +1,355 @@
+{
+  "plan": "ic8",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "requires": [
+        "whole_row_read"
+      ],
+      "plan": "whole_row_read",
+      "for": "nebula, arangodb, pertype_csr",
+      "on": {
+        "whole_row_read": [
+          "Comment"
+        ]
+      }
+    },
+    {
+      "requires": [],
+      "plan": "default",
+      "for": "dgraph"
+    }
+  ],
+  "plans": {
+    "whole_row_read": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "my_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_msgs"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "replies"
+          },
+          "props": [
+            "creationDate",
+            "id",
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "author_vids",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_vids"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "authors_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "joined"
+          },
+          "names": {
+            "id": "commentId",
+            "creationDate": "commentCreationDate",
+            "content": "commentContent"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commentId",
+            "commentCreationDate",
+            "commentContent"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "default": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "my_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "my_msgs"
+          },
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "replies"
+          },
+          "props": [
+            "creationDate",
+            "id"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bodies",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_vids"
+          },
+          "props": [
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "with_body",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "bodies"
+          }
+        },
+        {
+          "name": "author_vids",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_vids"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "authors_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "with_body"
+          },
+          "right": {
+            "ref": "authors_named"
+          }
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "joined"
+          },
+          "names": {
+            "id": "commentId",
+            "creationDate": "commentCreationDate",
+            "content": "commentContent"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "commentId",
+            "commentCreationDate",
+            "commentContent"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  }
+}

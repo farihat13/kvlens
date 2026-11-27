@@ -1,0 +1,6 @@
+tag|interested|pairs|stratum
+Argentina|6|10|p50
+Katharine_Hepburn|49|1934|p75
+Arnaud_Clément|81|3976|p90
+Immanuel_Kant|203|36470|p99
+Augustine_of_Hippo|412|170336|max

@@ -1,0 +1,244 @@
+{
+  "plan": "bi11",
+  "question": "Given a country and a date range, count the triangles of three people living there who all know each other through friendships made within the range.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "country": {
+      "type": "str"
+    },
+    "startDate": {
+      "type": "int"
+    },
+    "endDate": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "c",
+          "op": "read_index_eq",
+          "label": "Place",
+          "prop": "name",
+          "value": {
+            "param": "country"
+          }
+        },
+        {
+          "name": "ci0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "c"
+          },
+          "etype": "isPartOf",
+          "dir": "in"
+        },
+        {
+          "name": "ci",
+          "op": "dedup",
+          "items": {
+            "ref": "ci0"
+          }
+        },
+        {
+          "name": "p0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ci"
+          },
+          "etype": "isLocatedIn",
+          "dir": "in"
+        },
+        {
+          "name": "p",
+          "op": "dedup",
+          "items": {
+            "ref": "p0"
+          }
+        },
+        {
+          "name": "kn",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "p"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "kn_in",
+          "op": "filter_in",
+          "rows": {
+            "ref": "kn"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "p"
+          }
+        },
+        {
+          "name": "kn_w",
+          "op": "filter",
+          "rows": {
+            "ref": "kn_in"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "startDate"
+                  }
+                ]
+              },
+              {
+                "le": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "src"
+                  },
+                  {
+                    "field": "dst"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "e",
+          "op": "rename",
+          "rows": {
+            "ref": "kn_w"
+          },
+          "names": {
+            "src": "_a",
+            "dst": "_b"
+          }
+        },
+        {
+          "name": "e_key",
+          "op": "derive",
+          "rows": {
+            "ref": "e"
+          },
+          "into": "_ab",
+          "fn": {
+            "tuple": [
+              {
+                "field": "_a"
+              },
+              {
+                "field": "_b"
+              }
+            ]
+          }
+        },
+        {
+          "name": "keys",
+          "op": "pluck",
+          "rows": {
+            "ref": "e_key"
+          },
+          "field": "_ab"
+        },
+        {
+          "name": "e2",
+          "op": "rename",
+          "rows": {
+            "ref": "kn_w"
+          },
+          "names": {
+            "src": "_b",
+            "dst": "_c"
+          }
+        },
+        {
+          "name": "e2_p",
+          "op": "project",
+          "rows": {
+            "ref": "e2"
+          },
+          "fields": [
+            "_b",
+            "_c"
+          ]
+        },
+        {
+          "name": "tri",
+          "op": "join_multi",
+          "left": {
+            "ref": "e"
+          },
+          "right": {
+            "ref": "e2_p"
+          },
+          "left_on": "_b",
+          "right_on": "_b",
+          "where_key": {
+            "tuple": [
+              {
+                "field": "_a"
+              },
+              {
+                "field": "_c"
+              }
+            ]
+          },
+          "where_in": {
+            "ref": "keys"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "tri"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "8298c2e4630b",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

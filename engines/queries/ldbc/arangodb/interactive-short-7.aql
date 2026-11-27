@@ -1,0 +1,32 @@
+// IS7: Replies of a Message
+// Given a messageId, return replies with their authors
+// and whether each author knows the original message author
+LET post = DOCUMENT(CONCAT("Post/", @messageId))
+LET comment = DOCUMENT(CONCAT("Comment/", @messageId))
+LET msg = post != null ? post : comment
+
+// Find the original message author
+LET origAuthor = FIRST(
+    FOR a IN 1..1 OUTBOUND msg hasCreator
+        RETURN a
+)
+
+FOR reply IN 1..1 INBOUND msg replyOf
+    FOR replyAuthor IN 1..1 OUTBOUND reply hasCreator
+        // Check if reply author knows original author
+        LET knowsOriginal = LENGTH(
+            FOR v IN 1..1 ANY replyAuthor knows
+                FILTER v._id == origAuthor._id
+                LIMIT 1
+                RETURN 1
+        ) > 0
+        SORT reply.creationDate DESC, TO_NUMBER(replyAuthor._key) ASC
+        RETURN {
+            commentId: TO_NUMBER(reply._key),
+            commentContent: reply.content,
+            commentCreationDate: reply.creationDate,
+            replyAuthorId: TO_NUMBER(replyAuthor._key),
+            replyAuthorFirstName: replyAuthor.firstName,
+            replyAuthorLastName: replyAuthor.lastName,
+            replyAuthorKnowsOriginalMessageAuthor: knowsOriginal
+        }

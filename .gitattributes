@@ -1,0 +1,2 @@
+# a release archive (git archive, a GitHub or Zenodo zip) writes its commit into RELEASE_COMMIT; the build stamps it
+RELEASE_COMMIT export-subst

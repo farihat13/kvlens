@@ -1,0 +1,7 @@
+// w_ins_v_min -- insert a new person carrying only non-indexed properties (lastName, gender, locationIP).
+// Writes: the document (primary index) and a null entry in each of the two Person persistent indexes (firstName,
+//   creationDate; non-sparse).
+// Evaluator: workloads/writes/microbench/queries.py w_ins_v_min -- insert_vertex(new_vid, _MIN_PROPS).
+// mb2 lineage: MB83 (same statement; its key was inlined).
+// Id: the plan's own synthetic id (its `let` new_vid), entered as the plain LDBC id inside the vid; a bound variable.
+INSERT { _key: @new_vid, lastName: "WMin", gender: "other", locationIP: "10.0.0.1" } INTO Person

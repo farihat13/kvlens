@@ -1,0 +1,56 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=7.08
+# Q7. Recent likers
+#
+# Given a start Person with ID $personId, find the most recent likes on any of start Person’s Messages. 
+# Find Persons that liked (likes edge) any of start Person’s Messages, the Messages they liked
+# most recently, the creation date of that like, and the latency in minutes (minutesLatency) between
+# creation of Messages and like. Additionally, for each Person found return a flag indicating (isNew)
+# whether the liker is a friend of start Person. In case that a Person liked multiple Messages at the
+# same time, return the Message with lowest identifier.Validation rule: Depending on whether the system-under-test supports leap seconds or uses
+# UTC-SLS (UTC with Smoothed Leap Seconds), a difference of 1 minute can occur between theminutesLatency results of two correct implementations when the time interval includes June 30,
+# 2012, when there was a leap second. Therefore, the minutesLatency value is validated using a
+# tolerance of 1 minute
+#
+# Params:
+#   $personId : int
+# Results:
+# 1 friend.id ID R friend.id = personId is allowed
+# 2 friend.firstName String R
+# 3 friend.lastName String R
+# 4 likes.creationDate DateTime R
+# 5 message.id ID R6message.content or message.imageFile (for photos)Text R
+# 7 minutesLatency 32-bit Integer CDuration between the creation of theMessage and the creation of the like, in minutes.
+# 8 isNew Boolean C False if person and friend know each other, True otherwise
+# sort 
+# 1 likes.creationDate ↓
+# 2 friend.id ↑
+# limit 20
+
+
+MATCH (person:Person)<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:Person)
+WHERE id(person) == $personId
+WITH liker, message, like.creationDate AS likeTime, person, id(message) AS messageId
+ORDER BY likeTime DESC, messageId ASC
+WITH
+    liker,
+    head(collect(message)) AS latestMsg,
+    head(collect(likeTime)) AS likeCreationDate,
+    person
+RETURN
+    id(liker) AS personId,
+    liker.Person.firstName AS personFirstName,
+    liker.Person.lastName AS personLastName,
+    likeCreationDate AS likeCreationDate,
+    id(latestMsg) AS messageId,
+    CASE
+        WHEN (latestMsg.Post.content IS NOT NULL AND latestMsg.Post.content != "") THEN latestMsg.Post.content
+        WHEN (latestMsg.`Comment`.content IS NOT NULL AND latestMsg.`Comment`.content != "") THEN latestMsg.`Comment`.content
+        ELSE latestMsg.Post.imageFile
+    END AS messageContent,
+    coalesce(
+      latestMsg.Post.creationDate,
+      latestMsg.`Comment`.creationDate
+    ) AS messageCreationDate,
+    not((liker)-[:KNOWS]-(person)) AS isNew
+ORDER BY likeCreationDate DESC, personId ASC
+LIMIT 20;

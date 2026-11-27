@@ -1,0 +1,7 @@
+// w_upd_plain -- write one NON-indexed property (lastName) of one person.
+// Writes: the Person document, read and rewritten whole as a new revision (a new document id: the old one deleted,
+//   the primary index re-pointed, and every index entry of the collection rewritten, as write_fidelity.py names).
+// Evaluator: workloads/writes/microbench/queries.py w_upd_plain -- update_prop(me_vid, lastName).
+// mb2 lineage: MB81 (same statement; its key was inlined).
+// Anchor: the Person _key is the person's id, a bound variable (AQL takes one wherever a write names a document).
+UPDATE @person WITH { lastName: "WUpd" } IN Person

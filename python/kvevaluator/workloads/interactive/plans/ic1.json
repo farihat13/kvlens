@@ -1,0 +1,2778 @@
+{
+  "plan": "ic1",
+  "question": "Given a person and a first name, find the 20 people with that first name within three knows-steps, nearest first, with their profile, city, universities and companies.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    },
+    "firstName": {}
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "ic1_expand_name_matches(index_eq+fetch_deferred)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb1d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "lvl1",
+          "op": "exclude",
+          "items": {
+            "ref": "nb1d"
+          },
+          "remove": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen1",
+          "op": "concat",
+          "a": {
+            "ref": "lvl1"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "lvl2",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen1"
+          }
+        },
+        {
+          "name": "seen2",
+          "op": "concat",
+          "a": {
+            "ref": "seen1"
+          },
+          "b": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "fmatch",
+          "op": "read_index_eq",
+          "label": "Person",
+          "prop": "firstName",
+          "value": {
+            "param": "firstName"
+          }
+        },
+        {
+          "name": "hit1",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl1"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit2",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl2"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "far_match",
+          "op": "exclude",
+          "items": {
+            "ref": "fmatch"
+          },
+          "remove": {
+            "ref": "seen2"
+          }
+        },
+        {
+          "name": "match_nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "far_match"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "match_l2",
+          "op": "filter_in",
+          "rows": {
+            "ref": "match_nb"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "match_l2v",
+          "op": "pluck",
+          "rows": {
+            "ref": "match_l2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "hit3",
+          "op": "dedup",
+          "items": {
+            "ref": "match_l2v"
+          }
+        },
+        {
+          "name": "dist1",
+          "op": "annotate",
+          "items": {
+            "ref": "hit1"
+          },
+          "field": "distanceFromPerson",
+          "value": 1
+        },
+        {
+          "name": "dist2",
+          "op": "annotate",
+          "items": {
+            "ref": "hit2"
+          },
+          "field": "distanceFromPerson",
+          "value": 2
+        },
+        {
+          "name": "dist3",
+          "op": "annotate",
+          "items": {
+            "ref": "hit3"
+          },
+          "field": "distanceFromPerson",
+          "value": 3
+        },
+        {
+          "name": "hits12",
+          "op": "concat",
+          "a": {
+            "ref": "dist1"
+          },
+          "b": {
+            "ref": "dist2"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "concat",
+          "a": {
+            "ref": "hits12"
+          },
+          "b": {
+            "ref": "dist3"
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "rankp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_v"
+          },
+          "props": [
+            "lastName",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ranked",
+          "op": "zip_rows",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "rankp"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "distanceFromPerson",
+              "asc"
+            ],
+            [
+              "lastName",
+              "asc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName",
+            "_vid": "_city"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "u_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "studyAt",
+          "dir": "out",
+          "edge_props": [
+            "classYear"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "u_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_org",
+          "op": "dedup",
+          "items": {
+            "ref": "u_orgv"
+          }
+        },
+        {
+          "name": "u_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "u_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_orgnm"
+          },
+          "names": {
+            "name": "universityName"
+          }
+        },
+        {
+          "name": "u_orgj",
+          "op": "join",
+          "left": {
+            "ref": "u_edges"
+          },
+          "right": {
+            "ref": "u_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "u_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "u_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "u_plv"
+          }
+        },
+        {
+          "name": "u_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "u_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plnm"
+          },
+          "names": {
+            "name": "universityCity"
+          }
+        },
+        {
+          "name": "u_plj",
+          "op": "join",
+          "left": {
+            "ref": "u_ploc"
+          },
+          "right": {
+            "ref": "u_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "u_full",
+          "op": "join",
+          "left": {
+            "ref": "u_orgj"
+          },
+          "right": {
+            "ref": "u_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "w_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "workAt",
+          "dir": "out",
+          "edge_props": [
+            "workFrom"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "w_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_org",
+          "op": "dedup",
+          "items": {
+            "ref": "w_orgv"
+          }
+        },
+        {
+          "name": "w_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "w_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_orgnm"
+          },
+          "names": {
+            "name": "companyName"
+          }
+        },
+        {
+          "name": "w_orgj",
+          "op": "join",
+          "left": {
+            "ref": "w_edges"
+          },
+          "right": {
+            "ref": "w_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "w_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "w_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "w_plv"
+          }
+        },
+        {
+          "name": "w_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "w_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plnm"
+          },
+          "names": {
+            "name": "companyCountry"
+          }
+        },
+        {
+          "name": "w_plj",
+          "op": "join",
+          "left": {
+            "ref": "w_ploc"
+          },
+          "right": {
+            "ref": "w_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "w_full",
+          "op": "join",
+          "left": {
+            "ref": "w_orgj"
+          },
+          "right": {
+            "ref": "w_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "withuni",
+          "op": "nest",
+          "rows": {
+            "ref": "withcity"
+          },
+          "children": {
+            "ref": "u_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "universities",
+          "fields": [
+            "universityName",
+            "classYear",
+            "universityCity"
+          ]
+        },
+        {
+          "name": "withco",
+          "op": "nest",
+          "rows": {
+            "ref": "withuni"
+          },
+          "children": {
+            "ref": "w_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "companies",
+          "fields": [
+            "companyName",
+            "workFrom",
+            "companyCountry"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withco"
+          },
+          "names": {
+            "id": "personId",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personLastName",
+            "distanceFromPerson",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language",
+            "cityName",
+            "universities",
+            "companies"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "ic1_expand_name_matches(index_eq+fetch_inline)": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb1d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "lvl1",
+          "op": "exclude",
+          "items": {
+            "ref": "nb1d"
+          },
+          "remove": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen1",
+          "op": "concat",
+          "a": {
+            "ref": "lvl1"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "lvl2",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen1"
+          }
+        },
+        {
+          "name": "seen2",
+          "op": "concat",
+          "a": {
+            "ref": "seen1"
+          },
+          "b": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "fmatch",
+          "op": "read_index_eq",
+          "label": "Person",
+          "prop": "firstName",
+          "value": {
+            "param": "firstName"
+          }
+        },
+        {
+          "name": "hit1",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl1"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit2",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl2"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "far_match",
+          "op": "exclude",
+          "items": {
+            "ref": "fmatch"
+          },
+          "remove": {
+            "ref": "seen2"
+          }
+        },
+        {
+          "name": "match_nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "far_match"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "pairs": true
+        },
+        {
+          "name": "match_l2",
+          "op": "filter_in",
+          "rows": {
+            "ref": "match_nb"
+          },
+          "field": "dst",
+          "allowed": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "match_l2v",
+          "op": "pluck",
+          "rows": {
+            "ref": "match_l2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "hit3",
+          "op": "dedup",
+          "items": {
+            "ref": "match_l2v"
+          }
+        },
+        {
+          "name": "dist1",
+          "op": "annotate",
+          "items": {
+            "ref": "hit1"
+          },
+          "field": "distanceFromPerson",
+          "value": 1
+        },
+        {
+          "name": "dist2",
+          "op": "annotate",
+          "items": {
+            "ref": "hit2"
+          },
+          "field": "distanceFromPerson",
+          "value": 2
+        },
+        {
+          "name": "dist3",
+          "op": "annotate",
+          "items": {
+            "ref": "hit3"
+          },
+          "field": "distanceFromPerson",
+          "value": 3
+        },
+        {
+          "name": "hits12",
+          "op": "concat",
+          "a": {
+            "ref": "dist1"
+          },
+          "b": {
+            "ref": "dist2"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "concat",
+          "a": {
+            "ref": "hits12"
+          },
+          "b": {
+            "ref": "dist3"
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "rankp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_v"
+          },
+          "props": [
+            "lastName",
+            "id",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ranked",
+          "op": "zip_rows",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "rankp"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "distanceFromPerson",
+              "asc"
+            ],
+            [
+              "lastName",
+              "asc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName",
+            "_vid": "_city"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "u_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "studyAt",
+          "dir": "out",
+          "edge_props": [
+            "classYear"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "u_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_org",
+          "op": "dedup",
+          "items": {
+            "ref": "u_orgv"
+          }
+        },
+        {
+          "name": "u_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "u_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_orgnm"
+          },
+          "names": {
+            "name": "universityName"
+          }
+        },
+        {
+          "name": "u_orgj",
+          "op": "join",
+          "left": {
+            "ref": "u_edges"
+          },
+          "right": {
+            "ref": "u_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "u_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "u_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "u_plv"
+          }
+        },
+        {
+          "name": "u_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "u_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plnm"
+          },
+          "names": {
+            "name": "universityCity"
+          }
+        },
+        {
+          "name": "u_plj",
+          "op": "join",
+          "left": {
+            "ref": "u_ploc"
+          },
+          "right": {
+            "ref": "u_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "u_full",
+          "op": "join",
+          "left": {
+            "ref": "u_orgj"
+          },
+          "right": {
+            "ref": "u_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "w_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "workAt",
+          "dir": "out",
+          "edge_props": [
+            "workFrom"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "w_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_org",
+          "op": "dedup",
+          "items": {
+            "ref": "w_orgv"
+          }
+        },
+        {
+          "name": "w_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "w_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_orgnm"
+          },
+          "names": {
+            "name": "companyName"
+          }
+        },
+        {
+          "name": "w_orgj",
+          "op": "join",
+          "left": {
+            "ref": "w_edges"
+          },
+          "right": {
+            "ref": "w_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "w_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "w_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "w_plv"
+          }
+        },
+        {
+          "name": "w_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "w_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plnm"
+          },
+          "names": {
+            "name": "companyCountry"
+          }
+        },
+        {
+          "name": "w_plj",
+          "op": "join",
+          "left": {
+            "ref": "w_ploc"
+          },
+          "right": {
+            "ref": "w_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "w_full",
+          "op": "join",
+          "left": {
+            "ref": "w_orgj"
+          },
+          "right": {
+            "ref": "w_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "withuni",
+          "op": "nest",
+          "rows": {
+            "ref": "withcity"
+          },
+          "children": {
+            "ref": "u_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "universities",
+          "fields": [
+            "universityName",
+            "classYear",
+            "universityCity"
+          ]
+        },
+        {
+          "name": "withco",
+          "op": "nest",
+          "rows": {
+            "ref": "withuni"
+          },
+          "children": {
+            "ref": "w_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "companies",
+          "fields": [
+            "companyName",
+            "workFrom",
+            "companyCountry"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withco"
+          },
+          "names": {
+            "id": "personId",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personLastName",
+            "distanceFromPerson",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language",
+            "cityName",
+            "universities",
+            "companies"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "index_eq+fetch_deferred": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb1d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "lvl1",
+          "op": "exclude",
+          "items": {
+            "ref": "nb1d"
+          },
+          "remove": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen1",
+          "op": "concat",
+          "a": {
+            "ref": "lvl1"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "lvl2",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen1"
+          }
+        },
+        {
+          "name": "nb3",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl2"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb3d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb3"
+          }
+        },
+        {
+          "name": "seen2",
+          "op": "concat",
+          "a": {
+            "ref": "seen1"
+          },
+          "b": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "lvl3",
+          "op": "exclude",
+          "items": {
+            "ref": "nb3d"
+          },
+          "remove": {
+            "ref": "seen2"
+          }
+        },
+        {
+          "name": "fmatch",
+          "op": "read_index_eq",
+          "label": "Person",
+          "prop": "firstName",
+          "value": {
+            "param": "firstName"
+          }
+        },
+        {
+          "name": "hit1",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl1"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit2",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl2"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit3",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl3"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "dist1",
+          "op": "annotate",
+          "items": {
+            "ref": "hit1"
+          },
+          "field": "distanceFromPerson",
+          "value": 1
+        },
+        {
+          "name": "dist2",
+          "op": "annotate",
+          "items": {
+            "ref": "hit2"
+          },
+          "field": "distanceFromPerson",
+          "value": 2
+        },
+        {
+          "name": "dist3",
+          "op": "annotate",
+          "items": {
+            "ref": "hit3"
+          },
+          "field": "distanceFromPerson",
+          "value": 3
+        },
+        {
+          "name": "hits12",
+          "op": "concat",
+          "a": {
+            "ref": "dist1"
+          },
+          "b": {
+            "ref": "dist2"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "concat",
+          "a": {
+            "ref": "hits12"
+          },
+          "b": {
+            "ref": "dist3"
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "rankp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_v"
+          },
+          "props": [
+            "lastName",
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ranked",
+          "op": "zip_rows",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "rankp"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "distanceFromPerson",
+              "asc"
+            ],
+            [
+              "lastName",
+              "asc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "detail",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "profiled",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "detail"
+          }
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName",
+            "_vid": "_city"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "profiled"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "u_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "studyAt",
+          "dir": "out",
+          "edge_props": [
+            "classYear"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "u_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_org",
+          "op": "dedup",
+          "items": {
+            "ref": "u_orgv"
+          }
+        },
+        {
+          "name": "u_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "u_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_orgnm"
+          },
+          "names": {
+            "name": "universityName"
+          }
+        },
+        {
+          "name": "u_orgj",
+          "op": "join",
+          "left": {
+            "ref": "u_edges"
+          },
+          "right": {
+            "ref": "u_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "u_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "u_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "u_plv"
+          }
+        },
+        {
+          "name": "u_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "u_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plnm"
+          },
+          "names": {
+            "name": "universityCity"
+          }
+        },
+        {
+          "name": "u_plj",
+          "op": "join",
+          "left": {
+            "ref": "u_ploc"
+          },
+          "right": {
+            "ref": "u_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "u_full",
+          "op": "join",
+          "left": {
+            "ref": "u_orgj"
+          },
+          "right": {
+            "ref": "u_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "w_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "workAt",
+          "dir": "out",
+          "edge_props": [
+            "workFrom"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "w_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_org",
+          "op": "dedup",
+          "items": {
+            "ref": "w_orgv"
+          }
+        },
+        {
+          "name": "w_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "w_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_orgnm"
+          },
+          "names": {
+            "name": "companyName"
+          }
+        },
+        {
+          "name": "w_orgj",
+          "op": "join",
+          "left": {
+            "ref": "w_edges"
+          },
+          "right": {
+            "ref": "w_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "w_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "w_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "w_plv"
+          }
+        },
+        {
+          "name": "w_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "w_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plnm"
+          },
+          "names": {
+            "name": "companyCountry"
+          }
+        },
+        {
+          "name": "w_plj",
+          "op": "join",
+          "left": {
+            "ref": "w_ploc"
+          },
+          "right": {
+            "ref": "w_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "w_full",
+          "op": "join",
+          "left": {
+            "ref": "w_orgj"
+          },
+          "right": {
+            "ref": "w_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "withuni",
+          "op": "nest",
+          "rows": {
+            "ref": "withcity"
+          },
+          "children": {
+            "ref": "u_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "universities",
+          "fields": [
+            "universityName",
+            "classYear",
+            "universityCity"
+          ]
+        },
+        {
+          "name": "withco",
+          "op": "nest",
+          "rows": {
+            "ref": "withuni"
+          },
+          "children": {
+            "ref": "w_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "companies",
+          "fields": [
+            "companyName",
+            "workFrom",
+            "companyCountry"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withco"
+          },
+          "names": {
+            "id": "personId",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personLastName",
+            "distanceFromPerson",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language",
+            "cityName",
+            "universities",
+            "companies"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "index_eq+fetch_inline": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb1",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb1d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb1"
+          }
+        },
+        {
+          "name": "lvl1",
+          "op": "exclude",
+          "items": {
+            "ref": "nb1d"
+          },
+          "remove": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "nb2",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb2d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb2"
+          }
+        },
+        {
+          "name": "seen1",
+          "op": "concat",
+          "a": {
+            "ref": "lvl1"
+          },
+          "b": {
+            "ref": "me"
+          }
+        },
+        {
+          "name": "lvl2",
+          "op": "exclude",
+          "items": {
+            "ref": "nb2d"
+          },
+          "remove": {
+            "ref": "seen1"
+          }
+        },
+        {
+          "name": "nb3",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "lvl2"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "nb3d",
+          "op": "dedup",
+          "items": {
+            "ref": "nb3"
+          }
+        },
+        {
+          "name": "seen2",
+          "op": "concat",
+          "a": {
+            "ref": "seen1"
+          },
+          "b": {
+            "ref": "lvl2"
+          }
+        },
+        {
+          "name": "lvl3",
+          "op": "exclude",
+          "items": {
+            "ref": "nb3d"
+          },
+          "remove": {
+            "ref": "seen2"
+          }
+        },
+        {
+          "name": "fmatch",
+          "op": "read_index_eq",
+          "label": "Person",
+          "prop": "firstName",
+          "value": {
+            "param": "firstName"
+          }
+        },
+        {
+          "name": "hit1",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl1"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit2",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl2"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "hit3",
+          "op": "intersect",
+          "items": {
+            "ref": "lvl3"
+          },
+          "other": {
+            "ref": "fmatch"
+          }
+        },
+        {
+          "name": "dist1",
+          "op": "annotate",
+          "items": {
+            "ref": "hit1"
+          },
+          "field": "distanceFromPerson",
+          "value": 1
+        },
+        {
+          "name": "dist2",
+          "op": "annotate",
+          "items": {
+            "ref": "hit2"
+          },
+          "field": "distanceFromPerson",
+          "value": 2
+        },
+        {
+          "name": "dist3",
+          "op": "annotate",
+          "items": {
+            "ref": "hit3"
+          },
+          "field": "distanceFromPerson",
+          "value": 3
+        },
+        {
+          "name": "hits12",
+          "op": "concat",
+          "a": {
+            "ref": "dist1"
+          },
+          "b": {
+            "ref": "dist2"
+          }
+        },
+        {
+          "name": "cand",
+          "op": "concat",
+          "a": {
+            "ref": "hits12"
+          },
+          "b": {
+            "ref": "dist3"
+          }
+        },
+        {
+          "name": "cand_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "rankp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cand_v"
+          },
+          "props": [
+            "lastName",
+            "id",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ranked",
+          "op": "zip_rows",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "rankp"
+          }
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "distanceFromPerson",
+              "asc"
+            ],
+            [
+              "lastName",
+              "asc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_named",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName",
+            "_vid": "_city"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "city_named"
+          }
+        },
+        {
+          "name": "u_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "studyAt",
+          "dir": "out",
+          "edge_props": [
+            "classYear"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "u_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_org",
+          "op": "dedup",
+          "items": {
+            "ref": "u_orgv"
+          }
+        },
+        {
+          "name": "u_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "u_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_orgnm"
+          },
+          "names": {
+            "name": "universityName"
+          }
+        },
+        {
+          "name": "u_orgj",
+          "op": "join",
+          "left": {
+            "ref": "u_edges"
+          },
+          "right": {
+            "ref": "u_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "u_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "u_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "u_plv"
+          }
+        },
+        {
+          "name": "u_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "u_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plnm"
+          },
+          "names": {
+            "name": "universityCity"
+          }
+        },
+        {
+          "name": "u_plj",
+          "op": "join",
+          "left": {
+            "ref": "u_ploc"
+          },
+          "right": {
+            "ref": "u_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "u_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "u_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "u_full",
+          "op": "join",
+          "left": {
+            "ref": "u_orgj"
+          },
+          "right": {
+            "ref": "u_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "w_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "top_v"
+          },
+          "etype": "workAt",
+          "dir": "out",
+          "edge_props": [
+            "workFrom"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "w_orgv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_edges"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_org",
+          "op": "dedup",
+          "items": {
+            "ref": "w_orgv"
+          }
+        },
+        {
+          "name": "w_orgnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_org"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "w_orgnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_orgnm"
+          },
+          "names": {
+            "name": "companyName"
+          }
+        },
+        {
+          "name": "w_orgj",
+          "op": "join",
+          "left": {
+            "ref": "w_edges"
+          },
+          "right": {
+            "ref": "w_orgnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_ploc",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "w_org"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "w_plv",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_ploc"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_pl",
+          "op": "dedup",
+          "items": {
+            "ref": "w_plv"
+          }
+        },
+        {
+          "name": "w_plnm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_pl"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "w_plnm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plnm"
+          },
+          "names": {
+            "name": "companyCountry"
+          }
+        },
+        {
+          "name": "w_plj",
+          "op": "join",
+          "left": {
+            "ref": "w_ploc"
+          },
+          "right": {
+            "ref": "w_plnm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_placed",
+          "op": "rename",
+          "rows": {
+            "ref": "w_plj"
+          },
+          "names": {
+            "src": "_org",
+            "dst": "_pl"
+          }
+        },
+        {
+          "name": "w_full",
+          "op": "join",
+          "left": {
+            "ref": "w_orgj"
+          },
+          "right": {
+            "ref": "w_placed"
+          },
+          "left_on": "dst",
+          "right_on": "_org"
+        },
+        {
+          "name": "withuni",
+          "op": "nest",
+          "rows": {
+            "ref": "withcity"
+          },
+          "children": {
+            "ref": "u_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "universities",
+          "fields": [
+            "universityName",
+            "classYear",
+            "universityCity"
+          ]
+        },
+        {
+          "name": "withco",
+          "op": "nest",
+          "rows": {
+            "ref": "withuni"
+          },
+          "children": {
+            "ref": "w_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "companies",
+          "fields": [
+            "companyName",
+            "workFrom",
+            "companyCountry"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withco"
+          },
+          "names": {
+            "id": "personId",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "personId",
+            "personLastName",
+            "distanceFromPerson",
+            "birthday",
+            "creationDate",
+            "gender",
+            "browserUsed",
+            "locationIP",
+            "email",
+            "language",
+            "cityName",
+            "universities",
+            "companies"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "ic1_expand_name_matches(index_eq+fetch_deferred)": {
+      "sha": "ba99f52a6c29",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "ic1_expand_name_matches(index_eq+fetch_deferred)"
+      ]
+    },
+    "ic1_expand_name_matches(index_eq+fetch_inline)": {
+      "sha": "ae59ed4ac33a",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "ic1_expand_name_matches(index_eq+fetch_inline)"
+      ]
+    },
+    "index_eq+fetch_deferred": {
+      "sha": "cc0d4bacc66f",
+      "requires": [
+        "property_index"
+      ],
+      "measure_only": true,
+      "reason": "replaced by the list-join body (2026-10-10); kept measurable",
+      "sources": [
+        "index_eq+fetch_deferred",
+        "ic1_level2_expansion(index_eq+fetch_deferred)"
+      ]
+    },
+    "index_eq+fetch_inline": {
+      "sha": "e852ee0003d0",
+      "requires": [
+        "property_index"
+      ],
+      "measure_only": true,
+      "reason": "replaced by the list-join body (2026-10-10); kept measurable",
+      "sources": [
+        "index_eq+fetch_inline",
+        "ic1_level2_expansion(index_eq+fetch_inline)"
+      ]
+    }
+  }
+}

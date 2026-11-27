@@ -1,0 +1,10 @@
+// microbench hop1_propfilter: the distinct knows-neighbors of a person created before
+// 2011-01-01 (T4, neighbor-property filter).
+// Reads: the knows edge index (both sides), then each distinct friend's creationDate.
+// Evaluator: queries/hop.py hop1_propfilter -- read_neighbors + dedup + read_vertex_props
+// (creationDate) + filter creationDate < DATE_CUTOFF (1293840000000), count-final.
+// mb2 lineage: MB33-34 (mb2 filtered hasCreator Comments by a date window).
+FOR v IN 1..1 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    FILTER v.creationDate < 1293840000000
+    RETURN v._key

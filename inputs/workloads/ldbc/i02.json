@@ -1,0 +1,37 @@
+{
+ "id": "i02",
+ "name": "ldbc_mix_reads",
+ "title": "LDBC Interactive, LDBC frequencies, reads only (I01 without its updates)",
+ "items": [
+  {"family": "interactive", "query": "ic1", "frequency": 3846, "params": null},
+  {"family": "interactive", "query": "ic2", "frequency": 2703, "params": null},
+  {"family": "interactive", "query": "ic3", "frequency": 1266, "params": null},
+  {"family": "interactive", "query": "ic4", "frequency": 2778, "params": null},
+  {"family": "interactive", "query": "ic5", "frequency": 1639, "params": null},
+  {"family": "interactive", "query": "ic6", "frequency": 581, "params": null},
+  {"family": "interactive", "query": "ic7", "frequency": 1389, "params": null},
+  {"family": "interactive", "query": "ic8", "frequency": 3704, "params": null},
+  {"family": "interactive", "query": "ic9", "frequency": 478, "params": null},
+  {"family": "interactive", "query": "ic10", "frequency": 3125, "params": null},
+  {"family": "interactive", "query": "ic11", "frequency": 5882, "params": null},
+  {"family": "interactive", "query": "ic12", "frequency": 2273, "params": null},
+  {"family": "interactive", "query": "is1", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is2", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is3", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is4", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is5", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is6", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is7", "frequency": 46403, "params": null}
+ ],
+ "param_spread": [
+  "is1",
+  "is2",
+  "is3",
+  "is4",
+  "is5",
+  "is6",
+  "is7"
+ ],
+ "method": "I01's complex reads IC1-IC12 and short reads IS1-IS7, at I01's counts (per 100,000 updates of I01); the updates IU1-IU8 are left out. LDBC ships no read-only mix: this is its own read mix, as L02 is LinkBench's. The short-read rate is an upper bound, as in I01.",
+ "expect": "The same two ends as I01: All-Chunked cheapest in ops, Split/Condensed in bytes (reads are 95% of I01's bytes in Split/Condensed). At the ends the best mixed layout gains at most 2% in either currency: I01's 4% bytes gain came from two write lists, which I02 does not write. Within the reference layout's bytes (B = 1) a mix still pays, about as much as on I01 (3.5x fewer ops than the best single layout that fits, at SF30): the budget picks which read lists to chunk."
+}

@@ -1,0 +1,69 @@
+# engines/needs.tsv -- what each database needs on the machine (Ubuntu 24.04), written once. engines/setup.sh installs
+# what is missing (`just setup-engines`); engines/check-tools.sh checks the same rows before a build or a server start.
+# Tab-separated: db, when, how, what, check.
+#   when   build: engines/<db>/build.sh needs it. run: the server's start and stop (engines/<db>/lifecycle.sh) need it.
+#          profile: timing the engine's KV store from outside needs it (time_queries.py --storage-profile), with
+#          passwordless sudo.
+#   how    apt: the Ubuntu package `what`. go: Go at version `what`, unpacked into /usr/local/go (engines/env.sh puts it
+#          on PATH; dgraph's go.mod line 3 says `go 1.24.3`, and our binaries were built with it). service: the systemd
+#          service `what` must answer. main: comes with the main README's Needs; setup.sh reports it, installs nothing.
+#   check  cmd:<a program on PATH> | pkg (the package is installed, by dpkg-query) | sh:<a shell test, exit 0 when met>
+# Why each: Go also builds NebulaGraph's console and importer (its justfile's setup-console, setup-nebula-importer).
+# perf is Ubuntu's linux-tools (the wrapper of linux-tools-common runs the running kernel's linux-tools-<version>,
+# which linux-tools-generic brings for the generic kernel). Dgraph's `make install` builds jemalloc first (curl, bzip2, make, gcc); its server runs in tmux and its
+# health checks read JSON with jq. NebulaGraph builds inside its dev image (nebulagraph/scripts/start-container.sh runs
+# `sudo docker`, so no docker group is needed). ArangoDB configures with clang-17 and its archiver llvm-ar-17, links
+# the GCC 14 C++ library (without libstdc++-14-dev CMake's compiler test fails with "cannot find -lstdc++"), OpenMP,
+# OpenSSL, Boost and BLAS; its bundled ICU 64's configure runs python3 ($PYTHON when set) and imports distutils, which
+# Python 3.12 has only through setuptools. TuGraph is not built: its release package is fetched (curl) and unpacked
+# (rpm2cpio, cpio); our counter library is one C file (gcc; binutils checks the release's symbols).
+dgraph	build	go	1.24.3	cmd:go
+dgraph	build	apt	curl	cmd:curl
+dgraph	build	apt	bzip2	cmd:bzip2
+dgraph	build	apt	make	cmd:make
+dgraph	build	apt	gcc	cmd:gcc
+dgraph	build	apt	git	cmd:git
+dgraph	build	apt	patch	cmd:patch
+dgraph	run	apt	tmux	cmd:tmux
+dgraph	run	apt	curl	cmd:curl
+dgraph	run	apt	jq	cmd:jq
+nebulagraph	build	go	1.24.3	cmd:go
+nebulagraph	build	apt	docker.io	cmd:docker
+nebulagraph	build	main	sudo	cmd:sudo
+nebulagraph	build	main	just	cmd:just
+nebulagraph	build	apt	git	cmd:git
+nebulagraph	build	apt	patch	cmd:patch
+nebulagraph	build	service	docker	sh:sudo -n docker info
+arangodb	build	apt	clang-17	cmd:clang-17
+arangodb	build	apt	clang-17	cmd:clang++-17
+arangodb	build	apt	llvm-17	cmd:llvm-ar-17
+arangodb	build	apt	build-essential	pkg
+arangodb	build	apt	cmake	cmd:cmake
+arangodb	build	apt	make	cmd:make
+arangodb	build	apt	git	cmd:git
+arangodb	build	apt	patch	cmd:patch
+arangodb	build	main	python3	cmd:python3
+arangodb	build	apt	libssl-dev	pkg
+arangodb	build	apt	libomp-17-dev	pkg
+arangodb	build	apt	libboost-all-dev	pkg
+arangodb	build	apt	libopenblas-dev	pkg
+arangodb	build	apt	libstdc++-14-dev	sh:echo 'int main() {}' | clang++-17 -x c++ - -o /dev/null -latomic
+arangodb	build	apt	python3-setuptools	sh:"${PYTHON:-python3}" -c "from distutils.sysconfig import parse_makefile"
+arangodb	run	apt	tmux	cmd:tmux
+arangodb	run	apt	curl	cmd:curl
+tugraph	build	apt	curl	cmd:curl
+tugraph	build	apt	rpm2cpio	cmd:rpm2cpio
+tugraph	build	apt	cpio	cmd:cpio
+tugraph	build	apt	gcc	cmd:gcc
+tugraph	build	apt	binutils	cmd:readelf
+tugraph	run	apt	tmux	cmd:tmux
+tugraph	run	apt	curl	cmd:curl
+tugraph	run	apt	rsync	cmd:rsync
+dgraph	profile	apt	linux-tools-common	sh:perf --version
+dgraph	profile	apt	linux-tools-generic	sh:perf --version
+nebulagraph	profile	apt	linux-tools-common	sh:perf --version
+nebulagraph	profile	apt	linux-tools-generic	sh:perf --version
+arangodb	profile	apt	linux-tools-common	sh:perf --version
+arangodb	profile	apt	linux-tools-generic	sh:perf --version
+tugraph	profile	apt	linux-tools-common	sh:perf --version
+tugraph	profile	apt	linux-tools-generic	sh:perf --version

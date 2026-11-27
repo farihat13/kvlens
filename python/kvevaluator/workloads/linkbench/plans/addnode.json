@@ -1,0 +1,71 @@
+{
+  "plan": "addnode",
+  "question": "Add a new node with its type, version, time and data.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    },
+    "ntype": {
+      "type": "int"
+    },
+    "version": {
+      "type": "int"
+    },
+    "time": {
+      "type": "int"
+    },
+    "data": {
+      "type": "bytes"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "n_vid"
+      },
+      "label": "Node",
+      "props": {
+        "ntype": {
+          "param": "ntype"
+        },
+        "version": {
+          "param": "version"
+        },
+        "time": {
+          "param": "time"
+        },
+        "data": {
+          "param": "data"
+        }
+      }
+    }
+  ],
+  "output": "out"
+}

@@ -1,0 +1,98 @@
+{
+ "query": "job1b",
+ "aliases": {
+  "ct": "company_type",
+  "it": "info_type",
+  "mc": "movie_companies",
+  "mi_idx": "movie_info_idx",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "bottom 10 rank"
+   ]
+  ],
+  "mc": [
+   [
+    "like",
+    "mc",
+    "note",
+    "%(as Metro-Goldwyn-Mayer Pictures)%",
+    true
+   ]
+  ],
+  "mi_idx": [],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    2005,
+    2010
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "production_note",
+   "mc",
+   "note"
+  ],
+  [
+   "movie_title",
+   "t",
+   "title"
+  ],
+  [
+   "movie_year",
+   "t",
+   "production_year"
+  ]
+ ]
+}

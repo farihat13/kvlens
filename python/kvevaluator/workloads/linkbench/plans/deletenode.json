@@ -1,0 +1,46 @@
+{
+  "plan": "deletenode",
+  "question": "Delete a node's record, leaving its links in place.",
+  "for": "all formats",
+  "params": {
+    "node": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "n_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "node"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Node"
+            },
+            {
+              "param": "node"
+            }
+          ]
+        },
+        {
+          "param": "node"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "delete_vertex",
+      "vid": {
+        "let": "n_vid"
+      },
+      "label": "Node",
+      "with_edges": false
+    }
+  ],
+  "output": "out"
+}

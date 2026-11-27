@@ -1,0 +1,17 @@
+diff --git a/cpp/kvevaluator/src/formats/meta/writes.cc b/cpp/kvevaluator/src/formats/meta/writes.cc
+index 1a387ab..f7e1da0 100644
+--- a/cpp/kvevaluator/src/formats/meta/writes.cc
++++ b/cpp/kvevaluator/src/formats/meta/writes.cc
+@@ -464,10 +464,8 @@ Value Meta::run_write_op(const Step& step, const Args& a, StepExec& ex) {
+           auto own = unit::rmw_read(st, adj_prefix(eid, out, u));
+           if (!own) continue;
+           std::vector<uint64_t> nbrs;
+-          for (auto& [pk, raw] : *own) {
+-            lists::View lv(&cols, raw, far_bits(etype, out));   // held: dsts() is a reference into the view
+-            nbrs.insert(nbrs.end(), lv.dsts().begin(), lv.dsts().end());
+-          }
++          for (auto& [pk, raw] : *own)
++            for (uint64_t d : lists::View(&cols, raw, far_bits(etype, out)).dsts()) nbrs.push_back(d);
+           for (auto& [pk, raw] : *own) w.dels.push_back(pk);   // DELed even when empty: no key outlives its vertex
+           if (nbrs.empty()) continue;
+           if (!other_side) continue;

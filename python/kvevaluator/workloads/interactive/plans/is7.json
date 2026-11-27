@@ -1,0 +1,538 @@
+{
+  "plan": "is7",
+  "question": "Given a message, list its direct replies with each reply's author and whether that author knows the message's author.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "msg_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "edge_probe": {
+      "steps": [
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "reply_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "replies"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "reply_named",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_props"
+          },
+          "names": {
+            "id": "commentId",
+            "creationDate": "commentCreationDate",
+            "content": "commentContent"
+          }
+        },
+        {
+          "name": "author_vids",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "author_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "replyAuthorId",
+            "firstName": "replyAuthorFirstName",
+            "lastName": "replyAuthorLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "reply_named"
+          },
+          "right": {
+            "ref": "author_named"
+          }
+        },
+        {
+          "name": "with_knows",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "joined"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "replyAuthorKnowsOriginalMessageAuthor",
+          "via_srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "via_etype": "hasCreator",
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "in",
+              "at": "anchor"
+            }
+          ]
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "with_knows"
+          },
+          "keys": [
+            [
+              "commentCreationDate",
+              "desc"
+            ],
+            [
+              "replyAuthorId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "commentId",
+            "commentContent",
+            "commentCreationDate",
+            "replyAuthorId",
+            "replyAuthorFirstName",
+            "replyAuthorLastName",
+            "replyAuthorKnowsOriginalMessageAuthor"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "edge_probe_out": {
+      "steps": [
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "reply_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "replies"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "reply_named",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_props"
+          },
+          "names": {
+            "id": "commentId",
+            "creationDate": "commentCreationDate",
+            "content": "commentContent"
+          }
+        },
+        {
+          "name": "author_vids",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "author_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "replyAuthorId",
+            "firstName": "replyAuthorFirstName",
+            "lastName": "replyAuthorLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "reply_named"
+          },
+          "right": {
+            "ref": "author_named"
+          }
+        },
+        {
+          "name": "with_knows",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "joined"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "replyAuthorKnowsOriginalMessageAuthor",
+          "via_srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "via_etype": "hasCreator",
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "out",
+              "at": "cand",
+              "unless_found": true
+            }
+          ]
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "with_knows"
+          },
+          "keys": [
+            [
+              "commentCreationDate",
+              "desc"
+            ],
+            [
+              "replyAuthorId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "commentId",
+            "commentContent",
+            "commentCreationDate",
+            "replyAuthorId",
+            "replyAuthorFirstName",
+            "replyAuthorLastName",
+            "replyAuthorKnowsOriginalMessageAuthor"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "materialize_intersect": {
+      "steps": [
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "reply_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "replies"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "reply_named",
+          "op": "rename",
+          "rows": {
+            "ref": "reply_props"
+          },
+          "names": {
+            "id": "commentId",
+            "creationDate": "commentCreationDate",
+            "content": "commentContent"
+          }
+        },
+        {
+          "name": "author_vids",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "replies"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "author_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "replyAuthorId",
+            "firstName": "replyAuthorFirstName",
+            "lastName": "replyAuthorLastName"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "zip_rows",
+          "left": {
+            "ref": "reply_named"
+          },
+          "right": {
+            "ref": "author_named"
+          }
+        },
+        {
+          "name": "oauthor_src",
+          "op": "gate",
+          "items": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "when": {
+            "ref": "joined"
+          }
+        },
+        {
+          "name": "oauthor",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "oauthor_src"
+          },
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "ofriends0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "oauthor"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "ofriends",
+          "op": "dedup",
+          "items": {
+            "ref": "ofriends0"
+          }
+        },
+        {
+          "name": "with_knows",
+          "op": "flag_in",
+          "rows": {
+            "ref": "joined"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "ofriends"
+          },
+          "into": "replyAuthorKnowsOriginalMessageAuthor"
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "with_knows"
+          },
+          "keys": [
+            [
+              "commentCreationDate",
+              "desc"
+            ],
+            [
+              "replyAuthorId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "commentId",
+            "commentContent",
+            "commentCreationDate",
+            "replyAuthorId",
+            "replyAuthorFirstName",
+            "replyAuthorLastName",
+            "replyAuthorKnowsOriginalMessageAuthor"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "edge_probe": {
+      "sha": "9bc2e1e1375b",
+      "requires": [
+        "reverse_adjacency"
+      ],
+      "on": {
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe"
+      ]
+    },
+    "edge_probe_out": {
+      "sha": "b615b3693be4",
+      "requires": [],
+      "measure_only_where": {
+        "adjacency_lists": [
+          "knows"
+        ],
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe_out"
+      ]
+    },
+    "materialize_intersect": {
+      "sha": "be3797ea5f2d",
+      "requires": [],
+      "sources": [
+        "materialize_intersect"
+      ]
+    }
+  }
+}

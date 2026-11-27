@@ -1,0 +1,8 @@
+# w_upd_plain -- write one NON-indexed property (lastName) of one person.
+# Writes: the person's packed tag row, read and rewritten whole; the engine also rewrites every index entry of the
+#   tag (Person's 2) and puts a raft commit key (write_fidelity.py names both).
+# Evaluator: workloads/writes/microbench/queries.py w_upd_plain -- update_prop(me_vid, lastName).
+# mb2 lineage: MB81 (same statement).
+# Anchor: the vid is the person's id with its type prefix, inlined: a vid takes no bound parameter in this
+#   NebulaGraph ("Parameter is not supported in vid"), so a write text is a text template.
+UPDATE VERTEX ON `Person` "person_$person" SET lastName = "WUpd";

@@ -1,0 +1,31 @@
+Our patches to Dgraph v25.0.0 and Badger v4.8.0 (get.sh pins both commits); build.sh applies them.
+The KV counters sit in the engine, not in any workload, so the same patched binary serves LDBC and the microbench.
+
+dgraph-use-local-badger.patch
+  Builds Dgraph against the patched Badger checkout (a go.mod replace).
+
+badger-profile.patch
+  Per-operation counters and traces inside Badger's reads (TraceSeek / TraceNext / TraceGet in iterator.go).
+
+dgraph-profile.patch
+  - /kvstats: per-query KV counters (SEEK, GET, NEXT, bytes, and get_/seek_/next_latency_ns: each call timed in ns, an
+    iterator's open added to its first seek); /kvstats/reset zeroes them. The timers sum over goroutines, so they are
+    not a query's time in storage (experiments/engine_fidelity/storage_profile.py measures that).
+  - /kvtrace: per-operation (seek / next / get) tracing at two levels: keys (a one-line key dump) or stack (the key and
+    the goroutine stack).
+  - /localcache: disable (no cache), lock (hold the write lock through the Badger read) or enable (the default).
+  - /detsort: a deterministic-sort switch. Stock Dgraph races two sort strategies (worker/sort.go processSort), and the
+    cancelled loser's partial KV operations leak into the counters, so an ORDER BY query's SEEK count varies run to run
+    (IC1: 1,462 race SEEKs, 0 once enabled). Enabled, Dgraph picks one strategy up front. GET /detsort,
+    POST /detsort/{enable,disable}.
+  - /eqfilterpath, /typefilterpath, /ineqfilterpath: pin the access path of a @filter (eq, type, and lt / le / ge / gt /
+    between) to `index` or `per_vertex` instead of the stock choice from runtime uid counts, which can take a different
+    path for the same query on another param. `default` keeps the stock behaviour; a forced index path falls back to
+    per_vertex when the predicate has no usable index.
+  - /rollup/pause, /rollup/resume, /rollup/forceall, /rollup/drain: rollup control.
+  - ?explain=structure and ?explain=profile on /query: the query's SubGraph plan as JSON (profile also runs it and adds
+    each node's uid counts).
+
+Two build modes (build.sh):
+  kvstats    BUILD_TAGS=kvstats    flat counters at /kvstats (the measured binary, bin/dgraph-kvstats)
+  histogram  BUILD_TAGS=histogram  HdrHistogram latencies at /debug/vars (bin/dgraph-histogram)

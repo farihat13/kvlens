@@ -1,0 +1,9 @@
+# w_ins_e_facet -- insert a knows edge carrying its creationDate, between two persons that are not adjacent.
+# Writes: as w_ins_e_plain; the creationDate rides on the posting as a facet (no index, no extra key).
+# Evaluator: workloads/writes/microbench/queries.py w_ins_e_facet -- insert_edge(knows, ..., {creationDate}).
+# mb2 lineage: MB86 (same upsert; it found the persons by fqid).
+# Anchor: as w_ins_e_plain. A text template.
+{
+  "query": "{ s as var(func: eq(id, $src)) @filter(type(person)) o as var(func: eq(id, $dst)) @filter(type(person)) }",
+  "set": { "uid": "uid(s)", "knows": [ { "uid": "uid(o)", "knows|creationDate": "2020-01-01T00:00:00Z" } ] }
+}

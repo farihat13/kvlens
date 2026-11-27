@@ -1,0 +1,72 @@
+{
+ "query": "job2b",
+ "aliases": {
+  "cn": "company_name",
+  "k": "keyword",
+  "mc": "movie_companies",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[nl]"
+   ]
+  ],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "character-name-in-title"
+   ]
+  ],
+  "mc": [],
+  "mk": [],
+  "t": []
+ },
+ "outputs": [
+  [
+   "movie_title",
+   "t",
+   "title"
+  ]
+ ]
+}

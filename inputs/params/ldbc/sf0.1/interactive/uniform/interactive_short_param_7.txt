@@ -1,0 +1,6 @@
+messageId|kind|depth|replies
+893353333347|post|0|0
+962073011574|comment|1|0
+481036645767|comment|1|1
+755914593278|comment|2|0
+962073001317|post|0|0

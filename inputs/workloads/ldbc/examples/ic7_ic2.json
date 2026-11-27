@@ -1,0 +1,9 @@
+{
+ "id": "ic7_ic2",
+ "name": "ic7_ic2",
+ "title": "IC7 and IC2, each once: the layout-cost walkthrough's workload",
+ "items": [
+  {"family": "interactive", "query": "ic7", "frequency": 1, "params": null},
+  {"family": "interactive", "query": "ic2", "frequency": 1, "params": null}
+ ]
+}

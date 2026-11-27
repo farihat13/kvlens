@@ -1,0 +1,6 @@
+personId|country|tagClass|knowsDegree|stratum
+15393162799074|Belgium|Senator|1190|deg-p100+p50-class-p50-country
+19791209307907|Belgium|OfficeHolder|111|deg-p90+p90-class-p50-country
+24189255828793|China|Senator|26|deg-p50+p50-class-max-country
+24189255828793|China|OfficeHolder|26|deg-p50+p90-class-max-country
+6597069790182|China|Country|4|deg-p10+max-class-max-country

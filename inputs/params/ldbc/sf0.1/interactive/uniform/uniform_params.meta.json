@@ -1,0 +1,264 @@
+{
+ "what": "LDBC Interactive's uniform param set: LDBC's rows 1-n with the bound person (IC) or message (IS4-7) drawn uniformly at random; every other column is LDBC's row i",
+ "generated_by": "python -m kvevaluator.workloads.interactive.gen_uniform_params --sf 0.1 --n 5 --seed 137",
+ "seed": 137,
+ "n": 5,
+ "population": {
+  "Person": 1528,
+  "Post+Comment": 286744
+ },
+ "draws": {
+  "ic1": [
+   19791209300639,
+   1131,
+   143,
+   13194139533584,
+   4398046511884
+  ],
+  "ic2": [
+   30786325578932,
+   24189255811573,
+   4398046511117,
+   8796093023291,
+   19791209301132
+  ],
+  "ic3": [
+   32985348834326,
+   17592186046083,
+   17592186044897,
+   19791209301168,
+   6597069767884
+  ],
+  "ic4": [
+   32985348833702,
+   24189255812556,
+   13194139534142,
+   30786325578617,
+   2199023256403
+  ],
+  "ic5": [
+   2199023256154,
+   21990232556982,
+   10995116279192,
+   26388279068195,
+   17592186045334
+  ],
+  "ic6": [
+   32985348834100,
+   4398046511712,
+   32985348833679,
+   21990232556141,
+   10995116278981
+  ],
+  "ic7": [
+   19791209300852,
+   24189255812226,
+   4398046511937,
+   21990232556585,
+   19791209300178
+  ],
+  "ic8": [
+   26388279067708,
+   26388279068235,
+   30786325579401,
+   17592186045005,
+   512
+  ],
+  "ic9": [
+   19791209300372,
+   26388279068275,
+   10995116279273,
+   32985348834879,
+   30786325579330
+  ],
+  "ic10": [
+   32985348834536,
+   10995116279270,
+   2199023255798,
+   2199023256576,
+   8796093022641
+  ],
+  "ic11": [
+   8796093023470,
+   26388279067581,
+   26388279067331,
+   26388279068177,
+   24189255811140
+  ],
+  "ic12": [
+   10995116278874,
+   30786325578525,
+   1274,
+   4398046512221,
+   13194139533648
+  ],
+  "is4": [
+   343597543683,
+   549755830198,
+   274878138836,
+   962072917964,
+   824633816714
+  ],
+  "is5": [
+   549755847592,
+   687194840935,
+   274878109427,
+   962072825290,
+   618475588840
+  ],
+  "is6": [
+   962072722772,
+   893353500205,
+   1030792389681,
+   274877935999,
+   687195083471
+  ],
+  "is7": [
+   893353333347,
+   962073011574,
+   481036645767,
+   755914593278,
+   962073001317
+  ]
+ },
+ "python": "3.12.3",
+ "files": {
+  "interactive_1_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_1_param.txt",
+   "from_sha256": "e31440018bc298d24c755f4dab0791d4ee11f969e873c7ede8f3b0f9e32d4195",
+   "sha256": "7f9810fd6413c63882d49f90129c8baae995451323f4ef01988a5a682e9f73d3",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_2_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_2_param.txt",
+   "from_sha256": "58ab2685ec3fe541863fef0a29135569c8b1b47452b62c188e944376aaeb61cd",
+   "sha256": "41a522f9cac72a5656e2e0264c1a8168d0635e4b89615387955f4be5b76e8b55",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_3_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_3_param.txt",
+   "from_sha256": "ef25c7b205a697a40aeb27d3a4646b8dc6c64ad499c07e25da83e3ac366b5686",
+   "sha256": "f26229ced95e959ffc708cc3de113092a1581d362c521a0302c24651237c59fb",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_4_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_4_param.txt",
+   "from_sha256": "c5d4a73dcc96be50ba29df9276d5fb8a364e94c210d6fc81f2d524d1be19b778",
+   "sha256": "c0d04804959c5470321af824132ef194c0b2de7ada2dde946807a05fa8c8081b",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_5_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_5_param.txt",
+   "from_sha256": "4ebddcea1c2f9f0bdfbb4658c3694778b4a8bf58b6da364e2ad279a884c0509b",
+   "sha256": "bd592c6c1ea3705bc7f8b1c22f50aa2361eb35d5c4f08abfafe57198ad43749a",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_6_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_6_param.txt",
+   "from_sha256": "3070f5f59082fdca6d07e797d6a6e487c58b93413903372082492bf42ae94efd",
+   "sha256": "f46188891dabca6a04e5655ab0a8f8d5032317acb2c54098ea8fe0817cc5e1cb",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_7_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_7_param.txt",
+   "from_sha256": "237523a1c65c22177e8d8d4159e0d397b193c3439a883b615183c0eedf4c407b",
+   "sha256": "6be104400cb993c13f83443fefbf228cb963a878a82cf1d46711ad794654edda",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_8_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_8_param.txt",
+   "from_sha256": "149ecf5692b0971494d455969fb863764578ac9b0afb55509c1eb7b670edc9f9",
+   "sha256": "b57ab452d089391368eb41b764df168c2b9bce25a6a3aedef576423f2d6d8db6",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_9_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_9_param.txt",
+   "from_sha256": "3f38071b1b4bbb6efa3c2d8a4a3df8c1ad666a3d525db96591eff8907b1859ec",
+   "sha256": "88d5946bfa5476f26fd654e6b4b43b887d65a1eaf1f942ed4056593d0ef11ad3",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_10_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_10_param.txt",
+   "from_sha256": "a70895429ca0c536bf8df8b243831b3a09368e860ed387c6a892f5110fa71c7a",
+   "sha256": "c07fe79307a6a4acdf533309f19e83156c15e4c14841fcbb1655bff6ea27bd93",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_11_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_11_param.txt",
+   "from_sha256": "a483d6619fee658b1dc4b01856b134097f285429cfa3e4b233ba420f7578f051",
+   "sha256": "7e4254e4e138f9fc46c9ee7ee4b837b6a443ff103b705486979093dafb31247f",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_12_param.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/interactive_12_param.txt",
+   "from_sha256": "23041fd55a304dad5b6610168d8e1e9912694b6c55a0832e2aff83d868cd249e",
+   "sha256": "bdbdc47b380720c3fe31435e914715bc11f707c130de3f4b31a80a05ae53d511",
+   "replaced": [
+    "personId"
+   ]
+  },
+  "interactive_short_param_4.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/short/interactive_short_param_4.txt",
+   "from_sha256": "484a1cfc0079cce2410ca3b7242120f361ad0e0ee81f1d5e76e145ac0a38ec3f",
+   "sha256": "8d538e88d5dbb4491db07d8316896ac0b19ee2e7a064097662ac6af3218686fd",
+   "replaced": [
+    "messageId",
+    "kind",
+    "depth"
+   ]
+  },
+  "interactive_short_param_5.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/short/interactive_short_param_5.txt",
+   "from_sha256": "484a1cfc0079cce2410ca3b7242120f361ad0e0ee81f1d5e76e145ac0a38ec3f",
+   "sha256": "886fb8ebababcf94953bc462fb800ffea3534222059a7b3f1c6cbf0c1650072c",
+   "replaced": [
+    "messageId",
+    "kind",
+    "depth"
+   ]
+  },
+  "interactive_short_param_6.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/short/interactive_short_param_6.txt",
+   "from_sha256": "484a1cfc0079cce2410ca3b7242120f361ad0e0ee81f1d5e76e145ac0a38ec3f",
+   "sha256": "1a680203141d9cadf53bf72437ac952fe3cfebcf49c79a3b4434bc40f837e2c7",
+   "replaced": [
+    "messageId",
+    "kind",
+    "depth"
+   ]
+  },
+  "interactive_short_param_7.txt": {
+   "from": "inputs/params/ldbc/sf0./interactive1/interactive/short/interactive_short_param_7.txt",
+   "from_sha256": "be2edfede9369f969e1e9073bf005a3c5f4f76a749420f283e8c9400494a4d28",
+   "sha256": "81a7a92139e5c01c1f29087cd2b92869e856ba20d399c129799cab0bf8749c40",
+   "replaced": [
+    "messageId",
+    "kind",
+    "depth",
+    "replies"
+   ]
+  }
+ }
+}

@@ -1,0 +1,340 @@
+{
+  "plan": "full_profile_page",
+  "question": "Given a person, read each friend's full profile with their city name, universities (with class year) and companies (with start year).",
+  "params_like": "ic1",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "full_profile_page": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "fr",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "fvids",
+          "op": "dedup",
+          "items": {
+            "ref": "fr"
+          }
+        },
+        {
+          "name": "props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "fvids"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "city",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fvids"
+          },
+          "etype": "isLocatedIn",
+          "dir": "out"
+        },
+        {
+          "name": "city_n",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "city"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Place"
+        },
+        {
+          "name": "city_r",
+          "op": "rename",
+          "rows": {
+            "ref": "city_n"
+          },
+          "names": {
+            "name": "cityName"
+          }
+        },
+        {
+          "name": "withcity",
+          "op": "zip_rows",
+          "left": {
+            "ref": "props"
+          },
+          "right": {
+            "ref": "city_r"
+          }
+        },
+        {
+          "name": "u_e",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fvids"
+          },
+          "etype": "studyAt",
+          "dir": "out",
+          "edge_props": [
+            "classYear"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "u_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "u_e"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "u_d",
+          "op": "dedup",
+          "items": {
+            "ref": "u_v"
+          }
+        },
+        {
+          "name": "u_nm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "u_d"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "u_nm2",
+          "op": "rename",
+          "rows": {
+            "ref": "u_nm"
+          },
+          "names": {
+            "name": "universityName"
+          }
+        },
+        {
+          "name": "u_full",
+          "op": "join",
+          "left": {
+            "ref": "u_e"
+          },
+          "right": {
+            "ref": "u_nm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w_e",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "fvids"
+          },
+          "etype": "workAt",
+          "dir": "out",
+          "edge_props": [
+            "workFrom"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "w_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "w_e"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "w_d",
+          "op": "dedup",
+          "items": {
+            "ref": "w_v"
+          }
+        },
+        {
+          "name": "w_nm",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "w_d"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Organisation"
+        },
+        {
+          "name": "w_nm2",
+          "op": "rename",
+          "rows": {
+            "ref": "w_nm"
+          },
+          "names": {
+            "name": "companyName"
+          }
+        },
+        {
+          "name": "w_full",
+          "op": "join",
+          "left": {
+            "ref": "w_e"
+          },
+          "right": {
+            "ref": "w_nm2"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "withuni",
+          "op": "nest",
+          "rows": {
+            "ref": "withcity"
+          },
+          "children": {
+            "ref": "u_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "universities",
+          "fields": [
+            "universityName",
+            "classYear"
+          ]
+        },
+        {
+          "name": "withco",
+          "op": "nest",
+          "rows": {
+            "ref": "withuni"
+          },
+          "children": {
+            "ref": "w_full"
+          },
+          "on": "_vid",
+          "child_on": "src",
+          "into": "companies",
+          "fields": [
+            "companyName",
+            "workFrom"
+          ]
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "withco"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "labeled"
+          },
+          "keys": [
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "gender",
+            "birthday",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "cityName",
+            "universities",
+            "companies"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "full_profile_page": {
+      "sha": "b4c21e8b9217",
+      "requires": [],
+      "sources": [
+        "full_profile_page"
+      ]
+    }
+  }
+}

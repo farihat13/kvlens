@@ -1,0 +1,90 @@
+{
+ "query": "job6e",
+ "aliases": {
+  "ci": "cast_info",
+  "k": "keyword",
+  "mk": "movie_keyword",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ]
+ ],
+ "predicates": {
+  "ci": [],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "marvel-cinematic-universe"
+   ]
+  ],
+  "mk": [],
+  "n": [
+   [
+    "like",
+    "n",
+    "name",
+    "%Downey%Robert%",
+    false
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2000
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_keyword",
+   "k",
+   "keyword"
+  ],
+  [
+   "actor_name",
+   "n",
+   "name"
+  ],
+  [
+   "marvel_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

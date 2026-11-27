@@ -1,0 +1,17 @@
+// microbench chain: follow replyOf from a message to the root Post (unbounded: the depth bound
+// 100 stands for "no cap"; LDBC reply chains are a few levels deep).
+// Reads: the message's collection (a Post or Comment primary-index probe -- the edge index is
+// keyed by the collection-qualified id), then the replyOf _from edge index of each message on
+// the chain; returns the last vertex's _key only. BFS emits in depth order, so LAST(walk) is the
+// deepest vertex reached; replyOf has out-degree <= 1, so the walk is a single chain.
+// Evaluator: queries/nhop.py _chain(None) -- read_chase(replyOf, out) until no further edge (pays the
+// terminal empty read), then the root's id (key-derived), 1 row.
+// mb2 lineage: MB59-60 (no arango text in mb2); the walk is IS2's replyOf chase.
+LET msg = FIRST(UNION(
+    (FOR p IN Post FILTER p._key == TO_STRING(@messageId) RETURN p._id),
+    (FOR c IN Comment FILTER c._key == TO_STRING(@messageId) RETURN c._id)))
+LET walk = (
+    FOR v IN 0..100 OUTBOUND msg replyOf
+        OPTIONS {order: "bfs"}
+        RETURN v._key)
+RETURN {id: TO_NUMBER(LAST(walk))}

@@ -1,0 +1,6 @@
+tag5|messages5|tag7|messages7|tag8|messages8|startDate|endDate|stratum
+Ribbed|129|Crest_of_a_Knave|129|Breaking_the_Girl|129|1316180001089|1324820001089|p25
+Fillmore_East_–_June_1971|236|Yellow_Ledbetter|236|My_World_Is_Empty_Without_You|235|1316180001089|1324820001089|p50
+Kabul_Shahi|470|Let_There_Be_Rock|470|Make_It_Easy_on_Yourself|470|1316180001089|1324820001089|p75
+Andrew_Carnegie|4631|Zambia|4629|Benjamin_Britten|4626|1316180001089|1324820001089|p95
+Augustine_of_Hippo|77025|Muammar_Gaddafi|41961|Adolf_Hitler|40561|1317135876350|1325775876350|max

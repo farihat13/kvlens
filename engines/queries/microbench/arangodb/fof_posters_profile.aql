@@ -1,0 +1,26 @@
+// microbench fof_posters_profile: the profile (id, firstName, lastName) of every author, born on
+// or after 1985-01-01, of a Post created by someone in a person's 2-hop knows reach.
+// The reach is every neighbor of a neighbor (both directions, deduplicated) -- it includes the
+// anchor and friends who know each other, exactly as the evaluator's reach does.
+// Reads: the knows edge index (both sides) of the anchor and of each friend; the hasCreator _to
+// edge index of each reached person, with the Post test read off each message's _id; then one
+// document per distinct author (birthday + the three profile fields, one-phase).
+// Evaluator: queries/split.py fof_posters_profile_onephase (arango's shape) -- reach, messages,
+// filter_by_label(Post) (free: type in the id), distinct authors, read_vertex_props(id,
+// firstName, lastName, birthday), filter birthday >= BIRTHDAY_CUTOFF (473385600000); one row
+// per author.
+// mb2 lineage: none (the per-fragment WIN demo, composed from T1 + T3 + NS1).
+LET start = CONCAT("Person/", @personId)
+LET reach = UNIQUE(
+    FOR f IN 1..1 ANY start knows
+        FOR r IN 1..1 ANY f knows
+            RETURN r._id)
+LET authors = UNIQUE(
+    FOR a IN reach
+        FOR m IN 1..1 INBOUND a hasCreator
+            FILTER IS_SAME_COLLECTION("Post", m._id)
+            RETURN a)
+FOR a IN authors
+    LET p = DOCUMENT(a)
+    FILTER p.birthday >= 473385600000
+    RETURN {id: TO_NUMBER(p._key), firstName: p.firstName, lastName: p.lastName}

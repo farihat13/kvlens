@@ -1,0 +1,17 @@
+# hop1_hascreator -- the messages a person created, via reverse hasCreator (T1), counted.
+# Reads: the anchor's ~hasCreator posting; `uid` is free.
+# Evaluator: queries/hop.py _hop1("hasCreator", "in", "Person") -> dedup -> count row.
+#   Count-final, so one item per message (posts and comments).
+# mb2 lineage: MB31-32.
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result.messages
+query q($personId: string) {
+  result(func: eq(id, $personId)) @filter(type(person)) {
+    messages: ~hasCreator {
+      uid
+    }
+  }
+}

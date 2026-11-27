@@ -1,0 +1,6 @@
+// w_upd_indexed -- write one INDEXED property (firstName, persistent index) of one person.
+// Writes: as w_upd_plain (a new revision, every index entry rewritten); the firstName entry moves to the new value.
+// Evaluator: workloads/writes/microbench/queries.py w_upd_indexed -- update_prop(me_vid, firstName).
+// mb2 lineage: MB82 (same statement; its key was inlined).
+// Anchor: the Person _key, a bound variable, as w_upd_plain.
+UPDATE @person WITH { firstName: "WUpd" } IN Person

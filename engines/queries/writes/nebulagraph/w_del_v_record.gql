@@ -1,0 +1,6 @@
+# w_del_v_record -- delete one person's record: the packed tag row and its index entries (real RocksDB deletes),
+#   plus the vertex key, which the engine removes unconditionally. Its edges stay (no WITH EDGE).
+# Evaluator: workloads/writes/microbench/queries.py w_del_v_record -- delete_vertex(me_vid), the record only.
+# mb2 lineage: MB87 (same statement).
+# Anchor: the vid, inlined (a text template), as w_upd_plain.
+DELETE VERTEX "person_$person";

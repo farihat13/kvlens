@@ -1,0 +1,12 @@
+diff --git a/cpp/kvevaluator/src/store/rocksdb_store.cc b/cpp/kvevaluator/src/store/rocksdb_store.cc
+index b6bc4855..565bbacb 100644
+--- a/cpp/kvevaluator/src/store/rocksdb_store.cc
++++ b/cpp/kvevaluator/src/store/rocksdb_store.cc
+@@ -116,6 +116,7 @@ rocksdb::BlockBasedTableOptions table_options(const StoreOptions& so) {
+   t.pin_l0_filter_and_index_blocks_in_cache = rocksdb_setting<bool>("pin_l0_filter_and_index_blocks");
+   // the iterator readahead stays RocksDB's default (7.5.3: from 8 KB after 2 sequential reads of a file, doubling to
+   // 256 KB); inputs/contract/store_config.json. Until 2026-10-20 this set max_auto_readahead_size = 0 with no recorded reason.
++  t.max_auto_readahead_size = 0;       // CONTROL store_readahead_off: no implicit iterator prefetch
+   // bloom_bits_per_key 0: no filter_policy at all (RocksDB's default; 7.5.3's builder makes no filter block for a null
+   // policy), never NewBloomFilterPolicy(0)
+   if (so.bloom_bits_per_key > 0) t.filter_policy.reset(rocksdb::NewBloomFilterPolicy(so.bloom_bits_per_key));

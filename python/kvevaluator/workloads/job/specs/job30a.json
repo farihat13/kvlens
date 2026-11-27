@@ -1,0 +1,269 @@
+{
+ "query": "job30a",
+ "aliases": {
+  "cc": "complete_cast",
+  "cct1": "comp_cast_type",
+  "cct2": "comp_cast_type",
+  "ci": "cast_info",
+  "it1": "info_type",
+  "it2": "info_type",
+  "k": "keyword",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mi_idx",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi_idx",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "cct1",
+   "id",
+   "cc",
+   "subject_id"
+  ],
+  [
+   "cct2",
+   "id",
+   "cc",
+   "status_id"
+  ]
+ ],
+ "predicates": {
+  "cc": [],
+  "cct1": [
+   [
+    "in",
+    "cct1",
+    "kind",
+    [
+     "cast",
+     "crew"
+    ]
+   ]
+  ],
+  "cct2": [
+   [
+    "cmp",
+    "=",
+    "cct2",
+    "kind",
+    "complete+verified"
+   ]
+  ],
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(writer)",
+     "(head writer)",
+     "(written by)",
+     "(story)",
+     "(story editor)"
+    ]
+   ]
+  ],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "genres"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "votes"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "murder",
+     "violence",
+     "blood",
+     "gore",
+     "death",
+     "female-nudity",
+     "hospital"
+    ]
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Horror",
+     "Thriller"
+    ]
+   ]
+  ],
+  "mi_idx": [],
+  "mk": [],
+  "n": [
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "m"
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2000
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_budget",
+   "mi",
+   "info"
+  ],
+  [
+   "movie_votes",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "writer",
+   "n",
+   "name"
+  ],
+  [
+   "complete_violent_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

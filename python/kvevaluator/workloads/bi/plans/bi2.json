@@ -1,0 +1,2157 @@
+{
+  "plan": "bi2",
+  "question": "Given a tag class and a date, compare each of its tags' message counts in two consecutive 100-day windows and list the 100 tags with the largest change.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "tagClass": {
+      "type": "str"
+    },
+    "date": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "d100": {
+      "add": [
+        {
+          "param": "date"
+        },
+        {
+          "lit": 8640000000
+        }
+      ]
+    },
+    "d200": {
+      "add": [
+        {
+          "param": "date"
+        },
+        {
+          "lit": 17280000000
+        }
+      ]
+    }
+  },
+  "plans": {
+    "bi2_run(hand)": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_all_run_Post",
+          "op": "read_vertices_by_label",
+          "label": "Post",
+          "props": [
+            "creationDate"
+          ],
+          "keep": {
+            "ref": "msg_v"
+          }
+        },
+        {
+          "name": "msg_d_all_run_Comment",
+          "op": "read_vertices_by_label",
+          "label": "Comment",
+          "props": [
+            "creationDate"
+          ],
+          "keep": {
+            "ref": "msg_v"
+          }
+        },
+        {
+          "name": "msg_d_all",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_all_run_Post"
+          },
+          "b": {
+            "ref": "msg_d_all_run_Comment"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d_all"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~31fce9": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_posts"
+          },
+          "b": {
+            "ref": "msg_d_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~4c1f5f": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_v_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_v_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_v_posts"
+          },
+          "b": {
+            "ref": "msg_d_v_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~415aab": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_v_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_v_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_v_posts"
+          },
+          "b": {
+            "ref": "msg_d_v_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~78c926": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "msg_d_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "msg_d_v",
+          "op": "concat",
+          "a": {
+            "ref": "msg_d_posts"
+          },
+          "b": {
+            "ref": "msg_d_comments"
+          }
+        },
+        {
+          "name": "msg_d",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_d_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~8d4e82": {
+      "steps": [
+        {
+          "name": "tc",
+          "op": "read_index_eq",
+          "label": "TagClass",
+          "prop": "name",
+          "value": {
+            "param": "tagClass"
+          }
+        },
+        {
+          "name": "tags0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tc"
+          },
+          "etype": "hasType",
+          "dir": "in"
+        },
+        {
+          "name": "tags",
+          "op": "dedup",
+          "items": {
+            "ref": "tags0"
+          }
+        },
+        {
+          "name": "tagged",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "tags"
+          },
+          "etype": "hasTag",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "msg_v0",
+          "op": "pluck",
+          "rows": {
+            "ref": "tagged"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "msg_v",
+          "op": "dedup",
+          "items": {
+            "ref": "msg_v0"
+          }
+        },
+        {
+          "name": "msg_d_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_d",
+          "op": "filter",
+          "rows": {
+            "ref": "msg_d_all"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "dated",
+          "op": "join_multi",
+          "left": {
+            "ref": "tagged"
+          },
+          "right": {
+            "ref": "msg_d"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "w1",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "date"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w2",
+          "op": "filter",
+          "rows": {
+            "ref": "dated"
+          },
+          "pred": {
+            "and": [
+              {
+                "ge": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d100"
+                  }
+                ]
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "let": "d200"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "w1_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w1"
+          },
+          "field": "src"
+        },
+        {
+          "name": "w2_tag",
+          "op": "pluck",
+          "rows": {
+            "ref": "w2"
+          },
+          "field": "src"
+        },
+        {
+          "name": "c1",
+          "op": "group_count",
+          "items": {
+            "ref": "w1_tag"
+          }
+        },
+        {
+          "name": "c2",
+          "op": "group_count",
+          "items": {
+            "ref": "w2_tag"
+          }
+        },
+        {
+          "name": "c1_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c1"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow1"
+          }
+        },
+        {
+          "name": "c2_n",
+          "op": "rename",
+          "rows": {
+            "ref": "c2"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "countWindow2"
+          }
+        },
+        {
+          "name": "names",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tags"
+          },
+          "props": [
+            "name"
+          ],
+          "label": "Tag"
+        },
+        {
+          "name": "with_c1",
+          "op": "left_join",
+          "left": {
+            "ref": "names"
+          },
+          "right": {
+            "ref": "c1_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow1": 0
+          }
+        },
+        {
+          "name": "with_c2",
+          "op": "left_join",
+          "left": {
+            "ref": "with_c1"
+          },
+          "right": {
+            "ref": "c2_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "countWindow2": 0
+          }
+        },
+        {
+          "name": "diffed",
+          "op": "derive",
+          "rows": {
+            "ref": "with_c2"
+          },
+          "into": "diff",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "sub": [
+                      {
+                        "field": "countWindow1"
+                      },
+                      {
+                        "field": "countWindow2"
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow2"
+                  },
+                  {
+                    "field": "countWindow1"
+                  }
+                ]
+              },
+              {
+                "sub": [
+                  {
+                    "field": "countWindow1"
+                  },
+                  {
+                    "field": "countWindow2"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "diffed"
+          },
+          "keys": [
+            [
+              "diff",
+              "desc"
+            ],
+            [
+              "name",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "name",
+            "countWindow1",
+            "countWindow2",
+            "diff"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "bi2_run(hand)": {
+      "sha": "1ecc4910b150",
+      "requires": [
+        "label_rows_one_run",
+        "property_index"
+      ],
+      "sources": [
+        "bi2_run(hand)"
+      ]
+    },
+    "hand+probe~31fce9": {
+      "sha": "31fce936b5cf",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand+probe~4c1f5f": {
+      "sha": "4c1f5f0a00bf",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~415aab": {
+      "sha": "415aab3cef88",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~78c926": {
+      "sha": "78c926cd8a17",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~8d4e82": {
+      "sha": "8d4e829979ef",
+      "requires": [
+        "label_scoped_props",
+        "property_index"
+      ],
+      "on": {
+        "label_scoped_props": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

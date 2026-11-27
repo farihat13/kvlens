@@ -1,0 +1,889 @@
+{
+  "plan": "ic7",
+  "question": "Given a person, find the 20 most recent likes of their messages, with each liker, the liked message, the like delay and whether the liker is a friend.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "edge_probe": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "like_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "liker_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "like_edges"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_vid",
+            "creationDate": "likeCreationDate"
+          }
+        },
+        {
+          "name": "newest",
+          "op": "group_top",
+          "rows": {
+            "ref": "liker_rows"
+          },
+          "by": "_vid",
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "cand",
+          "op": "top_k",
+          "rows": {
+            "ref": "newest"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ],
+          "k": 20,
+          "keep_ties": true
+        },
+        {
+          "name": "liker_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "liker_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "liker_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "liker_named",
+          "op": "rename",
+          "rows": {
+            "ref": "liker_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "liker_join",
+          "op": "join",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "liker_named"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "liker_join"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "msg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "msg_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "props": [
+            "id",
+            "content",
+            "imageFile",
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_named",
+          "op": "rename",
+          "rows": {
+            "ref": "msg_props"
+          },
+          "names": {
+            "id": "messageId",
+            "content": "messageContent",
+            "imageFile": "messageImageFile",
+            "creationDate": "_msgDate"
+          }
+        },
+        {
+          "name": "with_msg",
+          "op": "join",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "msg_named"
+          },
+          "left_on": "_msg",
+          "right_on": "_vid"
+        },
+        {
+          "name": "flagged",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "with_msg"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "_knows",
+          "others": {
+            "ref": "a"
+          },
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "in",
+              "at": "anchor"
+            }
+          ]
+        },
+        {
+          "name": "with_new",
+          "op": "derive",
+          "rows": {
+            "ref": "flagged"
+          },
+          "into": "isNew",
+          "fn": {
+            "not": {
+              "field": "_knows"
+            }
+          }
+        },
+        {
+          "name": "with_lat",
+          "op": "derive",
+          "rows": {
+            "ref": "with_new"
+          },
+          "into": "latencyMinutes",
+          "fn": {
+            "floordiv": [
+              {
+                "sub": [
+                  {
+                    "field": "likeCreationDate"
+                  },
+                  {
+                    "field": "_msgDate"
+                  }
+                ]
+              },
+              {
+                "lit": 60000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_lat"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "likeCreationDate",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "latencyMinutes",
+            "isNew"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "edge_probe_out": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "like_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "liker_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "like_edges"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_vid",
+            "creationDate": "likeCreationDate"
+          }
+        },
+        {
+          "name": "newest",
+          "op": "group_top",
+          "rows": {
+            "ref": "liker_rows"
+          },
+          "by": "_vid",
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "cand",
+          "op": "top_k",
+          "rows": {
+            "ref": "newest"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ],
+          "k": 20,
+          "keep_ties": true
+        },
+        {
+          "name": "liker_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "liker_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "liker_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "liker_named",
+          "op": "rename",
+          "rows": {
+            "ref": "liker_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "liker_join",
+          "op": "join",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "liker_named"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "liker_join"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "msg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "msg_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "props": [
+            "id",
+            "content",
+            "imageFile",
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_named",
+          "op": "rename",
+          "rows": {
+            "ref": "msg_props"
+          },
+          "names": {
+            "id": "messageId",
+            "content": "messageContent",
+            "imageFile": "messageImageFile",
+            "creationDate": "_msgDate"
+          }
+        },
+        {
+          "name": "with_msg",
+          "op": "join",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "msg_named"
+          },
+          "left_on": "_msg",
+          "right_on": "_vid"
+        },
+        {
+          "name": "flagged",
+          "op": "read_edge_exists",
+          "rows": {
+            "ref": "with_msg"
+          },
+          "field": "_vid",
+          "etype": "knows",
+          "into": "_knows",
+          "others": {
+            "ref": "a"
+          },
+          "reads": [
+            {
+              "dir": "out",
+              "at": "anchor"
+            },
+            {
+              "dir": "out",
+              "at": "cand",
+              "unless_found": true
+            }
+          ]
+        },
+        {
+          "name": "with_new",
+          "op": "derive",
+          "rows": {
+            "ref": "flagged"
+          },
+          "into": "isNew",
+          "fn": {
+            "not": {
+              "field": "_knows"
+            }
+          }
+        },
+        {
+          "name": "with_lat",
+          "op": "derive",
+          "rows": {
+            "ref": "with_new"
+          },
+          "into": "latencyMinutes",
+          "fn": {
+            "floordiv": [
+              {
+                "sub": [
+                  {
+                    "field": "likeCreationDate"
+                  },
+                  {
+                    "field": "_msgDate"
+                  }
+                ]
+              },
+              {
+                "lit": 60000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_lat"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "likeCreationDate",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "latencyMinutes",
+            "isNew"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "materialize_intersect": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "like_edges",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "msgs"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "edge_props": [
+            "creationDate"
+          ],
+          "pairs": true
+        },
+        {
+          "name": "liker_rows",
+          "op": "rename",
+          "rows": {
+            "ref": "like_edges"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_vid",
+            "creationDate": "likeCreationDate"
+          }
+        },
+        {
+          "name": "newest",
+          "op": "group_top",
+          "rows": {
+            "ref": "liker_rows"
+          },
+          "by": "_vid",
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ]
+        },
+        {
+          "name": "cand",
+          "op": "top_k",
+          "rows": {
+            "ref": "newest"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ]
+          ],
+          "k": 20,
+          "keep_ties": true
+        },
+        {
+          "name": "liker_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "cand"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "liker_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "liker_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "liker_named",
+          "op": "rename",
+          "rows": {
+            "ref": "liker_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "liker_join",
+          "op": "join",
+          "left": {
+            "ref": "cand"
+          },
+          "right": {
+            "ref": "liker_named"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "top20",
+          "op": "top_k",
+          "rows": {
+            "ref": "liker_join"
+          },
+          "keys": [
+            [
+              "likeCreationDate",
+              "desc"
+            ],
+            [
+              "personId",
+              "asc"
+            ]
+          ],
+          "k": 20
+        },
+        {
+          "name": "msg_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top20"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "msg_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "msg_v"
+          },
+          "props": [
+            "id",
+            "content",
+            "imageFile",
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "msg_named",
+          "op": "rename",
+          "rows": {
+            "ref": "msg_props"
+          },
+          "names": {
+            "id": "messageId",
+            "content": "messageContent",
+            "imageFile": "messageImageFile",
+            "creationDate": "_msgDate"
+          }
+        },
+        {
+          "name": "with_msg",
+          "op": "join",
+          "left": {
+            "ref": "top20"
+          },
+          "right": {
+            "ref": "msg_named"
+          },
+          "left_on": "_msg",
+          "right_on": "_vid"
+        },
+        {
+          "name": "friends0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "friends",
+          "op": "dedup",
+          "items": {
+            "ref": "friends0"
+          }
+        },
+        {
+          "name": "flagged",
+          "op": "flag_in",
+          "rows": {
+            "ref": "with_msg"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "friends"
+          },
+          "into": "_knows"
+        },
+        {
+          "name": "with_new",
+          "op": "derive",
+          "rows": {
+            "ref": "flagged"
+          },
+          "into": "isNew",
+          "fn": {
+            "not": {
+              "field": "_knows"
+            }
+          }
+        },
+        {
+          "name": "with_lat",
+          "op": "derive",
+          "rows": {
+            "ref": "with_new"
+          },
+          "into": "latencyMinutes",
+          "fn": {
+            "floordiv": [
+              {
+                "sub": [
+                  {
+                    "field": "likeCreationDate"
+                  },
+                  {
+                    "field": "_msgDate"
+                  }
+                ]
+              },
+              {
+                "lit": 60000
+              }
+            ]
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_lat"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName",
+            "likeCreationDate",
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "latencyMinutes",
+            "isNew"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "edge_probe": {
+      "sha": "ab0a28bddacc",
+      "requires": [
+        "reverse_adjacency"
+      ],
+      "on": {
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe"
+      ]
+    },
+    "edge_probe_out": {
+      "sha": "504351c93737",
+      "requires": [],
+      "measure_only_where": {
+        "adjacency_lists": [
+          "knows"
+        ],
+        "reverse_adjacency": [
+          "knows"
+        ]
+      },
+      "sources": [
+        "edge_probe_out"
+      ]
+    },
+    "materialize_intersect": {
+      "sha": "db587d8419be",
+      "requires": [],
+      "sources": [
+        "materialize_intersect"
+      ]
+    }
+  }
+}

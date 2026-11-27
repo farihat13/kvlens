@@ -1,0 +1,6 @@
+tag|messages|stratum
+Nilsson_Schmilsson|288|p50
+Things_Have_Changed|599|p75
+Thelonious_Monk|3528|p90
+Hans_Christian_Andersen|7216|p99
+Augustine_of_Hippo|77025|max

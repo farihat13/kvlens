@@ -1,0 +1,10 @@
+// microbench nhop3: the persons at knows-distance exactly 3 from a person (TM1, undirected BFS
+// with a global visited set: a person is reported only at the depth it is first reached).
+// Reads: the knows edge index (both sides) of every vertex expanded up to depth 2;
+// returns each depth-3 person's _key only.
+// Evaluator: queries/nhop.py _nhop(3) -- 3 x (read_neighbors both + dedup + exclude visited),
+// final = the depth-3 frontier, one row per person.
+// mb2 lineage: MB41-44, 53-54 (no arango text in mb2).
+FOR v IN 3..3 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN v._key

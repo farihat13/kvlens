@@ -1,0 +1,12 @@
+{
+ "hubs_split_knows_chunked": "snapshots/sf3/remeasure-20261012/meta-grid/mixes",
+ "messages_chunked_likes_split": "snapshots/sf3/remeasure-20261012/meta-grid/mixes",
+ "people_chunked_hubs_split": "snapshots/sf3/remeasure-20261012/meta-grid/mixes",
+ "people_hot_cold_messages_w16_fewest_bytes": "snapshots/sf3/remeasure-20261012/meta-grid/mixes",
+ "w16_b05": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's",
+ "w16_b1": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's",
+ "w16_b1_picks_20261012": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16_picks_20261012 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's",
+ "w16_b2": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's",
+ "w16_b2_picks_20261012": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16_picks_20261012 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's",
+ "w16_b3": "snapshots/sf3/freeze-latency-20261019/meta-grid/mixes_w16 with the IC5 and IC7 slices of snapshots/sf3/ldbc-hosted-params-20261019 overlaid: the grid's rows, with every IC5 and IC7 row replaced by the slice's"
+}

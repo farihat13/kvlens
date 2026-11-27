@@ -1,0 +1,23 @@
+# w_ins_v_full -- insert a new person carrying the 7 scalar properties, the indexed ones included
+#   (firstName hash, creationDate day, birthday year, browserUsed exact).
+# Writes: one posting per predicate, one index posting per indexed predicate, plus dgraph.type and `id` as in
+#   w_ins_v_min. The evaluator's full person also carries email and language (9 properties); this text keeps
+#   mb2's 7, the difference write_fidelity.py names.
+# Evaluator: workloads/writes/microbench/queries.py w_ins_v_full -- insert_vertex(new_vid, _FULL_PROPS).
+# mb2 lineage: MB84 (the same 7 properties; its id predicate was fqid).
+# Id: the plan's own synthetic id (its `let` new_vid), entered as the plain LDBC id inside the vid.
+{
+  "set": [
+    {
+      "id": $new_vid,
+      "dgraph.type": "person",
+      "firstName": "Wtest",
+      "lastName": "Writer",
+      "gender": "other",
+      "birthday": "1990-01-01T00:00:00Z",
+      "creationDate": "2020-01-01T00:00:00Z",
+      "locationIP": "10.0.0.1",
+      "browserUsed": "Chrome"
+    }
+  ]
+}

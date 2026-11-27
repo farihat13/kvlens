@@ -1,0 +1,63 @@
+{
+ "id": "l04",
+ "name": "lb_writes_x3",
+ "title": "LinkBench with three times the writes",
+ "items": [
+  {"family": "linkbench", "query": "getnode", "frequency": 12959, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link1", "frequency": 25375, "params": null},
+  {"family": "linkbench", "query": "getlinklist_link2", "frequency": 25253, "params": null},
+  {"family": "linkbench", "query": "countlink_link1", "frequency": 2409, "params": null},
+  {"family": "linkbench", "query": "countlink_link2", "frequency": 2458, "params": null},
+  {"family": "linkbench", "query": "getlink_link1", "frequency": 266, "params": null},
+  {"family": "linkbench", "query": "getlink_link2", "frequency": 274, "params": null},
+  {"family": "linkbench_writes", "query": "addlink_link1", "frequency": 21513, "params": null},
+  {"family": "linkbench_writes", "query": "addlink_link2", "frequency": 23799, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link1", "frequency": 4236, "params": null},
+  {"family": "linkbench_writes", "query": "updatelink_link2", "frequency": 1710, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link1", "frequency": 4377, "params": null},
+  {"family": "linkbench_writes", "query": "deletelink_link2", "frequency": 4536, "params": null},
+  {"family": "linkbench_writes", "query": "addnode", "frequency": 7923, "params": null},
+  {"family": "linkbench_writes", "query": "updatenode", "frequency": 21993, "params": null},
+  {"family": "linkbench_writes", "query": "deletenode", "frequency": 2931, "params": null}
+ ],
+ "expect": "Between L01 and L03: Split adjacency in ops and bytes; Condensed props in ops. Mixed == uniform.",
+ "why": "Three times the writes: Condensed/Split is cheapest in ops ({nb_ops}; All-Condensed {cc_ops}, {cc_more} more), Split/Condensed (Split props, Condensed lists) in bytes ({dg_bytes}). Without the hub Split props + Split lists is cheapest in bytes (sensitivity.csv).",
+ "why_numbers": {
+  "nb_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_split"
+  ],
+  "cc_ops": [
+   "total",
+   "ops",
+   "props_condensed_adj_condensed"
+  ],
+  "cc_more": [
+   "share",
+   [
+    "diff",
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_condensed"
+    ],
+    [
+     "total",
+     "ops",
+     "props_condensed_adj_split"
+    ]
+   ],
+   [
+    "total",
+    "ops",
+    "props_condensed_adj_split"
+   ]
+  ],
+  "dg_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_condensed"
+  ]
+ }
+}

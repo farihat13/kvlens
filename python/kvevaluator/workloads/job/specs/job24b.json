@@ -1,0 +1,269 @@
+{
+ "query": "job24b",
+ "aliases": {
+  "an": "aka_name",
+  "chn": "char_name",
+  "ci": "cast_info",
+  "cn": "company_name",
+  "it": "info_type",
+  "k": "keyword",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "n": "name",
+  "rt": "role_type",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "rt",
+   "id",
+   "ci",
+   "role_id"
+  ],
+  [
+   "n",
+   "id",
+   "an",
+   "person_id"
+  ],
+  [
+   "ci",
+   "person_id",
+   "an",
+   "person_id"
+  ],
+  [
+   "chn",
+   "id",
+   "ci",
+   "person_role_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ]
+ ],
+ "predicates": {
+  "an": [],
+  "chn": [],
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(voice)",
+     "(voice: Japanese version)",
+     "(voice) (uncredited)",
+     "(voice: English version)"
+    ]
+   ]
+  ],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ],
+   [
+    "cmp",
+    "=",
+    "cn",
+    "name",
+    "DreamWorks Animation"
+   ]
+  ],
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "release dates"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "hero",
+     "martial-arts",
+     "hand-to-hand-combat",
+     "computer-animated-movie"
+    ]
+   ]
+  ],
+  "mc": [],
+  "mi": [
+   [
+    "null",
+    "mi",
+    "info",
+    false
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "mi",
+      "info",
+      "Japan:%201%",
+      false
+     ],
+     [
+      "like",
+      "mi",
+      "info",
+      "USA:%201%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "mk": [],
+  "n": [
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "f"
+   ],
+   [
+    "like",
+    "n",
+    "name",
+    "%An%",
+    false
+   ]
+  ],
+  "rt": [
+   [
+    "cmp",
+    "=",
+    "rt",
+    "role",
+    "actress"
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2010
+   ],
+   [
+    "like",
+    "t",
+    "title",
+    "Kung Fu Panda%",
+    false
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "voiced_char_name",
+   "chn",
+   "name"
+  ],
+  [
+   "voicing_actress_name",
+   "n",
+   "name"
+  ],
+  [
+   "kung_fu_panda",
+   "t",
+   "title"
+  ]
+ ]
+}

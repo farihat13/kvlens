@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "owners": "one",
+    "split": "never",
+    "groups": {
+      "Comment": [
+        [
+          "content",
+          "creationDate"
+        ],
+        [
+          "browserUsed",
+          "length",
+          "locationIP"
+        ]
+      ],
+      "Forum": [
+        [
+          "title"
+        ],
+        [
+          "creationDate"
+        ]
+      ],
+      "Person": [
+        [
+          "birthday",
+          "browserUsed",
+          "creationDate",
+          "firstName",
+          "gender",
+          "lastName",
+          "locationIP"
+        ],
+        [
+          "email",
+          "language"
+        ]
+      ],
+      "Post": [
+        [
+          "content",
+          "creationDate",
+          "imageFile"
+        ],
+        [
+          "browserUsed",
+          "language",
+          "length",
+          "locationIP"
+        ]
+      ]
+    }
+  },
+  "adjacency": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+  },
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "split": "never",
+    "term": "exact",
+    "scope": "type"
+  }
+}

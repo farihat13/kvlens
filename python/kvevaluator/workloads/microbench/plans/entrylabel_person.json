@@ -1,0 +1,49 @@
+{
+  "plan": "entrylabel_person",
+  "question": "Count all the persons in the graph by listing the vertices of the Person type.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {},
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "v",
+          "op": "read_vertices_by_label",
+          "label": "Person"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "v"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "06d605dfa1b7",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

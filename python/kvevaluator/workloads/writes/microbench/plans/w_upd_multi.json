@@ -1,0 +1,50 @@
+{
+  "plan": "w_upd_multi",
+  "question": "Change three properties of a person in one update, one of them indexed.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_prop",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "props": {
+        "firstName": "WMulti",
+        "lastName": "WMulti",
+        "browserUsed": "Firefox"
+      }
+    }
+  ],
+  "output": "out"
+}

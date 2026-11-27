@@ -1,0 +1,114 @@
+{
+  "plan": "hop1_edgefilter",
+  "question": "Given a person, count their friendships that began before 2011, filtering on an edge property.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "nb",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "a"
+          },
+          "etype": "knows",
+          "dir": "both",
+          "edge_props": [
+            "creationDate"
+          ]
+        },
+        {
+          "name": "fx",
+          "op": "filter",
+          "rows": {
+            "ref": "nb"
+          },
+          "pred": {
+            "lt": [
+              {
+                "coalesce": [
+                  {
+                    "get": "creationDate"
+                  },
+                  {
+                    "lit": 0
+                  }
+                ]
+              },
+              {
+                "lit": 1293840000000
+              }
+            ]
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "fx"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "64ded3c3c05c",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

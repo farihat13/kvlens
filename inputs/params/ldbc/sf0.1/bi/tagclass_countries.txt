@@ -1,0 +1,6 @@
+tagClass|country|messagesInClass|personsInCountry|stratum
+ComicsCreator|Tanzania|506|10|p50-class-p50-country
+OfficeHolder|Tanzania|19519|10|p90-class-p50-country
+ComicsCreator|India|506|222|p50-class-max-country
+OfficeHolder|India|19519|222|p90-class-max-country
+Country|India|52216|222|max-class-max-country

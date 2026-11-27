@@ -1,0 +1,6 @@
+personId|country|tagClass|knowsDegree|stratum
+28587302322548|Tanzania|ComicsCreator|100|deg-p100-12+p50-class-p50-country
+150|Tanzania|OfficeHolder|49|deg-p90+p90-class-p50-country
+15393162790472|India|ComicsCreator|12|deg-p50+p50-class-max-country
+15393162790472|India|OfficeHolder|12|deg-p50+p90-class-max-country
+24189255811776|India|Country|2|deg-p10+max-class-max-country

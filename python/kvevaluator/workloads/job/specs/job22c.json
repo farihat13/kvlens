@@ -1,0 +1,239 @@
+{
+ "query": "job22c",
+ "aliases": {
+  "cn": "company_name",
+  "ct": "company_type",
+  "it1": "info_type",
+  "it2": "info_type",
+  "k": "keyword",
+  "kt": "kind_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "kt",
+   "id",
+   "t",
+   "kind_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ]
+ ],
+ "predicates": {
+  "cn": [
+   [
+    "cmp",
+    "!=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "ct": [],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "countries"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "rating"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "murder",
+     "murder-in-title",
+     "blood",
+     "violence"
+    ]
+   ]
+  ],
+  "kt": [
+   [
+    "in",
+    "kt",
+    "kind",
+    [
+     "movie",
+     "episode"
+    ]
+   ]
+  ],
+  "mc": [
+   [
+    "like",
+    "mc",
+    "note",
+    "%(USA)%",
+    true
+   ],
+   [
+    "like",
+    "mc",
+    "note",
+    "%(200%)%",
+    false
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Norway",
+     "Germany",
+     "Denmark",
+     "Swedish",
+     "Danish",
+     "Norwegian",
+     "German",
+     "USA",
+     "American"
+    ]
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    "<",
+    "mi_idx",
+    "info",
+    "8.5"
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2005
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_company",
+   "cn",
+   "name"
+  ],
+  [
+   "rating",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "western_violent_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

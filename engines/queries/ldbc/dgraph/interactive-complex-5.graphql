@@ -1,0 +1,57 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=6.08
+# Q5. New groups
+#
+# Given a start Person with ID $personId, denote their friends and friends of friends (excluding the
+# start Person) as otherPerson.
+# Find Forums that any Person otherPerson became a member of after a given date ($minDate). For
+# each of those Forums, count the number of Posts that were created by the Person otherPerson.
+#
+# Sort    postCount(desc), forumId(asc)
+# Limit   20
+#
+# Note: A hacky solution to order by both postCount DESC and forumId ASC
+#
+# DEVIATION FROM SPEC: the per-forum count below counts the forum's posts by ANY person in F, not
+# only by the members who joined THAT forum after $minDate. So a count can only grow vs LDBC's.
+#
+# Params:
+#   $personId : int
+#   $minDate : string   # ISO-8601 UTC, e.g. "2010-11-01T00:00:00Z"
+query Q5($personId: int, $minDate: string) {
+
+  # Anchor Person and 1..2-hop friends (exclude self; dedup)
+  P as var(func: eq(id, $personId)) @filter(type(person))
+  _l1(func: uid(P)) { l1a as knows  l1b as ~knows }
+  F1 as var(func: uid(l1a, l1b)) @filter(type(person) AND NOT uid(P))
+  _l2(func: uid(l1a, l1b)) { l2a as knows  l2b as ~knows }
+  F2 as var(func: uid(l2a, l2b)) @filter(type(person) AND NOT uid(P, F1))
+  F as var(func: uid(F1, F2))
+
+  # Forums that have ANY friend membership with joinDate > $minDate
+  # (facet filter lives on the edge)
+  var(func: uid(F)) {
+    MF as ~hasMember @facets(gt(joinDate, $minDate)) @filter(type(forum))
+  }
+
+  # Per-forum count of posts authored by those friends
+  var(func: uid(MF)) {
+    pc as count(containerOf @filter(
+      type(post) AND uid_in(hasCreator, uid(F))
+    ))
+  }
+
+  # Hack: Build a single composite order key:
+  #   ord = postCount + (ID_BASE - forumId) / ID_BASE
+  # Sorting DESC by ord == (postCount DESC, forumId ASC)
+  var(func: uid(MF)) {
+    forumIdVar as id
+    ord as math( pc + ( (1e15 - forumIdVar) / 1e15 ) )
+  }
+
+  # Final list: top 20 forums by ord
+  forums(func: uid(MF), orderdesc: val(ord), first: 20) {
+    forumName: title
+    postCount: val(pc)
+    forumId: id
+  }
+}

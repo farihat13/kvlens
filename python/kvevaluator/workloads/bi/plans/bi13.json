@@ -1,0 +1,1286 @@
+{
+  "plan": "bi13",
+  "question": "Given a country and a date, find the 100 'zombie' people there (few messages for their months of membership), ranked by the share of their likes that come from zombies.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "country": {
+      "type": "str"
+    },
+    "endDate": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "bi13_run(hand)": {
+      "steps": [
+        {
+          "name": "c",
+          "op": "read_index_eq",
+          "label": "Place",
+          "prop": "name",
+          "value": {
+            "param": "country"
+          }
+        },
+        {
+          "name": "ci0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "c"
+          },
+          "etype": "isPartOf",
+          "dir": "in"
+        },
+        {
+          "name": "ci",
+          "op": "dedup",
+          "items": {
+            "ref": "ci0"
+          }
+        },
+        {
+          "name": "p0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ci"
+          },
+          "etype": "isLocatedIn",
+          "dir": "in"
+        },
+        {
+          "name": "p",
+          "op": "dedup",
+          "items": {
+            "ref": "p0"
+          }
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "p"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "and": [
+              {
+                "notnull": {
+                  "field": "creationDate"
+                }
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "months",
+          "op": "derive",
+          "rows": {
+            "ref": "cand"
+          },
+          "into": "_months",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "mul": [
+                      {
+                        "lit": 12
+                      },
+                      {
+                        "sub": [
+                          {
+                            "year_of": {
+                              "param": "endDate"
+                            }
+                          },
+                          {
+                            "year_of": {
+                              "field": "creationDate"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "sub": [
+                      {
+                        "month_of": {
+                          "param": "endDate"
+                        }
+                      },
+                      {
+                        "month_of": {
+                          "field": "creationDate"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lit": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "months"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "m",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cv"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "m_n",
+          "op": "rename",
+          "rows": {
+            "ref": "m"
+          },
+          "names": {
+            "src": "_person",
+            "dst": "_msg"
+          }
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "m_n"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "mp_run_Post",
+          "op": "read_vertices_by_label",
+          "label": "Post",
+          "props": [
+            "creationDate"
+          ],
+          "keep": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "mp_run_Comment",
+          "op": "read_vertices_by_label",
+          "label": "Comment",
+          "props": [
+            "creationDate"
+          ],
+          "keep": {
+            "ref": "mv"
+          }
+        },
+        {
+          "name": "mp",
+          "op": "concat",
+          "a": {
+            "ref": "mp_run_Post"
+          },
+          "b": {
+            "ref": "mp_run_Comment"
+          }
+        },
+        {
+          "name": "mp_w",
+          "op": "filter",
+          "rows": {
+            "ref": "mp"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "endDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mp_w"
+          },
+          "names": {
+            "_vid": "_msg",
+            "creationDate": "_mcd"
+          }
+        },
+        {
+          "name": "mw",
+          "op": "join",
+          "left": {
+            "ref": "mp_n"
+          },
+          "right": {
+            "ref": "m_n"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "mw_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "mw"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "mc",
+          "op": "group_count",
+          "items": {
+            "ref": "mw_v"
+          }
+        },
+        {
+          "name": "mc_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mc"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_mc"
+          }
+        },
+        {
+          "name": "cm",
+          "op": "left_join",
+          "left": {
+            "ref": "months"
+          },
+          "right": {
+            "ref": "mc_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_mc": 0
+          }
+        },
+        {
+          "name": "z",
+          "op": "filter",
+          "rows": {
+            "ref": "cm"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "_mc"
+              },
+              {
+                "field": "_months"
+              }
+            ]
+          }
+        },
+        {
+          "name": "zv",
+          "op": "pluck",
+          "rows": {
+            "ref": "z"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "zm",
+          "op": "filter_in",
+          "rows": {
+            "ref": "m_n"
+          },
+          "field": "_person",
+          "allowed": {
+            "ref": "zv"
+          }
+        },
+        {
+          "name": "zmv",
+          "op": "pluck",
+          "rows": {
+            "ref": "zm"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "lk",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "zmv"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "lk_n",
+          "op": "rename",
+          "rows": {
+            "ref": "lk"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_liker"
+          }
+        },
+        {
+          "name": "lv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "lk_n"
+          },
+          "field": "_liker"
+        },
+        {
+          "name": "lv",
+          "op": "dedup",
+          "items": {
+            "ref": "lv0"
+          }
+        },
+        {
+          "name": "lp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "lv"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "lp_w",
+          "op": "filter",
+          "rows": {
+            "ref": "lp"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "endDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lp_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "lp_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "lkz",
+          "op": "flag_in",
+          "rows": {
+            "ref": "lk_n"
+          },
+          "field": "_liker",
+          "allowed": {
+            "ref": "zv"
+          },
+          "into": "_byZombie"
+        },
+        {
+          "name": "lkt",
+          "op": "flag_in",
+          "rows": {
+            "ref": "lkz"
+          },
+          "field": "_liker",
+          "allowed": {
+            "ref": "lp_v"
+          },
+          "into": "_byOld"
+        },
+        {
+          "name": "lkp",
+          "op": "join",
+          "left": {
+            "ref": "lkt"
+          },
+          "right": {
+            "ref": "zm"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "lkd",
+          "op": "derive",
+          "rows": {
+            "ref": "lkp"
+          },
+          "into": "_z",
+          "fn": {
+            "if": [
+              {
+                "field": "_byZombie"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "lkd2",
+          "op": "derive",
+          "rows": {
+            "ref": "lkd"
+          },
+          "into": "_t",
+          "fn": {
+            "if": [
+              {
+                "field": "_byOld"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "lc",
+          "op": "group_agg",
+          "rows": {
+            "ref": "lkd2"
+          },
+          "by": [
+            "_person"
+          ],
+          "aggs": {
+            "zombieLikeCount": [
+              "sum",
+              "_z"
+            ],
+            "totalLikeCount": [
+              "sum",
+              "_t"
+            ]
+          }
+        },
+        {
+          "name": "lc_n",
+          "op": "rename",
+          "rows": {
+            "ref": "lc"
+          },
+          "names": {
+            "_person": "_vid"
+          }
+        },
+        {
+          "name": "zs",
+          "op": "left_join",
+          "left": {
+            "ref": "z"
+          },
+          "right": {
+            "ref": "lc_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "zombieLikeCount": 0,
+            "totalLikeCount": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "zs"
+          },
+          "into": "zombieScore",
+          "fn": {
+            "div": [
+              {
+                "field": "zombieLikeCount"
+              },
+              {
+                "if": [
+                  {
+                    "eq": [
+                      {
+                        "field": "totalLikeCount"
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "field": "totalLikeCount"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "zombieScore",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ids_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ids"
+          },
+          "names": {
+            "id": "zombieId"
+          }
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "zombieId",
+            "zombieLikeCount",
+            "totalLikeCount",
+            "zombieScore"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand": {
+      "steps": [
+        {
+          "name": "c",
+          "op": "read_index_eq",
+          "label": "Place",
+          "prop": "name",
+          "value": {
+            "param": "country"
+          }
+        },
+        {
+          "name": "ci0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "c"
+          },
+          "etype": "isPartOf",
+          "dir": "in"
+        },
+        {
+          "name": "ci",
+          "op": "dedup",
+          "items": {
+            "ref": "ci0"
+          }
+        },
+        {
+          "name": "p0",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "ci"
+          },
+          "etype": "isLocatedIn",
+          "dir": "in"
+        },
+        {
+          "name": "p",
+          "op": "dedup",
+          "items": {
+            "ref": "p0"
+          }
+        },
+        {
+          "name": "pp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "p"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "cand",
+          "op": "filter",
+          "rows": {
+            "ref": "pp"
+          },
+          "pred": {
+            "and": [
+              {
+                "notnull": {
+                  "field": "creationDate"
+                }
+              },
+              {
+                "lt": [
+                  {
+                    "field": "creationDate"
+                  },
+                  {
+                    "param": "endDate"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "months",
+          "op": "derive",
+          "rows": {
+            "ref": "cand"
+          },
+          "into": "_months",
+          "fn": {
+            "add": [
+              {
+                "add": [
+                  {
+                    "mul": [
+                      {
+                        "lit": 12
+                      },
+                      {
+                        "sub": [
+                          {
+                            "year_of": {
+                              "param": "endDate"
+                            }
+                          },
+                          {
+                            "year_of": {
+                              "field": "creationDate"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "sub": [
+                      {
+                        "month_of": {
+                          "param": "endDate"
+                        }
+                      },
+                      {
+                        "month_of": {
+                          "field": "creationDate"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lit": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "cv",
+          "op": "pluck",
+          "rows": {
+            "ref": "months"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "m",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "cv"
+          },
+          "etype": "hasCreator",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "m_n",
+          "op": "rename",
+          "rows": {
+            "ref": "m"
+          },
+          "names": {
+            "src": "_person",
+            "dst": "_msg"
+          }
+        },
+        {
+          "name": "mv",
+          "op": "pluck",
+          "rows": {
+            "ref": "m_n"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "mp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "mv"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "mp_w",
+          "op": "filter",
+          "rows": {
+            "ref": "mp"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "endDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mp_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mp_w"
+          },
+          "names": {
+            "_vid": "_msg",
+            "creationDate": "_mcd"
+          }
+        },
+        {
+          "name": "mw",
+          "op": "join",
+          "left": {
+            "ref": "mp_n"
+          },
+          "right": {
+            "ref": "m_n"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "mw_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "mw"
+          },
+          "field": "_person"
+        },
+        {
+          "name": "mc",
+          "op": "group_count",
+          "items": {
+            "ref": "mw_v"
+          }
+        },
+        {
+          "name": "mc_n",
+          "op": "rename",
+          "rows": {
+            "ref": "mc"
+          },
+          "names": {
+            "item": "_vid",
+            "count": "_mc"
+          }
+        },
+        {
+          "name": "cm",
+          "op": "left_join",
+          "left": {
+            "ref": "months"
+          },
+          "right": {
+            "ref": "mc_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "_mc": 0
+          }
+        },
+        {
+          "name": "z",
+          "op": "filter",
+          "rows": {
+            "ref": "cm"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "_mc"
+              },
+              {
+                "field": "_months"
+              }
+            ]
+          }
+        },
+        {
+          "name": "zv",
+          "op": "pluck",
+          "rows": {
+            "ref": "z"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "zm",
+          "op": "filter_in",
+          "rows": {
+            "ref": "m_n"
+          },
+          "field": "_person",
+          "allowed": {
+            "ref": "zv"
+          }
+        },
+        {
+          "name": "zmv",
+          "op": "pluck",
+          "rows": {
+            "ref": "zm"
+          },
+          "field": "_msg"
+        },
+        {
+          "name": "lk",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "zmv"
+          },
+          "etype": "likes",
+          "dir": "in",
+          "pairs": true
+        },
+        {
+          "name": "lk_n",
+          "op": "rename",
+          "rows": {
+            "ref": "lk"
+          },
+          "names": {
+            "src": "_msg",
+            "dst": "_liker"
+          }
+        },
+        {
+          "name": "lv0",
+          "op": "pluck",
+          "rows": {
+            "ref": "lk_n"
+          },
+          "field": "_liker"
+        },
+        {
+          "name": "lv",
+          "op": "dedup",
+          "items": {
+            "ref": "lv0"
+          }
+        },
+        {
+          "name": "lp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "lv"
+          },
+          "props": [
+            "creationDate"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "lp_w",
+          "op": "filter",
+          "rows": {
+            "ref": "lp"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "endDate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lp_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "lp_w"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "lkz",
+          "op": "flag_in",
+          "rows": {
+            "ref": "lk_n"
+          },
+          "field": "_liker",
+          "allowed": {
+            "ref": "zv"
+          },
+          "into": "_byZombie"
+        },
+        {
+          "name": "lkt",
+          "op": "flag_in",
+          "rows": {
+            "ref": "lkz"
+          },
+          "field": "_liker",
+          "allowed": {
+            "ref": "lp_v"
+          },
+          "into": "_byOld"
+        },
+        {
+          "name": "lkp",
+          "op": "join",
+          "left": {
+            "ref": "lkt"
+          },
+          "right": {
+            "ref": "zm"
+          },
+          "left_on": "_msg",
+          "right_on": "_msg"
+        },
+        {
+          "name": "lkd",
+          "op": "derive",
+          "rows": {
+            "ref": "lkp"
+          },
+          "into": "_z",
+          "fn": {
+            "if": [
+              {
+                "field": "_byZombie"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "lkd2",
+          "op": "derive",
+          "rows": {
+            "ref": "lkd"
+          },
+          "into": "_t",
+          "fn": {
+            "if": [
+              {
+                "field": "_byOld"
+              },
+              {
+                "lit": 1
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "lc",
+          "op": "group_agg",
+          "rows": {
+            "ref": "lkd2"
+          },
+          "by": [
+            "_person"
+          ],
+          "aggs": {
+            "zombieLikeCount": [
+              "sum",
+              "_z"
+            ],
+            "totalLikeCount": [
+              "sum",
+              "_t"
+            ]
+          }
+        },
+        {
+          "name": "lc_n",
+          "op": "rename",
+          "rows": {
+            "ref": "lc"
+          },
+          "names": {
+            "_person": "_vid"
+          }
+        },
+        {
+          "name": "zs",
+          "op": "left_join",
+          "left": {
+            "ref": "z"
+          },
+          "right": {
+            "ref": "lc_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid",
+          "default": {
+            "zombieLikeCount": 0,
+            "totalLikeCount": 0
+          }
+        },
+        {
+          "name": "scored",
+          "op": "derive",
+          "rows": {
+            "ref": "zs"
+          },
+          "into": "zombieScore",
+          "fn": {
+            "div": [
+              {
+                "field": "zombieLikeCount"
+              },
+              {
+                "if": [
+                  {
+                    "eq": [
+                      {
+                        "field": "totalLikeCount"
+                      },
+                      {
+                        "lit": 0
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "field": "totalLikeCount"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "scored"
+          },
+          "keys": [
+            [
+              "zombieScore",
+              "desc"
+            ],
+            [
+              "_vid",
+              "asc"
+            ]
+          ],
+          "k": 100
+        },
+        {
+          "name": "top_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "ids",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_v"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "ids_n",
+          "op": "rename",
+          "rows": {
+            "ref": "ids"
+          },
+          "names": {
+            "id": "zombieId"
+          }
+        },
+        {
+          "name": "with_id",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "ids_n"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "with_id"
+          },
+          "fields": [
+            "zombieId",
+            "zombieLikeCount",
+            "totalLikeCount",
+            "zombieScore"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "bi13_run(hand)": {
+      "sha": "59d7ec6081b1",
+      "requires": [
+        "label_rows_one_run",
+        "property_index"
+      ],
+      "sources": [
+        "bi13_run(hand)"
+      ]
+    },
+    "hand": {
+      "sha": "93a2d5aee39e",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

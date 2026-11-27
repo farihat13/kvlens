@@ -1,0 +1,11 @@
+{
+ "id": "w15",
+ "name": "control_person_only",
+ "title": "Control: only Person, read one way",
+ "items": [
+  {"family": "microbench", "query": "point7", "frequency": 100, "params": null},
+  {"family": "microbench", "query": "hop1p3_knows", "frequency": 100, "params": null}
+ ],
+ "expect": "mixed == the best uniform layout (no gain possible)",
+ "why": "only Person is involved, so there is nothing to split by type: the best mixed layout equals the best uniform layout. The check that the search does not invent gains."
+}

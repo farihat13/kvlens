@@ -1,0 +1,17 @@
+# microbench topk1 -- the 1 newest messages (Post or Comment) created before $maxDate, with
+# id, creationDate, content.
+# Evaluator: queries/topk.py _topk_rowwalk(1): read_top_k_by_index over the Post and Comment date
+# indexes, newest first, bound creationDate < maxDate (exclusive), ties by id asc -> 1 rows.
+# mb2 lineage: MB47-48, 147 (those ranked Persons).
+# Form: one LOOKUP range scan per message tag (post_/comment_creation_date_idx), UNION ALL,
+# then sort + limit in graphd. There is no index spanning both tags, so this is the direct
+# form. Engine note: the TopN is NOT pushed into the index scans -- storage returns every
+# entry below maxDate and reads each one's row (1 GET per entry, content is not in the index),
+# then graphd sorts. Ties sort by the string vid, not the int id; only the row count is compared.
+(LOOKUP ON Post WHERE Post.creationDate < $maxDate
+   YIELD id(vertex) AS id, Post.creationDate AS creationDate, Post.content AS content
+ UNION ALL
+ LOOKUP ON `Comment` WHERE `Comment`.creationDate < $maxDate
+   YIELD id(vertex) AS id, `Comment`.creationDate AS creationDate, `Comment`.content AS content)
+| ORDER BY $-.creationDate DESC, $-.id ASC
+| LIMIT 1

@@ -1,0 +1,2468 @@
+{
+  "plan": "bi1",
+  "question": "Given a date, group all messages created before it by year, post or comment, and length bucket, with count, average and total length and share of all messages.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "datetime": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "bi1_scan(hand)": {
+      "steps": [
+        {
+          "name": "props_pv",
+          "op": "read_vertices_by_label",
+          "label": "Post"
+        },
+        {
+          "name": "props_p",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "props_pv"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "props_cv",
+          "op": "read_vertices_by_label",
+          "label": "Comment"
+        },
+        {
+          "name": "props_c",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "props_cv"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "props_pt",
+          "op": "derive",
+          "rows": {
+            "ref": "props_p"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": true
+          }
+        },
+        {
+          "name": "props_ct",
+          "op": "derive",
+          "rows": {
+            "ref": "props_c"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": false
+          }
+        },
+        {
+          "name": "props",
+          "op": "concat",
+          "a": {
+            "ref": "props_pt"
+          },
+          "b": {
+            "ref": "props_ct"
+          }
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "bi1_scan(hand+fused)": {
+      "steps": [
+        {
+          "name": "props_p",
+          "op": "read_vertices_by_label",
+          "label": "Post",
+          "props": [
+            "creationDate",
+            "length"
+          ]
+        },
+        {
+          "name": "props_c",
+          "op": "read_vertices_by_label",
+          "label": "Comment",
+          "props": [
+            "creationDate",
+            "length"
+          ]
+        },
+        {
+          "name": "props_pt",
+          "op": "derive",
+          "rows": {
+            "ref": "props_p"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": true
+          }
+        },
+        {
+          "name": "props_ct",
+          "op": "derive",
+          "rows": {
+            "ref": "props_c"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": false
+          }
+        },
+        {
+          "name": "props",
+          "op": "concat",
+          "a": {
+            "ref": "props_pt"
+          },
+          "b": {
+            "ref": "props_ct"
+          }
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~ca5bfb": {
+      "steps": [
+        {
+          "name": "win",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "lit": 0
+          },
+          "hi": {
+            "param": "datetime"
+          }
+        },
+        {
+          "name": "props_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "win"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "props_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "props",
+          "op": "flag_in",
+          "rows": {
+            "ref": "props_all"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "props_posts"
+          },
+          "into": "_isPost"
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+probe~d2cf86": {
+      "steps": [
+        {
+          "name": "win",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "lit": 0
+          },
+          "hi": {
+            "param": "datetime"
+          }
+        },
+        {
+          "name": "props_posts",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "props_comments",
+          "op": "read_filter_by_label_probe",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "props_msgs",
+          "op": "concat",
+          "a": {
+            "ref": "props_posts"
+          },
+          "b": {
+            "ref": "props_comments"
+          }
+        },
+        {
+          "name": "props_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "props_msgs"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "props",
+          "op": "flag_in",
+          "rows": {
+            "ref": "props_all"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "props_posts"
+          },
+          "into": "_isPost"
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~320afb": {
+      "steps": [
+        {
+          "name": "win",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "lit": 0
+          },
+          "hi": {
+            "param": "datetime"
+          }
+        },
+        {
+          "name": "props_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "win"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "props_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "props",
+          "op": "flag_in",
+          "rows": {
+            "ref": "props_all"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "props_posts"
+          },
+          "into": "_isPost"
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~6e4d8a": {
+      "steps": [
+        {
+          "name": "win",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "lit": 0
+          },
+          "hi": {
+            "param": "datetime"
+          }
+        },
+        {
+          "name": "props_posts",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Post"
+        },
+        {
+          "name": "props_comments",
+          "op": "read_filter_by_label_index",
+          "vids": {
+            "ref": "win"
+          },
+          "label": "Comment"
+        },
+        {
+          "name": "props_msgs",
+          "op": "concat",
+          "a": {
+            "ref": "props_posts"
+          },
+          "b": {
+            "ref": "props_comments"
+          }
+        },
+        {
+          "name": "props_all",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "props_msgs"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "props",
+          "op": "flag_in",
+          "rows": {
+            "ref": "props_all"
+          },
+          "field": "_vid",
+          "allowed": {
+            "ref": "props_posts"
+          },
+          "into": "_isPost"
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~c41508": {
+      "steps": [
+        {
+          "name": "win",
+          "op": "read_index_range",
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "prop": "creationDate",
+          "lo": {
+            "lit": 0
+          },
+          "hi": {
+            "param": "datetime"
+          }
+        },
+        {
+          "name": "props_p0",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "win"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "props_p",
+          "op": "filter",
+          "rows": {
+            "ref": "props_p0"
+          },
+          "pred": {
+            "notnull": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "props_pv",
+          "op": "pluck",
+          "rows": {
+            "ref": "props_p"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "props_rest",
+          "op": "exclude",
+          "items": {
+            "ref": "win"
+          },
+          "remove": {
+            "ref": "props_pv"
+          }
+        },
+        {
+          "name": "props_c",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "props_rest"
+          },
+          "props": [
+            "creationDate",
+            "length"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "props_pt",
+          "op": "derive",
+          "rows": {
+            "ref": "props_p"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": true
+          }
+        },
+        {
+          "name": "props_ct",
+          "op": "derive",
+          "rows": {
+            "ref": "props_c"
+          },
+          "into": "_isPost",
+          "fn": {
+            "lit": false
+          }
+        },
+        {
+          "name": "props",
+          "op": "concat",
+          "a": {
+            "ref": "props_pt"
+          },
+          "b": {
+            "ref": "props_ct"
+          }
+        },
+        {
+          "name": "before",
+          "op": "filter",
+          "rows": {
+            "ref": "props"
+          },
+          "pred": {
+            "lt": [
+              {
+                "field": "creationDate"
+              },
+              {
+                "param": "datetime"
+              }
+            ]
+          }
+        },
+        {
+          "name": "total",
+          "op": "count",
+          "items": {
+            "ref": "before"
+          }
+        },
+        {
+          "name": "withc",
+          "op": "filter",
+          "rows": {
+            "ref": "before"
+          },
+          "pred": {
+            "gt": [
+              {
+                "field": "length"
+              },
+              {
+                "lit": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "year",
+          "op": "derive",
+          "rows": {
+            "ref": "withc"
+          },
+          "into": "year",
+          "fn": {
+            "year_of": {
+              "field": "creationDate"
+            }
+          }
+        },
+        {
+          "name": "kind",
+          "op": "derive",
+          "rows": {
+            "ref": "year"
+          },
+          "into": "isComment",
+          "fn": {
+            "not": {
+              "field": "_isPost"
+            }
+          }
+        },
+        {
+          "name": "bucket",
+          "op": "derive",
+          "rows": {
+            "ref": "kind"
+          },
+          "into": "lengthCategory",
+          "fn": {
+            "if": [
+              {
+                "lt": [
+                  {
+                    "field": "length"
+                  },
+                  {
+                    "lit": 40
+                  }
+                ]
+              },
+              {
+                "lit": 0
+              },
+              {
+                "if": [
+                  {
+                    "lt": [
+                      {
+                        "field": "length"
+                      },
+                      {
+                        "lit": 80
+                      }
+                    ]
+                  },
+                  {
+                    "lit": 1
+                  },
+                  {
+                    "if": [
+                      {
+                        "lt": [
+                          {
+                            "field": "length"
+                          },
+                          {
+                            "lit": 160
+                          }
+                        ]
+                      },
+                      {
+                        "lit": 2
+                      },
+                      {
+                        "lit": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "grp",
+          "op": "group_agg",
+          "rows": {
+            "ref": "bucket"
+          },
+          "by": [
+            "year",
+            "isComment",
+            "lengthCategory"
+          ],
+          "aggs": {
+            "messageCount": [
+              "count",
+              null
+            ],
+            "sumMessageLength": [
+              "sum",
+              "length"
+            ]
+          }
+        },
+        {
+          "name": "avg",
+          "op": "derive",
+          "rows": {
+            "ref": "grp"
+          },
+          "into": "averageMessageLength",
+          "fn": {
+            "div": [
+              {
+                "field": "sumMessageLength"
+              },
+              {
+                "field": "messageCount"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tot",
+          "op": "as_row",
+          "value": {
+            "ref": "total"
+          },
+          "field": "_total"
+        },
+        {
+          "name": "tot_k",
+          "op": "derive",
+          "rows": {
+            "ref": "tot"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "grp_k",
+          "op": "derive",
+          "rows": {
+            "ref": "avg"
+          },
+          "into": "_k",
+          "fn": {
+            "lit": 1
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "grp_k"
+          },
+          "right": {
+            "ref": "tot_k"
+          },
+          "left_on": "_k",
+          "right_on": "_k"
+        },
+        {
+          "name": "pct",
+          "op": "derive",
+          "rows": {
+            "ref": "joined"
+          },
+          "into": "percentageOfMessages",
+          "fn": {
+            "div": [
+              {
+                "field": "messageCount"
+              },
+              {
+                "field": "_total"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "pct"
+          },
+          "keys": [
+            [
+              "year",
+              "desc"
+            ],
+            [
+              "isComment",
+              "asc"
+            ],
+            [
+              "lengthCategory",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "year",
+            "isComment",
+            "lengthCategory",
+            "messageCount",
+            "averageMessageLength",
+            "sumMessageLength",
+            "percentageOfMessages"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "bi1_scan(hand)": {
+      "sha": "0b8042508972",
+      "requires": [],
+      "sources": [
+        "bi1_scan(hand)"
+      ]
+    },
+    "bi1_scan(hand+fused)": {
+      "sha": "ef25d56d5328",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "bi1_scan(hand+fused)"
+      ]
+    },
+    "hand+probe~ca5bfb": {
+      "sha": "ca5bfb307eb3",
+      "requires": [
+        "per_type_index",
+        "property_index"
+      ],
+      "on": {
+        "per_type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand+probe~d2cf86": {
+      "sha": "d2cf86774091",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand+probe"
+      ]
+    },
+    "hand~320afb": {
+      "sha": "320afbae9b8f",
+      "requires": [
+        "per_type_index",
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "per_type_index": [
+          "Comment",
+          "Post"
+        ],
+        "type_index": [
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~6e4d8a": {
+      "sha": "6e4d8afda2a1",
+      "requires": [
+        "property_index",
+        "type_index"
+      ],
+      "on": {
+        "type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~c41508": {
+      "sha": "c41508575efe",
+      "requires": [
+        "label_scoped_props",
+        "per_type_index",
+        "property_index"
+      ],
+      "on": {
+        "label_scoped_props": [
+          "Post"
+        ],
+        "per_type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "plan": "w_upd_plain",
+  "question": "Change one non-indexed property (last name) of a person.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "update_prop",
+      "vid": {
+        "let": "me_vid"
+      },
+      "label": "Person",
+      "prop": "lastName",
+      "value": "WUpd"
+    }
+  ],
+  "output": "out"
+}

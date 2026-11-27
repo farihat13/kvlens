@@ -1,0 +1,172 @@
+{
+ "workload": "w14",
+ "sf": "3",
+ "root": "output/sf3/layout-choice/wops_bytes4k",
+ "grouped_options": false,
+ "reference": "props_condensed_adj_split",
+ "picks": {
+  "0.5": {
+   "B": 0.5,
+   "fits": true,
+   "spec": "w14_b05.json",
+   "shares_spec_with": null,
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=split; hasCreator lists=split; hasTag lists=split; isLocatedIn lists=split; knows lists=condensed; replyOf lists=split; Message props=condensed",
+    "ops": 49784.0,
+    "bytes": 16442090.0,
+    "ops_vs_ref": 0.7709711938872379,
+    "bytes_vs_ref": 0.38824444200969827,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_split",
+    "fits": false,
+    "ops": 64573.1,
+    "bytes": 42349840.0,
+    "ops_vs_ref": 1.0,
+    "bytes_vs_ref": 1.0
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 64573.1,
+    "bytes": 42349840.0
+   }
+  },
+  "1": {
+   "B": 1.0,
+   "fits": true,
+   "spec": "w14_b05.json",
+   "shares_spec_with": "0.5",
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=split; hasCreator lists=split; hasTag lists=split; isLocatedIn lists=split; knows lists=condensed; replyOf lists=split; Message props=condensed",
+    "ops": 49784.0,
+    "bytes": 16442090.0,
+    "ops_vs_ref": 0.7709711938872379,
+    "bytes_vs_ref": 0.38824444200969827,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_split",
+    "fits": true,
+    "ops": 64573.1,
+    "bytes": 42349840.0,
+    "ops_vs_ref": 1.0,
+    "bytes_vs_ref": 1.0
+   },
+   "near_miss_single": {
+    "cell": "props_split_adj_split",
+    "ops": 69073.1,
+    "bytes": 42385340.0,
+    "bytes_vs_ref": 1.0008382558233986
+   },
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 64573.1,
+    "bytes": 42349840.0
+   }
+  },
+  "2": {
+   "B": 2.0,
+   "fits": true,
+   "spec": "w14_b05.json",
+   "shares_spec_with": "1",
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=split; hasCreator lists=split; hasTag lists=split; isLocatedIn lists=split; knows lists=condensed; replyOf lists=split; Message props=condensed",
+    "ops": 49784.0,
+    "bytes": 16442090.0,
+    "ops_vs_ref": 0.7709711938872379,
+    "bytes_vs_ref": 0.38824444200969827,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_split",
+    "fits": true,
+    "ops": 64573.1,
+    "bytes": 42349840.0,
+    "ops_vs_ref": 1.0,
+    "bytes_vs_ref": 1.0
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 64573.1,
+    "bytes": 42349840.0
+   }
+  },
+  "3": {
+   "B": 3.0,
+   "fits": true,
+   "spec": "w14_b05.json",
+   "shares_spec_with": "2",
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=split; hasCreator lists=split; hasTag lists=split; isLocatedIn lists=split; knows lists=condensed; replyOf lists=split; Message props=condensed",
+    "ops": 49784.0,
+    "bytes": 16442090.0,
+    "ops_vs_ref": 0.7709711938872379,
+    "bytes_vs_ref": 0.38824444200969827,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_split",
+    "fits": true,
+    "ops": 64573.1,
+    "bytes": 42349840.0,
+    "ops_vs_ref": 1.0,
+    "bytes_vs_ref": 1.0
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 64573.1,
+    "bytes": 42349840.0
+   }
+  },
+  "5": {
+   "B": 5.0,
+   "fits": true,
+   "spec": "w14_b05.json",
+   "shares_spec_with": "3",
+   "pick": {
+    "kind": "per type",
+    "assignment": "containerOf lists=split; hasCreator lists=split; hasTag lists=split; isLocatedIn lists=split; knows lists=condensed; replyOf lists=split; Message props=condensed",
+    "ops": 49784.0,
+    "bytes": 16442090.0,
+    "ops_vs_ref": 0.7709711938872379,
+    "bytes_vs_ref": 0.38824444200969827,
+    "source": "options.csv"
+   },
+   "best_without_direction": null,
+   "rule_pick_not_buildable": null,
+   "best_single_within_B": {
+    "cell": "props_condensed_adj_split",
+    "fits": true,
+    "ops": 64573.1,
+    "bytes": 42349840.0,
+    "ops_vs_ref": 1.0,
+    "bytes_vs_ref": 1.0
+   },
+   "near_miss_single": null,
+   "reference": {
+    "cell": "props_condensed_adj_split",
+    "ops": 64573.1,
+    "bytes": 42349840.0
+   }
+  }
+ },
+ "specs": [
+  "w14_b05"
+ ]
+}

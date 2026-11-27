@@ -1,0 +1,61 @@
+{
+ "id": "i01",
+ "name": "ldbc_mix",
+ "title": "LDBC Interactive, LDBC frequencies (sf3's)",
+ "items": [
+  {"family": "interactive", "query": "ic1", "frequency": 3846, "params": null},
+  {"family": "interactive", "query": "ic2", "frequency": 2703, "params": null},
+  {"family": "interactive", "query": "ic3", "frequency": 1266, "params": null},
+  {"family": "interactive", "query": "ic4", "frequency": 2778, "params": null},
+  {"family": "interactive", "query": "ic5", "frequency": 1639, "params": null},
+  {"family": "interactive", "query": "ic6", "frequency": 581, "params": null},
+  {"family": "interactive", "query": "ic7", "frequency": 1389, "params": null},
+  {"family": "interactive", "query": "ic8", "frequency": 3704, "params": null},
+  {"family": "interactive", "query": "ic9", "frequency": 478, "params": null},
+  {"family": "interactive", "query": "ic10", "frequency": 3125, "params": null},
+  {"family": "interactive", "query": "ic11", "frequency": 5882, "params": null},
+  {"family": "interactive", "query": "ic12", "frequency": 2273, "params": null},
+  {"family": "interactive", "query": "is1", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is2", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is3", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is4", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is5", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is6", "frequency": 46403, "params": null},
+  {"family": "interactive", "query": "is7", "frequency": 46403, "params": null},
+  {"family": "writes", "query": "iu1", "frequency": 27, "params": null},
+  {"family": "writes", "query": "iu2", "frequency": 14714, "params": null},
+  {"family": "writes", "query": "iu3", "frequency": 14618, "params": null},
+  {"family": "writes", "query": "iu4", "frequency": 496, "params": null},
+  {"family": "writes", "query": "iu5", "frequency": 49109, "params": null},
+  {"family": "writes", "query": "iu6", "frequency": 5973, "params": null},
+  {"family": "writes", "query": "iu7", "frequency": 13827, "params": null},
+  {"family": "writes", "query": "iu8", "frequency": 1236, "params": null}
+ ],
+ "sweep": [
+  "iu1",
+  "iu2",
+  "iu3",
+  "iu4",
+  "iu5",
+  "iu6",
+  "iu7",
+  "iu8"
+ ],
+ "param_spread": [
+  "is1",
+  "is2",
+  "is3",
+  "is4",
+  "is5",
+  "is6",
+  "is7"
+ ],
+ "sweep_marks": [
+  [
+   1.6163522012578615,
+   "the driver's time pacing (0.62x the reads)"
+  ]
+ ],
+ "method": "LDBC's driver config and sf3 update stream (python/kvevaluator/workloads/interactive/gen_ldbc_mix.py). Complex reads IC1-IC12: one run per freq_i updates (sf3.properties; IC13/IC14 have no plans here). Short reads IS1-IS7: the driver's random walk after EVERY complex read, IC13/IC14 included (1.255 runs of each IS per complex read, 0.370 complex reads per update; an upper bound -- a walk that finds no ids ends early). Updates IU1-IU8: their shares of the sf3 update stream. Frequencies are the benchmark's stated intent: the driver paces reads by time, and on these stream files it would issue ~0.62x the complex reads per update -- the write:read sweep covers that range. The sf3 prescription is used at every SF.",
+ "expect": "Condensed props (IS1/IS4/IS5 read whole vertices; IU inserts write whole vertices). Lists split by edge type: knows (read by most ICs, written by IU8 only, 1% of updates) Condensed or Chunked; the write-heavy lists -- hasMember (IU5, 49% of updates), likes (IU2/IU3, 29%), the Comment/Post edges (IU6/IU7) -- Split in bytes. So the best MIXED layout should beat every uniform one on at least one currency without losing the other (a real test of the rule: parts carry different traffic). IC5 reads hasMember, so hasMember is the contested part."
+}

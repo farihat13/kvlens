@@ -1,0 +1,1030 @@
+{
+ "_doc": "The reuse ledger: rows that declare an earlier result current for today's code (kvevaluator.adoptions; list them: just adoptions). A row enters only through kvevaluator.adoptions.add, or, for a body, tests/gates/check_count_equal_successors.py --add, which proves it.",
+ "rows": [
+  {
+   "current_for": "8298c2e4630b",
+   "evidence": {
+    "new_body": "hand",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "hand",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "kv_read_steps": 4,
+     "kv_reads_from_rewritten": [],
+     "verdict": "closed"
+    }
+   },
+   "id": "body-bi-bi11-16c8e3e9f8e4",
+   "kind": "body",
+   "made_under": "16c8e3e9f8e4",
+   "scope": {
+    "query": "bi11",
+    "workload": "bi"
+   },
+   "what": "16c8e3e9f8e4",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "closed"
+   }
+  },
+  {
+   "current_for": "44b050c52ec5",
+   "evidence": {
+    "new_body": "hand",
+    "new_tree": "17bba86167a9babab530e6f2dba9ef1f62fc9395",
+    "old_body": "hand",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 255 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: its plan file at 17bba861",
+     "kv_read_steps": 17,
+     "kv_reads_from_rewritten": [
+      "AB",
+      "AB_d",
+      "AB_f1",
+      "AB_k1",
+      "AB_key",
+      "AB_ok",
+      "AB_t",
+      "A_min",
+      "Bf",
+      "Bf_f3",
+      "Bf_k3",
+      "Bf_ok",
+      "Bf_p"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "17bba86167a9babab530e6f2dba9ef1f62fc9395"
+      },
+      "new_body_sha": "44b050c52ec5",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "67302ee60fd3"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi17-67302ee60fd3",
+   "kind": "body",
+   "made_under": "67302ee60fd3",
+   "scope": {
+    "query": "bi17",
+    "workload": "bi"
+   },
+   "what": "67302ee60fd3",
+   "when": "2026-11-05T16:47:50Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "a4eca18cff92",
+   "evidence": {
+    "new_body": "hand~a4eca1",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "hand~2bb1f0",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 300 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 20,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "a4eca18cff92",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "2bb1f0ebfdd8"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-2bb1f0ebfdd8",
+   "kind": "body",
+   "made_under": "2bb1f0ebfdd8",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "2bb1f0ebfdd8",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "0e02579aea29",
+   "evidence": {
+    "new_body": "hand+probe",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "hand+probe",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 330 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 22,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "0e02579aea29",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "540157ba00d7"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-540157ba00d7",
+   "kind": "body",
+   "made_under": "540157ba00d7",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "540157ba00d7",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "c12411072604",
+   "evidence": {
+    "new_body": "hand~c12411",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "hand~8cc107",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 330 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 22,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "c12411072604",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "8cc107c87de6"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-8cc107c87de6",
+   "kind": "body",
+   "made_under": "8cc107c87de6",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "8cc107c87de6",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "c68ac6e8afec",
+   "evidence": {
+    "new_body": "bi3_source(hand)~c68ac6",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "bi3_source(hand)~af5ed3",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 165 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 11,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "c68ac6e8afec",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "af5ed3a5a4c7"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-af5ed3a5a4c7",
+   "kind": "body",
+   "made_under": "af5ed3a5a4c7",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "af5ed3a5a4c7",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "15a2e9eafec1",
+   "evidence": {
+    "new_body": "bi3_source(hand)+probe",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "bi3_source(hand)+probe",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 195 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 13,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "15a2e9eafec1",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "c3d544be871f"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-c3d544be871f",
+   "kind": "body",
+   "made_under": "c3d544be871f",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "c3d544be871f",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "b74f94b8a747",
+   "evidence": {
+    "new_body": "bi3_source(hand)~b74f94",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "bi3_source(hand)~c6157a",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 195 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 13,
+     "kv_reads_from_rewritten": [
+      "in_forum",
+      "kept"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "b74f94b8a747",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "c6157a71c3c7"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-bi-bi3-c6157a71c3c7",
+   "kind": "body",
+   "made_under": "c6157a71c3c7",
+   "scope": {
+    "query": "bi3",
+    "workload": "bi"
+   },
+   "what": "c6157a71c3c7",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "39e902e53fed",
+   "evidence": {
+    "new_body": "ic5_listjoin(ic5)",
+    "new_tree": "11be2f8b7a973e784c9487ffcea35294e8b4dbd4",
+    "old_body": "ic5_listjoin(ic5)",
+    "old_tree": "59454909f16926be028f0ec9ec4e039dfbdc3ebd",
+    "proof": {
+     "evidence": "SF3, the grid stores Sp-Sp, Co-Co and Ch64k-Ch64k, params 1-5: 15 runs of each body, 120 KV steps; the answers and every KV step's S, G, N, P, D, misses, byte lanes and parts equal. Old body: its plan file at 59454909. New body: the plan file of the branch's working tree, committed unchanged in 11be2f8b (no C++ change from the binary's commit to 11be2f8b)",
+     "kv_read_steps": 8,
+     "kv_reads_from_rewritten": [
+      "own_posts",
+      "post_forum",
+      "post_pf"
+     ],
+     "ran": {
+      "new_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "5e7d84f5cd0363063537d399da19854ea6193315"
+      },
+      "new_body_sha": "39e902e53fed",
+      "old_binary": {
+       "binary_dirty": false,
+       "binary_git_sha": "59454909f16926be028f0ec9ec4e039dfbdc3ebd"
+      },
+      "old_body_sha": "550c76caff32"
+     },
+     "verdict": "measured"
+    }
+   },
+   "id": "body-interactive-ic5-550c76caff32",
+   "kind": "body",
+   "made_under": "550c76caff32",
+   "scope": {
+    "query": "ic5",
+    "workload": "interactive"
+   },
+   "what": "550c76caff32",
+   "when": "2026-11-05T18:23:58Z",
+   "who": "agent",
+   "why": {
+    "proof": "tests/gates/check_count_equal_successors.py",
+    "verdict": "measured"
+   }
+  },
+  {
+   "current_for": "4094e97a2665b879",
+   "evidence": {
+    "archive": "bi-b01/predicted-captures-predicted.tar.zst",
+    "compared": "6 (set, layout) files, 510 (query, param) count sets over the three sets, 0 differ",
+    "current_for": {
+     "predict_binary": "2b12ee15e092972923af4dfa69301205795a03ef"
+    },
+    "made_under": {
+     "predict_binary": "47110f10fd71363447feb56dc738837b4b73421e"
+    },
+    "not_covered": "predicted-tier1-anchor (not re-predicted: tier 1 runs without anchor statistics today)",
+    "renamed": "bi3's bodies only (count-equal rewrites); the counts equal"
+   },
+   "id": "capture-sf3/predict-results-20261104-b01-predicted-923d20b01f2b-fb17b70a-4094e97a",
+   "kind": "capture",
+   "made_under": "fb17b70a0e79e7c5",
+   "scope": {
+    "set": "predicted",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "b01"
+   },
+   "what": "923d20b01f2b1973114394a8ecd9f5c76f661f6a27dafea3abd8ab29ed86f118",
+   "when": "2026-11-07T02:12:20Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again at binary 2b12ee15e0 (clean) from the same statistics (stats.json 3e3ed170) and tally library, 2 layouts (Sp-Co, Ch4k-Ch16k), and compared with the pinned counts: per (query, param) the S, G, N, misses, byte lanes and ok of every body equal"
+   }
+  },
+  {
+   "current_for": "4094e97a2665b879",
+   "evidence": {
+    "archive": "bi-b01/predicted-captures-predicted-anchor.tar.zst",
+    "compared": "6 (set, layout) files, 510 (query, param) count sets over the three sets, 0 differ",
+    "current_for": {
+     "predict_binary": "2b12ee15e092972923af4dfa69301205795a03ef"
+    },
+    "made_under": {
+     "predict_binary": "47110f10fd71363447feb56dc738837b4b73421e"
+    },
+    "not_covered": "predicted-tier1-anchor (not re-predicted: tier 1 runs without anchor statistics today)",
+    "renamed": "bi3's bodies only (count-equal rewrites); the counts equal"
+   },
+   "id": "capture-sf3/predict-results-20261104-b01-predicted-anchor-d2ec9ef43254-fb17b70a-4094e97a",
+   "kind": "capture",
+   "made_under": "fb17b70a0e79e7c5",
+   "scope": {
+    "set": "predicted-anchor",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "b01"
+   },
+   "what": "d2ec9ef4325449ec87d6e1aab6227c13460ada1a76e1c5d5385a3fba1edc5ee1",
+   "when": "2026-11-07T02:12:20Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again at binary 2b12ee15e0 (clean) from the same statistics (stats.json 3e3ed170) and tally library, 2 layouts (Sp-Co, Ch4k-Ch16k), and compared with the pinned counts: per (query, param) the S, G, N, misses, byte lanes and ok of every body equal"
+   }
+  },
+  {
+   "current_for": "4094e97a2665b879",
+   "evidence": {
+    "archive": "bi-b01/predicted-captures-predicted-tier1.tar.zst",
+    "compared": "6 (set, layout) files, 510 (query, param) count sets over the three sets, 0 differ",
+    "current_for": {
+     "predict_binary": "2b12ee15e092972923af4dfa69301205795a03ef"
+    },
+    "made_under": {
+     "predict_binary": "47110f10fd71363447feb56dc738837b4b73421e"
+    },
+    "not_covered": "predicted-tier1-anchor (not re-predicted: tier 1 runs without anchor statistics today)",
+    "renamed": "bi3's bodies only (count-equal rewrites); the counts equal"
+   },
+   "id": "capture-sf3/predict-results-20261104-b01-predicted-tier1-1dd3abcf21f8-fb17b70a-4094e97a",
+   "kind": "capture",
+   "made_under": "fb17b70a0e79e7c5",
+   "scope": {
+    "set": "predicted-tier1",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "b01"
+   },
+   "what": "1dd3abcf21f8a716f45160aa085f2e590b7f3e28ebe00fe251ab9b34529d0da9",
+   "when": "2026-11-07T02:12:20Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again at binary 2b12ee15e0 (clean) from the same statistics (stats.json 3e3ed170) and tally library, 2 layouts (Sp-Co, Ch4k-Ch16k), and compared with the pinned counts: per (query, param) the S, G, N, misses, byte lanes and ok of every body equal"
+   }
+  },
+  {
+   "current_for": "c0a8d3aa16ce7566",
+   "evidence": {
+    "archive": "linkbench-n1m/predicted-captures-l01-predicted-anchor.tar.zst",
+    "compared": "4,900,000 count rows (49 layouts), 0 differ; the counts and parts CSVs byte-equal (196 of 196)",
+    "current_for": {
+     "predict_binary": "2ea2635ea1c2f904f942b348f63ef5be916e77b0"
+    },
+    "inputs": "the n1m data equal to the recorded run (3 of 3 files, sha256); the params equal to inputs/params/linkbench/n1m/params.sha256.txt (50 of 50)",
+    "made_under": {
+     "predict_binary": "40cc7bb5f4e363209ed2b241b5b6b95203b2eca4"
+    },
+    "not_equal": "the steps CSVs: one column added since (rt_levels), empty on every row"
+   },
+   "id": "capture-sf3/predict-results-20261104-l01-predicted-anchor-7fb047c2f9cd-4974dbcf-c0a8d3aa",
+   "kind": "capture",
+   "made_under": "4974dbcf57d0c853",
+   "scope": {
+    "set": "predicted-anchor",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "l01"
+   },
+   "what": "7fb047c2f9cd6544045f6605e43820c08276b2cbcb4ece7723339d6ecd0c4884",
+   "when": "2026-11-12T07:10:23Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again on all 49 layouts at binary 2ea2635ea1 (clean), from statistics rebuilt on a record stream byte-equal to this one's (6,249,370 lines, the same content sha256) and the same tally library (accepted by predict's records check, 0 settings built), and compared with the pinned counts: per (layout, query, param, body) every count column equal"
+   }
+  },
+  {
+   "current_for": "c0a8d3aa16ce7566",
+   "evidence": {
+    "archive": "linkbench-n1m/predicted-captures-l01-predicted.tar.zst",
+    "compared": "4,900,000 count rows (49 layouts), 0 differ; the counts and parts CSVs byte-equal (196 of 196)",
+    "current_for": {
+     "predict_binary": "2ea2635ea1c2f904f942b348f63ef5be916e77b0"
+    },
+    "inputs": "the n1m data equal to the recorded run (3 of 3 files, sha256); the params equal to inputs/params/linkbench/n1m/params.sha256.txt (50 of 50)",
+    "made_under": {
+     "predict_binary": "40cc7bb5f4e363209ed2b241b5b6b95203b2eca4"
+    },
+    "not_equal": "the steps CSVs: one column added since (rt_levels), empty on every row"
+   },
+   "id": "capture-sf3/predict-results-20261104-l01-predicted-b57b05077ff2-4974dbcf-c0a8d3aa",
+   "kind": "capture",
+   "made_under": "4974dbcf57d0c853",
+   "scope": {
+    "set": "predicted",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "l01"
+   },
+   "what": "b57b05077ff2517ac27a4fd18c9e580ab8983d2a052958a543247cc723338498",
+   "when": "2026-11-12T07:10:23Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again on all 49 layouts at binary 2ea2635ea1 (clean), from statistics rebuilt on a record stream byte-equal to this one's (6,249,370 lines, the same content sha256) and the same tally library (accepted by predict's records check, 0 settings built), and compared with the pinned counts: per (layout, query, param, body) every count column equal"
+   }
+  },
+  {
+   "current_for": "c0a8d3aa16ce7566",
+   "evidence": {
+    "archive": "linkbench-n1m/predicted-captures-l02-predicted-tier1-anchor.tar.zst",
+    "compared": "3,380,706 count rows (49 layouts), 0 differ; the counts and parts CSVs byte-equal (98 of 98)",
+    "current_for": {
+     "predict_binary": "2ea2635ea1c2f904f942b348f63ef5be916e77b0"
+    },
+    "inputs": "the n1m data equal to the recorded run (3 of 3 files, sha256); the params equal to inputs/params/linkbench/n1m/params.sha256.txt (50 of 50)",
+    "made_under": {
+     "predict_binary": "40cc7bb5f4e363209ed2b241b5b6b95203b2eca4"
+    },
+    "not_equal": "the steps CSVs: one column added since (rt_levels), empty on every row"
+   },
+   "id": "capture-sf3/predict-results-20261104-l02-predicted-tier1-anchor-1b6dc080df60-4974dbcf-c0a8d3aa",
+   "kind": "capture",
+   "made_under": "4974dbcf57d0c853",
+   "scope": {
+    "set": "predicted-tier1-anchor",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "l02"
+   },
+   "what": "1b6dc080df604c97d4dabc887dc033462a475bfa5f0ef06330c93aa3b9269bae",
+   "when": "2026-11-12T07:10:23Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again on all 49 layouts at binary 2ea2635ea1 (clean), from statistics rebuilt on a record stream byte-equal to this one's (6,249,370 lines, the same content sha256) and the same tally library (accepted by predict's records check, 0 settings built), and compared with the pinned counts: per (layout, query, param, body) every count column equal"
+   }
+  },
+  {
+   "current_for": "c0a8d3aa16ce7566",
+   "evidence": {
+    "archive": "linkbench-n1m/predicted-captures-l02-predicted-tier1.tar.zst",
+    "compared": "3,380,706 count rows (49 layouts), 0 differ; the counts and parts CSVs byte-equal (98 of 98)",
+    "current_for": {
+     "predict_binary": "2ea2635ea1c2f904f942b348f63ef5be916e77b0"
+    },
+    "inputs": "the n1m data equal to the recorded run (3 of 3 files, sha256); the params equal to inputs/params/linkbench/n1m/params.sha256.txt (50 of 50)",
+    "made_under": {
+     "predict_binary": "40cc7bb5f4e363209ed2b241b5b6b95203b2eca4"
+    },
+    "not_equal": "the steps CSVs: one column added since (rt_levels), empty on every row"
+   },
+   "id": "capture-sf3/predict-results-20261104-l02-predicted-tier1-c087f150518f-4974dbcf-c0a8d3aa",
+   "kind": "capture",
+   "made_under": "4974dbcf57d0c853",
+   "scope": {
+    "set": "predicted-tier1",
+    "snapshot": "sf3/predict-results-20261104",
+    "workload": "l02"
+   },
+   "what": "c087f150518f54190f1cb922cf5f5eca7e44d40c1b91b5d02006ac4cfe3ea30e",
+   "when": "2026-11-12T07:10:23Z",
+   "who": "agent",
+   "why": {
+    "proof": "predicted again on all 49 layouts at binary 2ea2635ea1 (clean), from statistics rebuilt on a record stream byte-equal to this one's (6,249,370 lines, the same content sha256) and the same tally library (accepted by predict's records check, 0 settings built), and compared with the pinned counts: per (layout, query, param, body) every count column equal"
+   }
+  },
+  {
+   "current_for": "2f7de2b469f86405",
+   "evidence": {
+    "probe_content_from": "rocksdb-cpp/sf0.1/.records.jsonl",
+    "probe_content_sha256": "1e8125b0755ca8f59955da1444181c63da9a1fc9af0f9948ee4d6ebe8f12be5c",
+    "probe_tree_sha256": "0415b9ab9cd9262555fc20014222a1e960abb7e1ca1691ae4fc470d25d78a9c7"
+   },
+   "id": "records_stream-ldbc-3-1bf087c2e188-4431faec-2f7de2b4",
+   "kind": "records_stream",
+   "made_under": "4431faecc345754e",
+   "scope": {
+    "dataset": "ldbc",
+    "sf": "3"
+   },
+   "what": "1bf087c2e188ee94cb56cb01842c74f5e612947715927a3ad80c4577de9d980e",
+   "when": "2026-11-06T01:47:58Z",
+   "who": "agent",
+   "why": {
+    "probe_sf": "0.1",
+    "proof": "records_key --adopt-by-probe"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-arangodb-3c28167490c6-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "arangodb",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-arangodb_engine-3c28167490c6-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "arangodb_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "088eebf8890aad34",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-dgraph-3c28167490c6-37585939-088eebf8",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "dgraph",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "088eebf8890aad34",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-dgraph_engine-3c28167490c6-37585939-088eebf8",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "dgraph_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-nebula-3c28167490c6-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "nebula",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260811-nebula_engine-3c28167490c6-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "nebula_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260811"
+   },
+   "what": "3c28167490c64ad7db19a7fd4cdc9347ef58828f6a52e255cf4036bc5106989e",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_LEGACY shows the fidelity state of its time (main.tex's earlier paragraph), not today's counts",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-arangodb-619346d3829f-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "arangodb",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-arangodb_engine-619346d3829f-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "arangodb_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "088eebf8890aad34",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-dgraph-619346d3829f-37585939-088eebf8",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "dgraph",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "088eebf8890aad34",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-dgraph_engine-619346d3829f-37585939-088eebf8",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "dgraph_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-nebula-619346d3829f-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "nebula",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "b041f53c0d35a7a2",
+   "id": "snapshot-sf0.3/engine-fidelity-20260924-nebula_engine-619346d3829f-37585939-b041f53c",
+   "kind": "snapshot",
+   "made_under": "37585939f2bdf9ad",
+   "scope": {
+    "format": "nebula_engine",
+    "snapshot": "sf0.3/engine-fidelity-20260924"
+   },
+   "what": "619346d3829f713ff00ac800311e708e6e51b943756f6d348f424d5875d593ef",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: on purpose: ENGINE_FIDELITY_PREV is read for its live counts (do they repeat across loads), which no counting version moves",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "de9cbbc9ee222d10",
+   "id": "snapshot-sf3/bi-chunk-sizes-20261020-meta-5922cabe4549-afdab787-de9cbbc9",
+   "kind": "snapshot",
+   "made_under": "afdab7878a96f8fc",
+   "scope": {
+    "format": "meta",
+    "snapshot": "sf3/bi-chunk-sizes-20261020"
+   },
+   "what": "5922cabe4549191348e53aeca23441bb48b0ece423a32387701b82095c90a3b4",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: reached only as the drift reference of sf3/bi-chunk-sizes-20261104's drift/ files (its README, What moved); no paper number is read from it",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "de9cbbc9ee222d10",
+   "id": "snapshot-sf3/bi-chunk-sizes-20261020-meta-5922cabe4549-d25f44f0-de9cbbc9",
+   "kind": "snapshot",
+   "made_under": "d25f44f04b57e160",
+   "scope": {
+    "format": "meta",
+    "snapshot": "sf3/bi-chunk-sizes-20261020"
+   },
+   "what": "5922cabe4549191348e53aeca23441bb48b0ece423a32387701b82095c90a3b4",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: reached only as the drift reference of sf3/bi-chunk-sizes-20261104's drift/ files (its README, What moved); no paper number is read from it",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "6d303dafe6388f02",
+   "id": "snapshot-sf3/remeasure-20261012-arangodb-86c49e75bc8f-6a379f8a-6d303daf",
+   "kind": "snapshot",
+   "made_under": "6a379f8ac7da6e0f",
+   "scope": {
+    "format": "arangodb",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "0983eb51dbf5f2df",
+   "id": "snapshot-sf3/remeasure-20261012-arangodb-86c49e75bc8f-e1970c26-0983eb51",
+   "kind": "snapshot",
+   "made_under": "e1970c26c578b712",
+   "scope": {
+    "format": "arangodb",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "0dceb30070c47ccf",
+   "id": "snapshot-sf3/remeasure-20261012-dgraph-86c49e75bc8f-2cd14d78-0dceb300",
+   "kind": "snapshot",
+   "made_under": "2cd14d78bc7da064",
+   "scope": {
+    "format": "dgraph",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "750df6ba56545f88",
+   "id": "snapshot-sf3/remeasure-20261012-dgraph-86c49e75bc8f-882d5fc2-750df6ba",
+   "kind": "snapshot",
+   "made_under": "882d5fc228488385",
+   "scope": {
+    "format": "dgraph",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "de9cbbc9ee222d10",
+   "id": "snapshot-sf3/remeasure-20261012-meta-86c49e75bc8f-afdab787-de9cbbc9",
+   "kind": "snapshot",
+   "made_under": "afdab7878a96f8fc",
+   "scope": {
+    "format": "meta",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "2dda0e6408597df2",
+   "id": "snapshot-sf3/remeasure-20261012-meta-86c49e75bc8f-d87b8887-2dda0e64",
+   "kind": "snapshot",
+   "made_under": "d87b8887a8eef0d1",
+   "scope": {
+    "format": "meta",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "6c65be6a3d1edc6b",
+   "id": "snapshot-sf3/remeasure-20261012-nebula-86c49e75bc8f-4d4bd216-6c65be6a",
+   "kind": "snapshot",
+   "made_under": "4d4bd2162a1a5e73",
+   "scope": {
+    "format": "nebula",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "e2dcf5ce15844fed",
+   "id": "snapshot-sf3/remeasure-20261012-nebula-86c49e75bc8f-63fa9a11-e2dcf5ce",
+   "kind": "snapshot",
+   "made_under": "63fa9a11a119a24c",
+   "scope": {
+    "format": "nebula",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "374399ece0714b96",
+   "id": "snapshot-sf3/remeasure-20261012-pertype_csr-86c49e75bc8f-1af3e493-374399ec",
+   "kind": "snapshot",
+   "made_under": "1af3e493708d49e3",
+   "scope": {
+    "format": "pertype_csr",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  },
+  {
+   "current_for": "95db3d774dd67f71",
+   "id": "snapshot-sf3/remeasure-20261012-pertype_csr-86c49e75bc8f-d1283042-95db3d77",
+   "kind": "snapshot",
+   "made_under": "d1283042e74a92d3",
+   "scope": {
+    "format": "pertype_csr",
+    "snapshot": "sf3/remeasure-20261012"
+   },
+   "what": "86c49e75bc8f3d8de625b3b8ec6e233795c9b1e5592cf595eb84cd457bed1422",
+   "when": "2026-11-05T03:31:29Z",
+   "who": "agent",
+   "why": {
+    "judgment": "kept: the datasets table reads SF3's counts and types from its store manifests (the graph is the 11-03 grid's: Sp-Sp's 160,474,618 keys equal); the sizes are read from sf3/mix-benefit-20261103 (Ch64k-Ch64k 1.8 -> 1.7 GB, Sp-Sp 3.7 both). run_time reads its wall times (table commented out)",
+    "migrated_from": "snapshot_acknowledgements.json"
+   }
+  }
+ ]
+}

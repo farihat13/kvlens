@@ -1,0 +1,773 @@
+diff --git dgraph/badger/iterator.go dgraph/badger/iterator.go
+index 0ff786db0..7e4aa7cb4 100644
+--- dgraph/badger/iterator.go
++++ dgraph/badger/iterator.go
+@@ -10,6 +10,8 @@ import (
+ 	"fmt"
+ 	"hash/crc32"
+ 	"math"
++	"os"
++	"runtime"
+ 	"sort"
+ 	"sync"
+ 	"time"
+@@ -25,6 +27,47 @@ const (
+ 	prefetched prefetchStatus = iota + 1
+ )
+ 
++var (
++	itrOpenCounters       = y.RegisterFuncCounter("badger.itr.open")
++	keyItrOpenCounters    = y.RegisterFuncCounter("badger.keyitr.open")
++	itrNextCounters       = y.RegisterFuncCounter("badger.itr.next")
++	itrSeekCounters       = y.RegisterFuncCounter("badger.itr.seek")
++	itrCloseCounters      = y.RegisterFuncCounter("badger.itr.close")
++	yieldInlineCounters   = y.RegisterFuncCounter("badger.item.yieldInline")
++	yieldVlogCounters     = y.RegisterFuncCounter("badger.item.yieldVlog")
++	yieldNotFoundCounters = y.RegisterFuncCounter("badger.item.yieldNotFound")
++)
++
++// ── KV operation tracing ────────────────────────────────────────────
++// Toggle at runtime via HTTP endpoints:
++//   PUT /kvtrace/seek/keys    — log key only (one line per op)
++//   PUT /kvtrace/seek/stack   — log key + goroutine stack trace
++//   PUT /kvtrace/seek/disable — off
++// Overhead when disabled: one int comparison per op (~1ns).
++
++const (
++	TraceOff   = 0 // No tracing
++	TraceKeys  = 1 // Log key + prefix (one line)
++	TraceStack = 2 // Log key + prefix + stack trace
++)
++
++var (
++	TraceSeek int // Trace level for Iterator.Seek
++	TraceNext int // Trace level for Iterator.Next
++	TraceGet  int // Trace level for Txn.Get
++)
++
++func traceOp(level int, op string, key, prefix []byte) {
++	if level >= TraceKeys {
++		fmt.Fprintf(os.Stderr, "T/BG: %s key=%x prefix=%x\n", op, key, prefix)
++	}
++	if level >= TraceStack {
++		buf := make([]byte, 4096)
++		n := runtime.Stack(buf, false)
++		fmt.Fprintf(os.Stderr, "%s\n", buf[:n])
++	}
++}
++
+ // Item is returned during iteration. Both the Key() and Value() output is only valid until
+ // iterator.Next() is called.
+ type Item struct {
+@@ -137,8 +180,13 @@ func (item *Item) DiscardEarlierVersions() bool {
+ }
+ 
+ func (item *Item) yieldItemValue() ([]byte, func(), error) {
++	start := time.Now()
++	defer func() {
++		y.RecordItrLatency(item.txn.db.opt.MetricsEnabled, time.Since(start))
++	}()
+ 	key := item.Key() // No need to copy.
+ 	if !item.hasValue() {
++		y.Inc(yieldNotFoundCounters)
+ 		return nil, nil, nil
+ 	}
+ 
+@@ -149,6 +197,7 @@ func (item *Item) yieldItemValue() ([]byte, func(), error) {
+ 	if (item.meta & bitValuePointer) == 0 {
+ 		val := item.slice.Resize(len(item.vptr))
+ 		copy(val, item.vptr)
++		y.Inc(yieldInlineCounters)
+ 		return val, nil, nil
+ 	}
+ 
+@@ -184,6 +233,7 @@ func (item *Item) yieldItemValue() ([]byte, func(), error) {
+ 				item.Key(), item.version, item.meta, item.userMeta, vp)
+ 		}
+ 	}
++	y.Inc(yieldVlogCounters)
+ 	// Don't return error if we cannot read the value. Just log the error.
+ 	return result, cb, nil
+ }
+@@ -438,6 +488,8 @@ type Iterator struct {
+ 	closed  bool
+ 	scanned int // Used to estimate the size of data scanned by iterator.
+ 
++	startTime time.Time
++	openTime  uint64 // Time taken to open the iterator in nanoseconds.
+ 	// ThreadId is an optional value that can be set to identify which goroutine created
+ 	// the iterator. It can be used, for example, to uniquely identify each of the
+ 	// iterators created by the stream interface
+@@ -463,8 +515,10 @@ func (txn *Txn) NewIterator(opt IteratorOptions) *Iterator {
+ 	if txn.db.IsClosed() {
+ 		panic(ErrDBClosed)
+ 	}
++	y.Inc(itrOpenCounters)
+ 
+ 	y.NumIteratorsCreatedAdd(txn.db.opt.MetricsEnabled, 1)
++	start := time.Now()
+ 
+ 	// Keep track of the number of active iterators.
+ 	txn.numIterators.Add(1)
+@@ -482,11 +536,13 @@ func (txn *Txn) NewIterator(opt IteratorOptions) *Iterator {
+ 	}
+ 	iters = txn.db.lc.appendIterators(iters, &opt) // This will increment references.
+ 	res := &Iterator{
+-		txn:    txn,
+-		iitr:   table.NewMergeIterator(iters, opt.Reverse),
+-		opt:    opt,
+-		readTs: txn.readTs,
++		txn:       txn,
++		iitr:      table.NewMergeIterator(iters, opt.Reverse),
++		opt:       opt,
++		readTs:    txn.readTs,
++		startTime: start,
+ 	}
++	res.openTime = uint64(time.Since(start).Nanoseconds())
+ 	return res
+ }
+ 
+@@ -497,6 +553,7 @@ func (txn *Txn) NewKeyIterator(key []byte, opt IteratorOptions) *Iterator {
+ 	if len(opt.Prefix) > 0 {
+ 		panic("opt.Prefix should be nil for NewKeyIterator.")
+ 	}
++	y.Inc(keyItrOpenCounters)
+ 	opt.Prefix = key // This key must be without the timestamp.
+ 	opt.prefixIsKey = true
+ 	opt.AllVersions = true
+@@ -514,6 +571,10 @@ func (it *Iterator) newItem() *Item {
+ // Item returns pointer to the current key-value pair.
+ // This item is only valid until it.Next() gets called.
+ func (it *Iterator) Item() *Item {
++	start := time.Now()
++	defer func() {
++		y.RecordItrLatency(it.txn.db.opt.MetricsEnabled, time.Since(start))
++	}()
+ 	tx := it.txn
+ 	tx.addReadKey(it.item.Key())
+ 	return it.item
+@@ -538,6 +599,15 @@ func (it *Iterator) ValidForPrefix(prefix []byte) bool {
+ 
+ // Close would close the iterator. It is important to call this when you're done with iteration.
+ func (it *Iterator) Close() {
++	y.Inc(itrCloseCounters)
++	// Record total scan time when iterator closes
++	if !it.startTime.IsZero() {
++		y.RecordScanLatency(it.txn.db.opt.MetricsEnabled, time.Since(it.startTime))
++	}
++	start := time.Now()
++	defer func() {
++		y.RecordItrLatency(it.txn.db.opt.MetricsEnabled, time.Since(start))
++	}()
+ 	if it.closed {
+ 		return
+ 	}
+@@ -568,12 +638,26 @@ func (it *Iterator) Close() {
+ // Next would advance the iterator by one. Always check it.Valid() after a Next()
+ // to ensure you have access to a valid it.Item().
+ func (it *Iterator) Next() {
++	y.Inc(itrNextCounters)
++	if TraceNext > 0 {
++		traceOp(TraceNext, "Next", nil, it.opt.Prefix)
++	}
++	var nextBytes int
++	start := time.Now()
++	defer func() {
++		t := time.Since(start)
++		y.RecordItrNextLatency(it.txn.db.opt.MetricsEnabled, t)
++		y.RecordItrLatency(it.txn.db.opt.MetricsEnabled, t)
++		y.KvRecordNext(t, nextBytes)
++	}()
+ 	if it.iitr == nil {
+ 		return
+ 	}
+ 	// Reuse current item
+ 	it.item.wg.Wait() // Just cleaner to wait before pushing to avoid doing ref counting.
+-	it.scanned += len(it.item.key) + len(it.item.val) + len(it.item.vptr) + 2
++	nextBytes = len(it.item.key) + len(it.item.val) + len(it.item.vptr) + 2
++	it.scanned += nextBytes
++	y.RecordItrNextSize(it.txn.db.opt.MetricsEnabled, nextBytes)
+ 	it.waste.push(it.item)
+ 
+ 	// Set next item to current
+@@ -747,6 +831,21 @@ func (it *Iterator) prefetch() {
+ // smallest key greater than the provided key if iterating in the forward direction.
+ // Behavior would be reversed if iterating backwards.
+ func (it *Iterator) Seek(key []byte) {
++	y.Inc(itrSeekCounters)
++	if TraceSeek > 0 {
++		traceOp(TraceSeek, "Seek", key, it.opt.Prefix)
++	}
++	var seekBytes int
++	start := time.Now()
++	defer func() {
++		t := time.Since(start)
++		// add the open time to the first seek only: seek is the first thing done after opening the iterator.
++		t += time.Duration(it.openTime) * time.Nanosecond
++		it.openTime = 0
++		y.RecordItrSeekLatency(it.txn.db.opt.MetricsEnabled, t)
++		y.RecordItrLatency(it.txn.db.opt.MetricsEnabled, t)
++		y.KvRecordSeek(t, seekBytes)
++	}()
+ 	if it.iitr == nil {
+ 		return
+ 	}
+@@ -765,6 +864,10 @@ func (it *Iterator) Seek(key []byte) {
+ 	if len(key) == 0 {
+ 		it.iitr.Rewind()
+ 		it.prefetch()
++		if it.item != nil {
++			seekBytes = len(it.item.key) + len(it.item.val) + len(it.item.vptr) + 2
++			y.RecordItrSeekSize(it.txn.db.opt.MetricsEnabled, seekBytes)
++		}
+ 		return
+ 	}
+ 
+@@ -775,6 +878,11 @@ func (it *Iterator) Seek(key []byte) {
+ 	}
+ 	it.iitr.Seek(key)
+ 	it.prefetch()
++
++	if it.item != nil {
++		seekBytes = len(it.item.key) + len(it.item.val) + len(it.item.vptr) + 2
++		y.RecordItrSeekSize(it.txn.db.opt.MetricsEnabled, seekBytes)
++	}
+ }
+ 
+ // Rewind would rewind the iterator cursor all the way to zero-th position, which would be the
+diff --git dgraph/badger/txn.go dgraph/badger/txn.go
+index d5a6af524..6cc91dec3 100644
+--- dgraph/badger/txn.go
++++ dgraph/badger/txn.go
+@@ -16,11 +16,18 @@ import (
+ 	"strconv"
+ 	"sync"
+ 	"sync/atomic"
++	"time"
+ 
+ 	"github.com/dgraph-io/badger/v4/y"
+ 	"github.com/dgraph-io/ristretto/v2/z"
+ )
+ 
++var (
++	txnGetCounters    = y.RegisterFuncCounter("badger.txn.get")
++	txnSetCounters    = y.RegisterFuncCounter("badger.txn.set")
++	txnDeleteCounters = y.RegisterFuncCounter("badger.txn.del")
++)
++
+ type oracle struct {
+ 	isManaged       bool // Does not change value, so no locking required.
+ 	detectConflicts bool // Determines if the txns should be checked for conflicts.
+@@ -410,6 +417,15 @@ func (txn *Txn) Set(key, val []byte) error {
+ // The current transaction keeps a reference to the entry passed in argument.
+ // Users must not modify the entry until the end of the transaction.
+ func (txn *Txn) SetEntry(e *Entry) error {
++	y.Inc(txnSetCounters)
++	sz := len(e.Value) + len(e.Key)
++	y.RecordPutSize(txn.db.opt.MetricsEnabled, sz)
++	start := time.Now()
++	defer func() {
++		d := time.Since(start)
++		y.RecordPutLatency(txn.db.opt.MetricsEnabled, d)
++		y.KvRecordSet(d, sz)
++	}()
+ 	return txn.modify(e)
+ }
+ 
+@@ -422,6 +438,11 @@ func (txn *Txn) SetEntry(e *Entry) error {
+ // The current transaction keeps a reference to the key byte slice argument.
+ // Users must not modify the key until the end of the transaction.
+ func (txn *Txn) Delete(key []byte) error {
++	y.Inc(txnDeleteCounters)
++	start := time.Now()
++	defer func() {
++		y.RecordDeleteLatency(txn.db.opt.MetricsEnabled, time.Since(start))
++	}()
+ 	e := &Entry{
+ 		Key:  key,
+ 		meta: bitDelete,
+@@ -432,6 +453,18 @@ func (txn *Txn) Delete(key []byte) error {
+ // Get looks for key and returns corresponding Item.
+ // If key is not found, ErrKeyNotFound is returned.
+ func (txn *Txn) Get(key []byte) (item *Item, rerr error) {
++	y.Inc(txnGetCounters)
++	if TraceGet > 0 {
++		traceOp(TraceGet, "Get", key, nil)
++	}
++	var found bool
++	var valueBytes int
++	start := time.Now()
++	defer func() {
++		d := time.Since(start)
++		y.RecordGetLatency(txn.db.opt.MetricsEnabled, d)
++		y.KvRecordGet(d, found, valueBytes)
++	}()
+ 	if len(key) == 0 {
+ 		return nil, ErrEmptyKey
+ 	} else if txn.discarded {
+@@ -457,6 +490,9 @@ func (txn *Txn) Get(key []byte) (item *Item, rerr error) {
+ 			item.version = txn.readTs
+ 			item.expiresAt = e.ExpiresAt
+ 			// We probably don't need to set db on item here.
++			found = true
++			valueBytes = len(e.Value)
++			y.RecordGetSize(txn.db.opt.MetricsEnabled, valueBytes)
+ 			return item, nil
+ 		}
+ 		// Only track reads if this is update txn. No need to track read if txn serviced it
+@@ -483,6 +519,9 @@ func (txn *Txn) Get(key []byte) (item *Item, rerr error) {
+ 	item.vptr = y.SafeCopy(item.vptr, vs.Value)
+ 	item.txn = txn
+ 	item.expiresAt = vs.ExpiresAt
++	found = true
++	valueBytes = len(vs.Value)
++	y.RecordGetSize(txn.db.opt.MetricsEnabled, valueBytes)
+ 	return item, nil
+ }
+ 
+@@ -660,6 +699,11 @@ func (txn *Txn) Commit() error {
+ 	}
+ 	defer txn.Discard()
+ 
++	start := time.Now()
++	defer func() {
++		y.RecordCommitLatency(txn.db.opt.MetricsEnabled, time.Since(start))
++	}()
++
+ 	txnCb, err := txn.commitAndSend()
+ 	if err != nil {
+ 		return err
+diff --git dgraph/badger/y/functrace.go dgraph/badger/y/functrace.go
+new file mode 100644
+index 000000000..4b6564830
+--- /dev/null
++++ dgraph/badger/y/functrace.go
+@@ -0,0 +1,49 @@
++//go:build functrace
++
++package y
++
++import (
++	"sync/atomic"
++)
++
++// FuncCounter tracks function call counts
++type FuncCounter struct {
++	name  string
++	count *uint64
++}
++
++var (
++	// Registry of all function counters
++	funcCounters = make(map[string]*uint64)
++)
++
++func Enabled() bool { return false }
++
++// RegisterFuncCounter creates a new counter for a function
++func RegisterFuncCounter(name string) *uint64 {
++	counter := new(uint64)
++	funcCounters[name] = counter
++	return counter
++}
++
++// GetFuncCounts returns all current counts
++func GetFuncCounts() map[string]uint64 {
++	counts := make(map[string]uint64)
++	for name, counter := range funcCounters {
++		counts[name] = atomic.LoadUint64(counter)
++	}
++	return counts
++}
++
++// ResetFuncCounts resets all counters to zero
++func ResetFuncCounts() {
++	for _, counter := range funcCounters {
++		atomic.StoreUint64(counter, 0)
++	}
++}
++
++func Inc(counter *uint64) {
++	if counter != nil {
++		atomic.AddUint64(counter, 1)
++	}
++}
+diff --git dgraph/badger/y/histogram.go dgraph/badger/y/histogram.go
+new file mode 100644
+index 000000000..495ccb579
+--- /dev/null
++++ dgraph/badger/y/histogram.go
+@@ -0,0 +1,197 @@
++//go:build histogram
++
++package y
++
++import (
++	"encoding/json"
++	"expvar"
++	"time"
++
++	hdrhistogram "github.com/HdrHistogram/hdrhistogram-go"
++)
++
++const (
++	BADGER_CUSTOM_METRIC_PREFIX = "badger_custom_"
++)
++
++var (
++	getLatencyHisto     *hdrhistogram.Histogram
++	getSizeHisto        *hdrhistogram.Histogram
++	setLatencyHisto     *hdrhistogram.Histogram
++	setSizeHisto        *hdrhistogram.Histogram
++	deleteLatencyHisto  *hdrhistogram.Histogram
++	commitLatencyHisto  *hdrhistogram.Histogram
++	itrSeekLatencyHisto *hdrhistogram.Histogram
++	itrSeekSizeHisto    *hdrhistogram.Histogram
++	itrNextLatencyHisto *hdrhistogram.Histogram
++	itrNextSizeHisto    *hdrhistogram.Histogram
++
++	itrLatencyTotal  *expvar.Int
++	scanLatencyTotal *expvar.Int
++	scanCount        *expvar.Int
++)
++
++func init() {
++	getLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"get_latency_histogram", &expvarHistogram{getLatencyHisto})
++	getSizeHisto = hdrhistogram.New(1, 8000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"get_size_histogram", &expvarHistogram{getSizeHisto})
++
++	setLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"set_latency_histogram", &expvarHistogram{setLatencyHisto})
++	setSizeHisto = hdrhistogram.New(1, 8000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"set_size_histogram", &expvarHistogram{setSizeHisto})
++
++	deleteLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"delete_latency_histogram", &expvarHistogram{deleteLatencyHisto})
++	commitLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++
++	itrSeekLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"itr_seek_latency_histogram", &expvarHistogram{itrSeekLatencyHisto})
++	itrSeekSizeHisto = hdrhistogram.New(1, 8000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"itr_seek_size_histogram", &expvarHistogram{itrSeekSizeHisto})
++
++	itrNextLatencyHisto = hdrhistogram.New(1, 1000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"itr_next_latency_histogram", &expvarHistogram{itrNextLatencyHisto})
++	itrNextSizeHisto = hdrhistogram.New(1, 8000000, 3)
++	expvar.Publish(BADGER_CUSTOM_METRIC_PREFIX+"itr_next_size_histogram", &expvarHistogram{itrNextSizeHisto})
++
++	itrLatencyTotal = expvar.NewInt(BADGER_CUSTOM_METRIC_PREFIX + "itr_latency_us")
++	scanLatencyTotal = expvar.NewInt(BADGER_CUSTOM_METRIC_PREFIX + "scan_latency_us")
++	scanCount = expvar.NewInt(BADGER_CUSTOM_METRIC_PREFIX + "scan_count")
++}
++
++type HistogramExport struct {
++	P50   int64   `json:"p50"`
++	P95   int64   `json:"p95"`
++	P99   int64   `json:"p99"`
++	Max   int64   `json:"max"`
++	Min   int64   `json:"min"`
++	Mean  float64 `json:"mean"`
++	Count int64   `json:"count"`
++	Sum   int64   `json:"sum"`
++}
++
++type expvarHistogram struct {
++	h *hdrhistogram.Histogram
++}
++
++func (e *expvarHistogram) String() string {
++	he := HistogramExport{
++		P50:   e.h.ValueAtQuantile(50),
++		P95:   e.h.ValueAtQuantile(95),
++		P99:   e.h.ValueAtQuantile(99),
++		Max:   e.h.Max(),
++		Min:   e.h.Min(),
++		Mean:  e.h.Mean(),
++		Count: e.h.TotalCount(),
++		Sum:   int64(float64(e.h.TotalCount()) * e.h.Mean()),
++	}
++	b, _ := json.Marshal(he)
++	return string(b)
++}
++
++func RecordGetLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	getLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordGetSize(enabled bool, size int) {
++	if !enabled {
++		return
++	}
++	getSizeHisto.RecordValue(int64(size))
++}
++
++func RecordPutLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	setLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordPutSize(enabled bool, size int) {
++	if !enabled {
++		return
++	}
++	setSizeHisto.RecordValue(int64(size))
++}
++
++func RecordDeleteLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	deleteLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordCommitLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	commitLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordItrLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	itrLatencyTotal.Add(latency.Microseconds())
++}
++
++func RecordItrSeekLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	itrSeekLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordItrSeekSize(enabled bool, size int) {
++	if !enabled {
++		return
++	}
++	itrSeekSizeHisto.RecordValue(int64(size))
++}
++
++func RecordItrNextLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	itrNextLatencyHisto.RecordValue(latency.Microseconds())
++}
++
++func RecordItrNextSize(enabled bool, size int) {
++	if !enabled {
++		return
++	}
++	itrNextSizeHisto.RecordValue(int64(size))
++}
++
++func RecordScanLatency(enabled bool, latency time.Duration) {
++	if !enabled {
++		return
++	}
++	scanLatencyTotal.Add(latency.Microseconds())
++	scanCount.Add(1)
++}
++
++func ResetHistograms() {
++	getLatencyHisto.Reset()
++	getSizeHisto.Reset()
++	setLatencyHisto.Reset()
++	setSizeHisto.Reset()
++	deleteLatencyHisto.Reset()
++	commitLatencyHisto.Reset()
++	itrSeekLatencyHisto.Reset()
++	itrSeekSizeHisto.Reset()
++	itrNextLatencyHisto.Reset()
++	itrNextSizeHisto.Reset()
++}
++
++func ResetMetrics() {
++	ResetHistograms()
++	itrLatencyTotal.Set(0)
++	scanCount.Set(0)
++	scanLatencyTotal.Set(0)
++}
+diff --git dgraph/badger/y/kvstats.go dgraph/badger/y/kvstats.go
+new file mode 100644
+index 000000000..6ff0de0dd
+--- /dev/null
++++ dgraph/badger/y/kvstats.go
+@@ -0,0 +1,103 @@
++//go:build kvstats
++
++package y
++
++import (
++	"encoding/json"
++	"sync/atomic"
++	"time"
++)
++
++var (
++	kvGetCount      int64
++	kvGetFoundCount int64
++	kvGetLatencyNs  int64
++	kvGetBytes      int64
++
++	kvSetCount     int64
++	kvSetLatencyNs int64
++	kvSetBytes     int64
++
++	kvSeekCount     int64
++	kvSeekLatencyNs int64
++	kvSeekBytes     int64
++
++	kvNextCount     int64
++	kvNextLatencyNs int64
++	kvNextBytes     int64
++)
++
++// KvRecordGet records a Get operation. If found, also records found count and bytes.
++func KvRecordGet(latency time.Duration, found bool, bytes int) {
++	atomic.AddInt64(&kvGetCount, 1)
++	atomic.AddInt64(&kvGetLatencyNs, latency.Nanoseconds())
++	if found {
++		atomic.AddInt64(&kvGetFoundCount, 1)
++		atomic.AddInt64(&kvGetBytes, int64(bytes))
++	}
++}
++
++// KvRecordSet records a Set operation with latency and bytes written.
++func KvRecordSet(latency time.Duration, bytes int) {
++	atomic.AddInt64(&kvSetCount, 1)
++	atomic.AddInt64(&kvSetLatencyNs, latency.Nanoseconds())
++	atomic.AddInt64(&kvSetBytes, int64(bytes))
++}
++
++// KvRecordSeek records a Seek operation with latency and bytes of the first
++// item loaded by prefetch. Seek positions the cursor AND prefetches the first
++// item, so its bytes must be counted here (Next only sees subsequent items).
++func KvRecordSeek(latency time.Duration, bytes int) {
++	atomic.AddInt64(&kvSeekCount, 1)
++	atomic.AddInt64(&kvSeekLatencyNs, latency.Nanoseconds())
++	atomic.AddInt64(&kvSeekBytes, int64(bytes))
++}
++
++// KvRecordNext records a Next operation with latency and bytes scanned.
++func KvRecordNext(latency time.Duration, bytes int) {
++	atomic.AddInt64(&kvNextCount, 1)
++	atomic.AddInt64(&kvNextLatencyNs, latency.Nanoseconds())
++	atomic.AddInt64(&kvNextBytes, int64(bytes))
++}
++
++// GetKvStats returns all counters as a flat map matching the JSON format
++// expected by the /kvstats endpoint.
++func GetKvStats() map[string]int64 {
++	return map[string]int64{
++		"get_count":       atomic.LoadInt64(&kvGetCount),
++		"get_found_count": atomic.LoadInt64(&kvGetFoundCount),
++		"get_latency_ns":  atomic.LoadInt64(&kvGetLatencyNs),
++		"get_bytes":       atomic.LoadInt64(&kvGetBytes),
++		"set_count":       atomic.LoadInt64(&kvSetCount),
++		"set_latency_ns":  atomic.LoadInt64(&kvSetLatencyNs),
++		"set_bytes":       atomic.LoadInt64(&kvSetBytes),
++		"seek_count":      atomic.LoadInt64(&kvSeekCount),
++		"seek_latency_ns": atomic.LoadInt64(&kvSeekLatencyNs),
++		"seek_bytes":      atomic.LoadInt64(&kvSeekBytes),
++		"next_count":      atomic.LoadInt64(&kvNextCount),
++		"next_latency_ns": atomic.LoadInt64(&kvNextLatencyNs),
++		"next_bytes":      atomic.LoadInt64(&kvNextBytes),
++	}
++}
++
++// GetKvStatsJSON returns the counters as a JSON byte slice.
++func GetKvStatsJSON() ([]byte, error) {
++	return json.Marshal(GetKvStats())
++}
++
++// ResetKvStats zeros all counters.
++func ResetKvStats() {
++	atomic.StoreInt64(&kvGetCount, 0)
++	atomic.StoreInt64(&kvGetFoundCount, 0)
++	atomic.StoreInt64(&kvGetLatencyNs, 0)
++	atomic.StoreInt64(&kvGetBytes, 0)
++	atomic.StoreInt64(&kvSetCount, 0)
++	atomic.StoreInt64(&kvSetLatencyNs, 0)
++	atomic.StoreInt64(&kvSetBytes, 0)
++	atomic.StoreInt64(&kvSeekCount, 0)
++	atomic.StoreInt64(&kvSeekLatencyNs, 0)
++	atomic.StoreInt64(&kvSeekBytes, 0)
++	atomic.StoreInt64(&kvNextCount, 0)
++	atomic.StoreInt64(&kvNextLatencyNs, 0)
++	atomic.StoreInt64(&kvNextBytes, 0)
++}
+diff --git dgraph/badger/y/nofunctrace.go dgraph/badger/y/nofunctrace.go
+new file mode 100644
+index 000000000..bc9af36b7
+--- /dev/null
++++ dgraph/badger/y/nofunctrace.go
+@@ -0,0 +1,15 @@
++//go:build !functrace
++
++package y
++
++// FuncCounter tracks function call counts
++type FuncCounter struct {
++}
++
++func Enabled() bool { return false }
++
++// Counters
++func RegisterFuncCounter(name string) *uint64 { return nil }
++func GetFuncCounts() map[string]uint64        { return map[string]uint64{} }
++func ResetFuncCounts()                        {}
++func Inc(counter *uint64)                     {}
+diff --git dgraph/badger/y/nohistogram.go dgraph/badger/y/nohistogram.go
+new file mode 100644
+index 000000000..f3fa2026c
+--- /dev/null
++++ dgraph/badger/y/nohistogram.go
+@@ -0,0 +1,20 @@
++//go:build !histogram
++
++package y
++
++import "time"
++
++func RecordGetLatency(enabled bool, latency time.Duration)     {}
++func RecordGetSize(enabled bool, size int)                     {}
++func RecordPutLatency(enabled bool, latency time.Duration)     {}
++func RecordPutSize(enabled bool, size int)                     {}
++func RecordDeleteLatency(enabled bool, latency time.Duration)  {}
++func RecordCommitLatency(enabled bool, latency time.Duration)  {}
++func RecordItrLatency(enabled bool, latency time.Duration)     {}
++func RecordItrSeekLatency(enabled bool, latency time.Duration) {}
++func RecordItrSeekSize(enabled bool, size int)                 {}
++func RecordItrNextLatency(enabled bool, latency time.Duration) {}
++func RecordItrNextSize(enabled bool, size int)                 {}
++func RecordScanLatency(enabled bool, latency time.Duration)    {}
++func ResetHistograms()                                         {}
++func ResetMetrics()                                            {}
+diff --git dgraph/badger/y/nokvstats.go dgraph/badger/y/nokvstats.go
+new file mode 100644
+index 000000000..bd41322a6
+--- /dev/null
++++ dgraph/badger/y/nokvstats.go
+@@ -0,0 +1,14 @@
++//go:build !kvstats
++
++package y
++
++import "time"
++
++func KvRecordGet(latency time.Duration, found bool, bytes int) {}
++func KvRecordSet(latency time.Duration, bytes int)             {}
++func KvRecordSeek(latency time.Duration, bytes int)            {}
++func KvRecordNext(latency time.Duration, bytes int)            {}
++
++func GetKvStats() map[string]int64        { return map[string]int64{} }
++func GetKvStatsJSON() ([]byte, error)     { return []byte("{}"), nil }
++func ResetKvStats()                       {}

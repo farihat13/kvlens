@@ -1,0 +1,6 @@
+personId|country|tagClass|knowsDegree|stratum
+8796093094586|Sri_Lanka|Politician|1970|deg-p100+p50-class-p50-country
+21990232557420|Sri_Lanka|Writer|175|deg-p90+p90-class-p50-country
+6597069787175|China|Politician|41|deg-p50+p50-class-max-country
+6597069787175|China|Writer|41|deg-p50+p90-class-max-country
+4398046685476|China|Country|6|deg-p10+max-class-max-country

@@ -1,0 +1,43 @@
+{
+ "id": "w08",
+ "name": "point_lists",
+ "title": "Point: friend lists of low-degree persons",
+ "items": [
+  {"family": "microbench", "query": "hop1_knows", "frequency": 100, "params": [1]}
+ ],
+ "expect": "Split/Condensed adjacency; Chunked reads a chunk for a handful of friends",
+ "why": "a low-degree person has a handful of friends: every layout pays about the same, {list_ops} ops per person (2 lists, one per direction). Chunked reads whole chunks for those few ids ({ch_bytes} per person against {cc_bytes} Condensed, {sp_bytes} Split).",
+ "why_numbers": {
+  "list_ops": [
+   "run",
+   "ops",
+   "hop1_knows",
+   null,
+   "props_condensed_adj_condensed"
+  ],
+  "ch_bytes": [
+   "run",
+   "bytes",
+   "hop1_knows",
+   null,
+   "props_chunked_adj_chunked"
+  ],
+  "cc_bytes": [
+   "run",
+   "bytes",
+   "hop1_knows",
+   null,
+   "props_condensed_adj_condensed"
+  ],
+  "sp_bytes": [
+   "run",
+   "bytes",
+   "hop1_knows",
+   null,
+   "props_split_adj_split"
+  ]
+ },
+ "why_scale_free": {
+  "2": "knows is declared in both directions (schema): one list each"
+ }
+}

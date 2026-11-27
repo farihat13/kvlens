@@ -1,0 +1,7 @@
+# w_ins_v_full -- insert a new person carrying every column of the tag (the indexed firstName and creationDate
+#   included; emails and languages empty, as mb2's).
+# Writes: the packed tag row, its 2 index entries and a raft commit key.
+# Evaluator: workloads/writes/microbench/queries.py w_ins_v_full -- insert_vertex(new_vid, _FULL_PROPS).
+# mb2 lineage: MB84 (same statement).
+# Id: the plan's own synthetic id, inlined (a text template), as w_ins_v_min.
+INSERT VERTEX `Person`(firstName, lastName, gender, birthday, creationDate, locationIP, browserUsed, emails, languages) VALUES "person_$new_vid":("Wtest", "Writer", "other", 631152000000, 1577836800000, "10.0.0.1", "Chrome", [], []);

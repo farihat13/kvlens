@@ -1,0 +1,167 @@
+{
+ "query": "job14a",
+ "aliases": {
+  "it1": "info_type",
+  "it2": "info_type",
+  "k": "keyword",
+  "kt": "kind_type",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "mk": "movie_keyword",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "kt",
+   "id",
+   "t",
+   "kind_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "countries"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "rating"
+   ]
+  ],
+  "k": [
+   [
+    "in",
+    "k",
+    "keyword",
+    [
+     "murder",
+     "murder-in-title",
+     "blood",
+     "violence"
+    ]
+   ]
+  ],
+  "kt": [
+   [
+    "cmp",
+    "=",
+    "kt",
+    "kind",
+    "movie"
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Norway",
+     "Germany",
+     "Denmark",
+     "Swedish",
+     "Denish",
+     "Norwegian",
+     "German",
+     "USA",
+     "American"
+    ]
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    "<",
+    "mi_idx",
+    "info",
+    "8.5"
+   ]
+  ],
+  "mk": [],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2010
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "rating",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "northern_dark_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

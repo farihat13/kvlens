@@ -1,0 +1,5 @@
+schema_sha256=03713a1e1c7b722e73bed6b150e079e69e9579c2a58c52e06f9d4384fdd4b80d
+schema_path=data/schema/dgraph/ldbcTypes.schema
+sf=0.3
+created=2026-09-28T18:37:32Z
+git_sha=12de8e641

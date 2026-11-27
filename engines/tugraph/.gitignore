@@ -1,0 +1,7 @@
+# the fetched release, our built library, and everything a run makes
+tugraph-4.5.2/
+bin/
+runs/
+backup/*
+!backup/provenance-sf*.txt
+*.log

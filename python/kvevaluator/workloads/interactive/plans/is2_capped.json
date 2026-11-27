@@ -1,0 +1,787 @@
+{
+  "plan": "is2_capped",
+  "question": "Same as is2, but the walk from a message up to its original post is capped at three replies.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "index_walk": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "my_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "top10",
+          "op": "read_top_k_by_index",
+          "vids": {
+            "ref": "my_msgs"
+          },
+          "prop": "creationDate",
+          "k": 10,
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "props": [
+            "content",
+            "imageFile"
+          ],
+          "id_order": "desc"
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "roots",
+          "op": "read_chase",
+          "srcs": {
+            "ref": "top_vids"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "max_hops": 3
+        },
+        {
+          "name": "msg_root",
+          "op": "attach",
+          "rows": {
+            "ref": "top10"
+          },
+          "values": {
+            "ref": "roots"
+          },
+          "into": "_root"
+        },
+        {
+          "name": "root_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "roots"
+          }
+        },
+        {
+          "name": "root_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "root_uniq"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "orig_id",
+          "op": "rename",
+          "rows": {
+            "ref": "root_id"
+          },
+          "names": {
+            "id": "originalPostId"
+          }
+        },
+        {
+          "name": "with_root",
+          "op": "join",
+          "left": {
+            "ref": "msg_root"
+          },
+          "right": {
+            "ref": "orig_id"
+          },
+          "left_on": "_root",
+          "right_on": "_vid"
+        },
+        {
+          "name": "root_auth",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "root_uniq"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "auth_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "root_auth"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "auth_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "auth_vids"
+          }
+        },
+        {
+          "name": "auth_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "auth_uniq"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "auth_named",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_props"
+          },
+          "names": {
+            "id": "originalPostAuthorId",
+            "firstName": "originalPostAuthorFirstName",
+            "lastName": "originalPostAuthorLastName"
+          }
+        },
+        {
+          "name": "auth_join",
+          "op": "join",
+          "left": {
+            "ref": "root_auth"
+          },
+          "right": {
+            "ref": "auth_named"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "auth_root",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_join"
+          },
+          "names": {
+            "src": "_root2"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "with_root"
+          },
+          "right": {
+            "ref": "auth_root"
+          },
+          "left_on": "_root",
+          "right_on": "_root2"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "joined"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate",
+            "originalPostId",
+            "originalPostAuthorId",
+            "originalPostAuthorFirstName",
+            "originalPostAuthorLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "one_phase": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "my_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "my_msgs"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content",
+            "imageFile"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "desc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "roots",
+          "op": "read_chase",
+          "srcs": {
+            "ref": "top_vids"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "max_hops": 3
+        },
+        {
+          "name": "msg_root",
+          "op": "attach",
+          "rows": {
+            "ref": "top10"
+          },
+          "values": {
+            "ref": "roots"
+          },
+          "into": "_root"
+        },
+        {
+          "name": "root_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "roots"
+          }
+        },
+        {
+          "name": "root_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "root_uniq"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "orig_id",
+          "op": "rename",
+          "rows": {
+            "ref": "root_id"
+          },
+          "names": {
+            "id": "originalPostId"
+          }
+        },
+        {
+          "name": "with_root",
+          "op": "join",
+          "left": {
+            "ref": "msg_root"
+          },
+          "right": {
+            "ref": "orig_id"
+          },
+          "left_on": "_root",
+          "right_on": "_vid"
+        },
+        {
+          "name": "root_auth",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "root_uniq"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "auth_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "root_auth"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "auth_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "auth_vids"
+          }
+        },
+        {
+          "name": "auth_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "auth_uniq"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "auth_named",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_props"
+          },
+          "names": {
+            "id": "originalPostAuthorId",
+            "firstName": "originalPostAuthorFirstName",
+            "lastName": "originalPostAuthorLastName"
+          }
+        },
+        {
+          "name": "auth_join",
+          "op": "join",
+          "left": {
+            "ref": "root_auth"
+          },
+          "right": {
+            "ref": "auth_named"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "auth_root",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_join"
+          },
+          "names": {
+            "src": "_root2"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "with_root"
+          },
+          "right": {
+            "ref": "auth_root"
+          },
+          "left_on": "_root",
+          "right_on": "_root2"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "joined"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate",
+            "originalPostId",
+            "originalPostAuthorId",
+            "originalPostAuthorFirstName",
+            "originalPostAuthorLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "two_phase": {
+      "steps": [
+        {
+          "name": "me",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "me_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "my_msgs",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "me"
+          },
+          "etype": "hasCreator",
+          "dir": "in"
+        },
+        {
+          "name": "ranked",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "my_msgs"
+          },
+          "props": [
+            "id",
+            "creationDate"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "top10",
+          "op": "top_k",
+          "rows": {
+            "ref": "ranked"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "desc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "top_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "top10"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bodies",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "top_vids"
+          },
+          "props": [
+            "content",
+            "imageFile"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "with_body",
+          "op": "zip_rows",
+          "left": {
+            "ref": "top10"
+          },
+          "right": {
+            "ref": "bodies"
+          }
+        },
+        {
+          "name": "roots",
+          "op": "read_chase",
+          "srcs": {
+            "ref": "top_vids"
+          },
+          "etype": "replyOf",
+          "dir": "out",
+          "max_hops": 3
+        },
+        {
+          "name": "msg_root",
+          "op": "attach",
+          "rows": {
+            "ref": "with_body"
+          },
+          "values": {
+            "ref": "roots"
+          },
+          "into": "_root"
+        },
+        {
+          "name": "root_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "roots"
+          }
+        },
+        {
+          "name": "root_id",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "root_uniq"
+          },
+          "props": [
+            "id"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "orig_id",
+          "op": "rename",
+          "rows": {
+            "ref": "root_id"
+          },
+          "names": {
+            "id": "originalPostId"
+          }
+        },
+        {
+          "name": "with_root",
+          "op": "join",
+          "left": {
+            "ref": "msg_root"
+          },
+          "right": {
+            "ref": "orig_id"
+          },
+          "left_on": "_root",
+          "right_on": "_vid"
+        },
+        {
+          "name": "root_auth",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "root_uniq"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "auth_vids",
+          "op": "pluck",
+          "rows": {
+            "ref": "root_auth"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "auth_uniq",
+          "op": "dedup",
+          "items": {
+            "ref": "auth_vids"
+          }
+        },
+        {
+          "name": "auth_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "auth_uniq"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "auth_named",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_props"
+          },
+          "names": {
+            "id": "originalPostAuthorId",
+            "firstName": "originalPostAuthorFirstName",
+            "lastName": "originalPostAuthorLastName"
+          }
+        },
+        {
+          "name": "auth_join",
+          "op": "join",
+          "left": {
+            "ref": "root_auth"
+          },
+          "right": {
+            "ref": "auth_named"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "auth_root",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_join"
+          },
+          "names": {
+            "src": "_root2"
+          }
+        },
+        {
+          "name": "joined",
+          "op": "join",
+          "left": {
+            "ref": "with_root"
+          },
+          "right": {
+            "ref": "auth_root"
+          },
+          "left_on": "_root",
+          "right_on": "_root2"
+        },
+        {
+          "name": "labeled",
+          "op": "rename",
+          "rows": {
+            "ref": "joined"
+          },
+          "names": {
+            "id": "messageId",
+            "creationDate": "messageCreationDate",
+            "content": "messageContent",
+            "imageFile": "messageImageFile"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "labeled"
+          },
+          "fields": [
+            "messageId",
+            "messageContent",
+            "messageImageFile",
+            "messageCreationDate",
+            "originalPostId",
+            "originalPostAuthorId",
+            "originalPostAuthorFirstName",
+            "originalPostAuthorLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "index_walk": {
+      "sha": "bc96d7839260",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "index_walk"
+      ]
+    },
+    "one_phase": {
+      "sha": "66c46104684c",
+      "requires": [],
+      "sources": [
+        "one_phase"
+      ]
+    },
+    "two_phase": {
+      "sha": "fe6f0ab0597f",
+      "requires": [],
+      "sources": [
+        "two_phase"
+      ]
+    }
+  }
+}

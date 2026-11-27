@@ -1,0 +1,48 @@
+// IC1: Transitive friends with given firstName
+// Find persons reachable via 1-3 hops of KNOWS from personId with given firstName
+// Return profile, city, universities, companies; sorted by distance, lastName, id
+LET startPerson = CONCAT("Person/", @personId)
+
+FOR friend, e, p IN 1..3 ANY startPerson knows
+    FILTER friend._id != startPerson
+    FILTER friend.firstName == @firstName
+    // Keep shortest distance per friend
+    COLLECT f = friend INTO paths = p
+    LET dist = MIN(FOR pp IN paths RETURN LENGTH(pp.edges))
+    LET city = FIRST(
+        FOR c IN 1..1 OUTBOUND f isLocatedIn
+            RETURN c
+    )
+    LET unis = (
+        FOR org, e2 IN 1..1 OUTBOUND f studyAt
+            LET orgCity = FIRST(
+                FOR c IN 1..1 OUTBOUND org isLocatedIn
+                    RETURN c.name
+            )
+            RETURN [org.name, e2.classYear, orgCity]
+    )
+    LET companies = (
+        FOR org, e2 IN 1..1 OUTBOUND f workAt
+            LET orgCountry = FIRST(
+                FOR c IN 1..1 OUTBOUND org isLocatedIn
+                    RETURN c.name
+            )
+            RETURN [org.name, e2.workFrom, orgCountry]
+    )
+    SORT dist ASC, f.lastName ASC, TO_NUMBER(f._key) ASC
+    LIMIT 20
+    RETURN {
+        friendId: TO_NUMBER(f._key),
+        friendLastName: f.lastName,
+        distanceFromPerson: dist,
+        friendBirthday: f.birthday,
+        friendCreationDate: f.creationDate,
+        friendGender: f.gender,
+        friendBrowserUsed: f.browserUsed,
+        friendLocationIp: f.locationIP,
+        friendEmails: f.emails,
+        friendLanguages: f.languages,
+        friendCityName: city.name,
+        friendUniversities: unis,
+        friendCompanies: companies
+    }

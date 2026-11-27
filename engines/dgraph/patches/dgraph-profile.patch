@@ -1,0 +1,2894 @@
+diff --git dgraph/dgraph-25.0.0/dgraph/cmd/alpha/http.go dgraph/dgraph-25.0.0/dgraph/cmd/alpha/http.go
+index 0f714832e..c7283fd86 100644
+--- dgraph/dgraph-25.0.0/dgraph/cmd/alpha/http.go
++++ dgraph/dgraph-25.0.0/dgraph/cmd/alpha/http.go
+@@ -14,6 +14,7 @@ import (
+ 	"io"
+ 	"mime"
+ 	"net/http"
++	"path"
+ 	"sort"
+ 	"strconv"
+ 	"strings"
+@@ -26,19 +27,534 @@ import (
+ 	jsonpb "google.golang.org/protobuf/encoding/protojson"
+ 	"google.golang.org/protobuf/proto"
+ 
++	"github.com/dgraph-io/badger/v4"
++	"github.com/dgraph-io/badger/v4/y"
+ 	"github.com/dgraph-io/dgo/v250/protos/api"
+ 	"github.com/hypermodeinc/dgraph/v25/dql"
+ 	"github.com/hypermodeinc/dgraph/v25/edgraph"
+ 	"github.com/hypermodeinc/dgraph/v25/graphql/admin"
+ 	"github.com/hypermodeinc/dgraph/v25/graphql/schema"
++	"github.com/hypermodeinc/dgraph/v25/posting"
+ 	"github.com/hypermodeinc/dgraph/v25/query"
++	"github.com/hypermodeinc/dgraph/v25/worker"
+ 	"github.com/hypermodeinc/dgraph/v25/x"
+ )
+ 
++var (
++	bestEffortQueryCounter = y.RegisterFuncCounter("alpha.BestEffortQuery")
++	readOnlyQueryCounter   = y.RegisterFuncCounter("alpha.ReadOnlyQuery")
++)
++
+ func allowed(method string) bool {
+ 	return method == http.MethodPost || method == http.MethodPut
+ }
+ 
++func pauseRollupHandler(w http.ResponseWriter, r *http.Request) {
++	glog.V(1).Info("T/DG: Got pause rollup request via HTTP")
++	defer glog.Info("T/DG: Pause rollup request done via HTTP")
++	posting.IncrRollup.Pause()
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Rollup paused",
++		},
++	}
++
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func resumeRollupHandler(w http.ResponseWriter, r *http.Request) {
++	glog.V(1).Info("T/DG: Got resume rollup request via HTTP")
++	defer glog.Info("T/DG: Resume rollup request done via HTTP")
++	posting.IncrRollup.Resume()
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Rollup resumed",
++		},
++	}
++
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func forceRollupAllHandler(w http.ResponseWriter, r *http.Request) {
++	glog.V(1).Info("T/DG: Got force rollup all request via HTTP")
++	defer glog.Info("T/DG: Force rollup all request done via HTTP")
++	err := posting.IncrRollup.ForceRollupAll(r.Context())
++
++	if err != nil {
++		glog.Errorf("T/DG: forceRollupAll failed: %v", err)
++		x.SetStatus(w, x.Error, fmt.Sprintf("Force rollup all failed: %v", err))
++		return
++	}
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Force rollup done",
++		},
++	}
++
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// TR/DG: EXPERIMENTAL precise write-cost measurement. Roll up ONLY the keys dirtied
++// by mutations committed since the last drain (recording must be enabled first). Fast
++// (no full scan) but INCOMPLETE — undercounts index maintenance (see DrainRecorded);
++// the write microbenchmarks use /rollup/forceall instead.
++func drainRollupHandler(w http.ResponseWriter, r *http.Request) {
++	glog.V(1).Info("T/DG: Got drain rollup request via HTTP")
++	defer glog.Info("T/DG: Drain rollup request done via HTTP")
++	n, err := posting.IncrRollup.DrainRecorded()
++	if err != nil {
++		glog.Errorf("T/DG: drainRollup failed: %v", err)
++		x.SetStatus(w, x.Error, fmt.Sprintf("Drain rollup failed: %v", err))
++		return
++	}
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Drain rollup done",
++			"keys":    n,
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func drainRollupEnableHandler(w http.ResponseWriter, r *http.Request) {
++	defer glog.Info("T/DG: Drain rollup enable request done via HTTP")
++	posting.IncrRollup.EnableRecording()
++	res := map[string]interface{}{"data": map[string]interface{}{
++		"code": "Success", "message": "Drain recording enabled"}}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func drainRollupDisableHandler(w http.ResponseWriter, r *http.Request) {
++	defer glog.Info("T/DG: Drain rollup disable request done via HTTP")
++	posting.IncrRollup.DisableRecording()
++	res := map[string]interface{}{"data": map[string]interface{}{
++		"code": "Success", "message": "Drain recording disabled"}}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// drainRollupPeekHandler dumps the currently recorded dirtied keys (parsed, readable)
++// WITHOUT draining — for verifying the recorder captured exactly the expected keys.
++func drainRollupPeekHandler(w http.ResponseWriter, r *http.Request) {
++	keys := posting.IncrRollup.PeekRecorded()
++	res := map[string]interface{}{"data": map[string]interface{}{
++		"code": "Success", "count": len(keys), "keys": keys}}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// drainRollupVerboseEnableHandler / ...Disable toggle per-key recorder logging (each
++// dirtied key + op is glog'd as it is recorded).
++func drainRollupVerboseEnableHandler(w http.ResponseWriter, r *http.Request) {
++	posting.IncrRollup.SetRecordVerbose(true)
++	res := map[string]interface{}{"data": map[string]interface{}{
++		"code": "Success", "message": "Drain record verbose enabled"}}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func drainRollupVerboseDisableHandler(w http.ResponseWriter, r *http.Request) {
++	posting.IncrRollup.SetRecordVerbose(false)
++	res := map[string]interface{}{"data": map[string]interface{}{
++		"code": "Success", "message": "Drain record verbose disabled"}}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func disableLocalCacheHandler(w http.ResponseWriter, r *http.Request) {
++	posting.ForceNoLocalCache = true
++	posting.ForceLocalCacheLock = false
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "LocalCache disabled (NoCache mode: every read goes to Badger)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func enableLocalCacheHandler(w http.ResponseWriter, r *http.Request) {
++	posting.ForceNoLocalCache = false
++	posting.ForceLocalCacheLock = false
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "LocalCache enabled (default mode: cache with TOCTOU race)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func lockLocalCacheHandler(w http.ResponseWriter, r *http.Request) {
++	posting.ForceLocalCacheLock = true
++	posting.ForceNoLocalCache = false
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "LocalCache locked mode (hold write lock through Badger read, deterministic)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func unlockLocalCacheHandler(w http.ResponseWriter, r *http.Request) {
++	posting.ForceLocalCacheLock = false
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "LocalCache unlocked (default mode)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// ── KV operation tracing ────────────────────────────────────────────
++// Per-op stack trace logging for debugging KV access patterns.
++// Toggle at runtime: PUT /kvtrace/seek/enable, /kvtrace/get/enable, etc.
++
++func kvtraceLevelName(level int) string {
++	switch level {
++	case badger.TraceKeys:
++		return "keys"
++	case badger.TraceStack:
++		return "stack"
++	default:
++		return "off"
++	}
++}
++
++func kvtraceHandler(w http.ResponseWriter, r *http.Request) {
++	res := map[string]interface{}{
++		"seek": kvtraceLevelName(badger.TraceSeek),
++		"next": kvtraceLevelName(badger.TraceNext),
++		"get":  kvtraceLevelName(badger.TraceGet),
++	}
++	js, _ := json.Marshal(res)
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func kvtraceToggleHandler(w http.ResponseWriter, r *http.Request) {
++	// Path: /kvtrace/{op}/{level}
++	//   op:    seek, next, get, all
++	//   level: disable (off), keys (key only), stack (key + stack trace)
++	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/kvtrace/"), "/")
++	if len(parts) != 2 {
++		x.SetStatus(w, x.ErrorInvalidRequest,
++			"Usage: /kvtrace/{seek|next|get|all}/{disable|keys|stack}")
++		return
++	}
++	op, levelStr := parts[0], parts[1]
++
++	var level int
++	switch levelStr {
++	case "disable", "off":
++		level = badger.TraceOff
++	case "keys":
++		level = badger.TraceKeys
++	case "stack":
++		level = badger.TraceStack
++	// backward compat: enable = stack
++	case "enable":
++		level = badger.TraceStack
++	default:
++		x.SetStatus(w, x.ErrorInvalidRequest,
++			"Unknown level: "+levelStr+". Use disable, keys, or stack")
++		return
++	}
++
++	switch op {
++	case "seek":
++		badger.TraceSeek = level
++	case "next":
++		badger.TraceNext = level
++	case "get":
++		badger.TraceGet = level
++	case "all":
++		badger.TraceSeek = level
++		badger.TraceNext = level
++		badger.TraceGet = level
++	default:
++		x.SetStatus(w, x.ErrorInvalidRequest,
++			"Unknown op: "+op+". Use seek, next, get, or all")
++		return
++	}
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": fmt.Sprintf("Trace %s → %s", op, kvtraceLevelName(level)),
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func localCacheStatusHandler(w http.ResponseWriter, r *http.Request) {
++	mode := "default"
++	if posting.ForceNoLocalCache {
++		mode = "disabled"
++	} else if posting.ForceLocalCacheLock {
++		mode = "locked"
++	}
++	res := map[string]interface{}{
++		"mode":       mode,
++		"no_cache":   posting.ForceNoLocalCache,
++		"lock":       posting.ForceLocalCacheLock,
++	}
++	js, _ := json.Marshal(res)
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// detsortStatusHandler reports whether deterministic sort is enabled.
++// When enabled, processSort picks sortWithIndex vs sortWithoutIndex
++// based on the primary sort column's tokenizer sortability, skipping
++// the default race. See worker/sort.go DetSortEnabled.
++func detsortStatusHandler(w http.ResponseWriter, r *http.Request) {
++	mode := "default"
++	if worker.DetSortEnabled.Load() {
++		mode = "deterministic"
++	}
++	res := map[string]interface{}{
++		"mode":    mode,
++		"enabled": worker.DetSortEnabled.Load(),
++	}
++	js, _ := json.Marshal(res)
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func enableDetsortHandler(w http.ResponseWriter, r *http.Request) {
++	worker.DetSortEnabled.Store(true)
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Deterministic sort enabled (skips sortWithIndex/sortWithoutIndex race; KV-op counts reproducible)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func disableDetsortHandler(w http.ResponseWriter, r *http.Request) {
++	worker.DetSortEnabled.Store(false)
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Deterministic sort disabled (default: race between sortWithIndex and sortWithoutIndex)",
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++// Force-path knobs for filter access-path selection. Mirror the /detsort
++// handlers above. Each knob (/eqfilterpath, /ineqfilterpath) has a status GET
++// and a setter (POST .../{default|index|per_vertex}). See worker/task.go
++// EqFilterPath / IneqFilterPath for what each mode pins.
++
++func parseFilterPathMode(s string) (worker.FilterPathMode, bool) {
++	switch s {
++	case "default":
++		return worker.FilterPathDefault, true
++	case "index":
++		return worker.FilterPathIndex, true
++	case "per_vertex":
++		return worker.FilterPathPerVertex, true
++	}
++	return worker.FilterPathDefault, false
++}
++
++func filterPathModeLabel(m worker.FilterPathMode) string {
++	switch m {
++	case worker.FilterPathIndex:
++		return "index"
++	case worker.FilterPathPerVertex:
++		return "per_vertex"
++	default:
++		return "default"
++	}
++}
++
++func filterPathStatus(target *atomic.Int32, knob string, w http.ResponseWriter) {
++	res := map[string]interface{}{
++		"knob": knob,
++		"mode": filterPathModeLabel(worker.FilterPathMode(target.Load())),
++	}
++	js, _ := json.Marshal(res)
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func filterPathSet(target *atomic.Int32, knob string, w http.ResponseWriter, r *http.Request) {
++	seg := path.Base(r.URL.Path)
++	mode, ok := parseFilterPathMode(seg)
++	if !ok {
++		res := map[string]interface{}{
++			"errors": []map[string]interface{}{{
++				"code":    "Error",
++				"message": fmt.Sprintf("unknown %s mode %q; want default|index|per_vertex", knob, seg),
++			}},
++		}
++		js, _ := json.Marshal(res)
++		w.Header().Set("Content-Type", "application/json")
++		w.WriteHeader(http.StatusBadRequest)
++		w.Write(js)
++		return
++	}
++	target.Store(int32(mode))
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": fmt.Sprintf("%s set to %q (pins the filter access path for cost-model measurement)", knob, filterPathModeLabel(mode)),
++		},
++	}
++	js, _ := json.Marshal(res)
++	w.Header().Set("Content-Type", "application/json")
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func eqFilterPathStatusHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathStatus(&worker.EqFilterPath, "eqfilterpath", w)
++}
++
++func eqFilterPathSetHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathSet(&worker.EqFilterPath, "eqfilterpath", w, r)
++}
++
++func typeFilterPathStatusHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathStatus(&worker.TypeFilterPath, "typefilterpath", w)
++}
++
++func typeFilterPathSetHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathSet(&worker.TypeFilterPath, "typefilterpath", w, r)
++}
++
++func ineqFilterPathStatusHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathStatus(&worker.IneqFilterPath, "ineqfilterpath", w)
++}
++
++func ineqFilterPathSetHandler(w http.ResponseWriter, r *http.Request) {
++	filterPathSet(&worker.IneqFilterPath, "ineqfilterpath", w, r)
++}
++
++func getTraceHandler(w http.ResponseWriter, r *http.Request) {
++	counts := y.GetFuncCounts()
++	js, _ := json.Marshal(counts)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func resetTraceHandler(w http.ResponseWriter, r *http.Request) {
++	x.AddCorsHeaders(w)
++	w.Header().Set("Content-Type", "application/json")
++
++	if !allowed(r.Method) {
++		w.WriteHeader(http.StatusBadRequest)
++		x.SetStatus(w, x.ErrorInvalidMethod, "Invalid method")
++		return
++	}
++
++	y.ResetFuncCounts()
++	y.ResetMetrics()
++	y.ResetKvStats()
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "Function call counts reset",
++		},
++	}
++
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func getKvStatsHandler(w http.ResponseWriter, r *http.Request) {
++	x.AddCorsHeaders(w)
++	w.Header().Set("Content-Type", "application/json")
++
++	if r.Method != http.MethodGet {
++		w.WriteHeader(http.StatusBadRequest)
++		x.SetStatus(w, x.ErrorInvalidMethod, "Only GET is allowed")
++		return
++	}
++
++	js, err := y.GetKvStatsJSON()
++	if err != nil {
++		w.WriteHeader(http.StatusInternalServerError)
++		x.SetStatus(w, x.Error, err.Error())
++		return
++	}
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
++func resetKvStatsHandler(w http.ResponseWriter, r *http.Request) {
++	x.AddCorsHeaders(w)
++	w.Header().Set("Content-Type", "application/json")
++
++	if !allowed(r.Method) {
++		w.WriteHeader(http.StatusBadRequest)
++		x.SetStatus(w, x.ErrorInvalidMethod, "Only PUT is allowed")
++		return
++	}
++
++	y.ResetFuncCounts()
++	y.ResetMetrics()
++	y.ResetKvStats()
++
++	res := map[string]interface{}{
++		"data": map[string]interface{}{
++			"code":    "Success",
++			"message": "KV stats reset",
++		},
++	}
++
++	js, _ := json.Marshal(res)
++	w.WriteHeader(http.StatusOK)
++	w.Write(js)
++}
++
+ // Common functionality for these request handlers. Returns true if the request is completely
+ // handled here and nothing further needs to be done.
+ func commonHandler(w http.ResponseWriter, r *http.Request) bool {
+@@ -240,6 +756,11 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
+ 	}
+ 
+ 	ctx := context.WithValue(r.Context(), query.DebugKey, isDebugMode)
++	// EXPLAIN: `?explain=structure` returns the static plan as JSON without executing;
++	// `?explain=profile` executes then returns the plan with per-node sizes. See query.ExplainKey.
++	if explainMode := r.URL.Query().Get("explain"); explainMode != "" {
++		ctx = context.WithValue(ctx, query.ExplainKey, explainMode)
++	}
+ 	ctx = x.AttachAccessJwt(ctx, r)
+ 	ctx = x.AttachRemoteIP(ctx, r)
+ 
+@@ -278,6 +799,12 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
+ 			req.ReadOnly = true
+ 		}
+ 	}
++	if req.BestEffort {
++		y.Inc(bestEffortQueryCounter)
++	}
++	if req.ReadOnly {
++		y.Inc(readOnlyQueryCounter)
++	}
+ 
+ 	// If rdf is set true, then response will be in rdf format.
+ 	respFormat := r.URL.Query().Get("respFormat")
+diff --git dgraph/dgraph-25.0.0/dgraph/cmd/alpha/run.go dgraph/dgraph-25.0.0/dgraph/cmd/alpha/run.go
+index 818a41b52..7ddb424a8 100644
+--- dgraph/dgraph-25.0.0/dgraph/cmd/alpha/run.go
++++ dgraph/dgraph-25.0.0/dgraph/cmd/alpha/run.go
+@@ -537,6 +537,52 @@ func setupServer(closer *z.Closer, enableMcp bool) {
+ 	baseMux.HandleFunc("/alter", alterHandler)
+ 	baseMux.HandleFunc("/health", healthCheck)
+ 	baseMux.HandleFunc("/state", stateHandler)
++
++	baseMux.HandleFunc("/rollup/pause", pauseRollupHandler)
++	baseMux.HandleFunc("/rollup/resume", resumeRollupHandler)
++	baseMux.HandleFunc("/rollup/forceall", forceRollupAllHandler)
++	baseMux.HandleFunc("/rollup/drain", drainRollupHandler)
++	baseMux.HandleFunc("/rollup/drain/enable", drainRollupEnableHandler)
++	baseMux.HandleFunc("/rollup/drain/disable", drainRollupDisableHandler)
++	baseMux.HandleFunc("/rollup/drain/peek", drainRollupPeekHandler)
++	baseMux.HandleFunc("/rollup/drain/verbose/enable", drainRollupVerboseEnableHandler)
++	baseMux.HandleFunc("/rollup/drain/verbose/disable", drainRollupVerboseDisableHandler)
++
++	baseMux.HandleFunc("/trace/counts", getTraceHandler)
++	baseMux.HandleFunc("/trace/reset", resetTraceHandler)
++
++	baseMux.HandleFunc("/kvstats", getKvStatsHandler)
++	baseMux.HandleFunc("/kvstats/reset", resetKvStatsHandler)
++
++	baseMux.HandleFunc("/kvtrace", kvtraceHandler)
++	baseMux.HandleFunc("/kvtrace/", kvtraceToggleHandler)
++
++	baseMux.HandleFunc("/localcache", localCacheStatusHandler)
++	baseMux.HandleFunc("/localcache/disable", disableLocalCacheHandler)
++	baseMux.HandleFunc("/localcache/enable", enableLocalCacheHandler)
++	baseMux.HandleFunc("/localcache/lock", lockLocalCacheHandler)
++	baseMux.HandleFunc("/localcache/unlock", unlockLocalCacheHandler)
++
++	// Deterministic sort toggle — skips the sortWithIndex/sortWithoutIndex
++	// race in worker/sort.go::processSort, picking one path up front based
++	// on the primary sort column's tokenizer sortability. See worker/sort.go
++	// DetSortEnabled and common.md §10 for the race being bypassed.
++	baseMux.HandleFunc("/detsort", detsortStatusHandler)
++	baseMux.HandleFunc("/detsort/enable", enableDetsortHandler)
++	baseMux.HandleFunc("/detsort/disable", disableDetsortHandler)
++
++	// Force-path toggles — pin the filter access path (index vs per-vertex)
++	// chosen in worker/task.go::planForEqFilter (eq, incl. type()) and
++	// ::parseSrcFn (lt/le/ge/gt/between), bypassing the uid-count / sketch
++	// heuristics so KV-op counts are reproducible. Status GET on the base path;
++	// set via POST .../{default|index|per_vertex} (trailing slash = subtree).
++	baseMux.HandleFunc("/eqfilterpath", eqFilterPathStatusHandler)
++	baseMux.HandleFunc("/eqfilterpath/", eqFilterPathSetHandler)
++	baseMux.HandleFunc("/typefilterpath", typeFilterPathStatusHandler)
++	baseMux.HandleFunc("/typefilterpath/", typeFilterPathSetHandler)
++	baseMux.HandleFunc("/ineqfilterpath", ineqFilterPathStatusHandler)
++	baseMux.HandleFunc("/ineqfilterpath/", ineqFilterPathSetHandler)
++
+ 	baseMux.HandleFunc("/debug/jemalloc", x.JemallocHandler)
+ 	http.DefaultServeMux.Handle("/debug/z", zpages.NewTracezHandler(zpages.NewSpanProcessor()))
+ 
+@@ -670,6 +716,11 @@ func run() {
+ 	pstoreBlockCacheSize := (cachePercent[1] * (totalCache << 20)) / 100
+ 	pstoreIndexCacheSize := (cachePercent[2] * (totalCache << 20)) / 100
+ 
++	fmt.Printf("Total Cache: %d MB\n", totalCache)
++	fmt.Printf("Posting List Cache: %d MB\n", postingListCacheSize>>20)
++	fmt.Printf("Pstore Block Cache: %d MB\n", pstoreBlockCacheSize>>20)
++	fmt.Printf("Pstore Index Cache: %d MB\n", pstoreIndexCacheSize>>20)
++
+ 	cacheOpts := fmt.Sprintf("blockcachesize=%d; indexcachesize=%d; ",
+ 		pstoreBlockCacheSize, pstoreIndexCacheSize)
+ 	bopts := badger.DefaultOptions("").FromSuperFlag(worker.BadgerDefaults + cacheOpts).
+diff --git dgraph/dgraph-25.0.0/edgraph/server.go dgraph/dgraph-25.0.0/edgraph/server.go
+index 4c8e64586..41928fd0c 100644
+--- dgraph/dgraph-25.0.0/edgraph/server.go
++++ dgraph/dgraph-25.0.0/edgraph/server.go
+@@ -1381,6 +1381,7 @@ func (s *Server) doQuery(ctx context.Context, req *Request) (resp *api.Response,
+ 		EncodingNs:        uint64(l.Json.Nanoseconds()),
+ 		TotalNs:           uint64((time.Since(l.Start)).Nanoseconds()),
+ 	}
++	ostats.Record(ctx, x.QueryLatencyTotalNs.M(float64(resp.Latency.TotalNs)))
+ 	return resp, gqlErrs
+ }
+ 
+@@ -1400,6 +1401,11 @@ func processQuery(ctx context.Context, qc *queryContext) (*api.Response, error)
+ 		Latency:  qc.latency,
+ 		DqlQuery: &qc.dqlRes,
+ 	}
++	// EXPLAIN mode (from the `?explain=` HTTP param via ExplainKey): "structure" returns the
++	// static plan without executing; "profile" executes then returns the plan with per-node sizes.
++	if explainMode, ok := ctx.Value(query.ExplainKey).(string); ok {
++		qr.Explain = explainMode
++	}
+ 
+ 	// Here we try our best effort to not contact Zero for a timestamp. If we succeed,
+ 	// then we use the max known transaction ts value (from ProcessDelta) for a read-only query.
+@@ -1448,7 +1454,10 @@ func processQuery(ctx context.Context, qc *queryContext) (*api.Response, error)
+ 		return resp, errors.Wrap(err, "")
+ 	}
+ 
+-	if len(er.SchemaNode) > 0 || len(er.Types) > 0 {
++	if len(er.ExplainJson) > 0 {
++		// EXPLAIN mode: return the serialized plan as the response body; skip result encoding.
++		resp.Json = er.ExplainJson
++	} else if len(er.SchemaNode) > 0 || len(er.Types) > 0 {
+ 		if err = authorizeSchemaQuery(ctx, &er); err != nil {
+ 			return resp, err
+ 		}
+diff --git dgraph/dgraph-25.0.0/go.mod dgraph/dgraph-25.0.0/go.mod
+index 1bcf134ad..62bcff702 100644
+--- dgraph/dgraph-25.0.0/go.mod
++++ dgraph/dgraph-25.0.0/go.mod
+@@ -4,7 +4,7 @@ go 1.24.3
+ 
+ require (
+ 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
+-	github.com/HdrHistogram/hdrhistogram-go v1.1.2
++	github.com/HdrHistogram/hdrhistogram-go v1.2.0
+ 	github.com/IBM/sarama v1.46.1
+ 	github.com/Masterminds/semver/v3 v3.4.0
+ 	github.com/blevesearch/bleve/v2 v2.5.2
+@@ -181,4 +181,4 @@ require (
+ )
+ 
+ // Use local BadgerDB for development
+-replace github.com/dgraph-io/badger/v4 => ../badger
+\ No newline at end of file
++replace github.com/dgraph-io/badger/v4 => ../badger
+diff --git dgraph/dgraph-25.0.0/go.sum dgraph/dgraph-25.0.0/go.sum
+index 12b0724fd..ed336ac51 100644
+--- dgraph/dgraph-25.0.0/go.sum
++++ dgraph/dgraph-25.0.0/go.sum
+@@ -42,8 +42,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
+ github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
+ github.com/DATA-DOG/go-sqlmock v1.5.2 h1:OcvFkGmslmlZibjAjaHm3L//6LiuBgolP7OputlJIzU=
+ github.com/DATA-DOG/go-sqlmock v1.5.2/go.mod h1:88MAG/4G7SMwSE3CeA0ZKzrT5CiOU3OJ+JlNzwDqpNU=
+-github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
+-github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
++github.com/HdrHistogram/hdrhistogram-go v1.2.0 h1:XMJkDWuz6bM9Fzy7zORuVFKH7ZJY41G2q8KWhVGkNiY=
++github.com/HdrHistogram/hdrhistogram-go v1.2.0/go.mod h1:CiIeGiHSd06zjX+FypuEJ5EQ07KKtxZ+8J6hszwVQig=
+ github.com/IBM/sarama v1.46.1 h1:AlDkvyQm4LKktoQZxv0sbTfH3xukeH7r/UFBbUmFV9M=
+ github.com/IBM/sarama v1.46.1/go.mod h1:ipyOREIx+o9rMSrrPGLZHGuT0mzecNzKd19Quq+Q8AA=
+ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1Xbatp0=
+@@ -54,7 +54,6 @@ github.com/agnivade/levenshtein v1.0.1/go.mod h1:CURSv5d9Uaml+FovSIICkLbAUZ9S4Rq
+ github.com/agnivade/levenshtein v1.0.3/go.mod h1:4SFRZbbXWLF4MU1T9Qg0pGgH3Pjs+t6ie5efyrwRJXs=
+ github.com/agnivade/levenshtein v1.2.1 h1:EHBY3UOn1gwdy/VbFwgo4cxecRznFk7fKWN1KOX7eoM=
+ github.com/agnivade/levenshtein v1.2.1/go.mod h1:QVVI16kDrtSuwcpd0p1+xMC6Z/VfhtCyDIjcwga4/DU=
+-github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af/go.mod h1:K08gAheRH3/J6wwsYMMT4xOr94bZjxIelGM0+d/wbFw=
+ github.com/alecthomas/assert/v2 v2.10.0 h1:jjRCHsj6hBJhkmhznrCzoNpbA3zqy0fYiUcYZP/GkPY=
+ github.com/alecthomas/assert/v2 v2.10.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
+ github.com/alecthomas/repr v0.4.0 h1:GhI2A8MACjfegCPVq9f1FLvIBS+DrQ2KQBFZP1iFzXc=
+@@ -125,13 +124,10 @@ github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
+ github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
+ github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
+ github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
+-github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
+ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
+ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+-github.com/dgraph-io/badger/v4 v4.8.0 h1:JYph1ChBijCw8SLeybvPINizbDKWZ5n/GYbz2yhN/bs=
+-github.com/dgraph-io/badger/v4 v4.8.0/go.mod h1:U6on6e8k/RTbUWxqKR0MvugJuVmkxSNc79ap4917h4w=
+ github.com/dgraph-io/dgo/v250 v250.0.0-preview7 h1:cEranHYlUFwacvtksjwXU8qB1NHIhrvPE1gdGS6r+lU=
+ github.com/dgraph-io/dgo/v250 v250.0.0-preview7/go.mod h1:OVSaapUnuqaY4beLe98CajukINwbVm0JRNp0SRBCz/w=
+ github.com/dgraph-io/gqlgen v0.13.2 h1:TNhndk+eHKj5qE7BenKKSYdSIdOGhLqxR1rCiMso9KM=
+@@ -179,7 +175,6 @@ github.com/felixge/fgprof v0.9.5 h1:8+vR6yu2vvSKn08urWyEuxx75NWPEvybbkBirEpsbVY=
+ github.com/felixge/fgprof v0.9.5/go.mod h1:yKl+ERSa++RYOs32d8K6WEXCB4uXdLls4ZaZPpayhMM=
+ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=
+ github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
+-github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
+ github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
+ github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
+ github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
+@@ -227,7 +222,6 @@ github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
+ github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
+ github.com/golang-jwt/jwt/v5 v5.3.0 h1:pv4AsKCKKZuqlgs5sUmn4x8UlGa0kEVt/puTpKx9vvo=
+ github.com/golang-jwt/jwt/v5 v5.3.0/go.mod h1:fxCRLWMO43lRc8nhHWY6LGqRcf+1gQWArsqaEUEa5bE=
+-github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGwJL78qG/PmXZO1EjYhfJinVAhrmmHX6Z8B9k=
+ github.com/golang/geo v0.0.0-20250813021530-247f39904721 h1:Hlto+T7Ba4CJM4SN8WiA9mw3MdMUboxWsWBaUzRuJuA=
+ github.com/golang/geo v0.0.0-20250813021530-247f39904721/go.mod h1:AN0OjM34c3PbjAsX+QNma1nYtJtRxl+s9MZNV7S+efw=
+ github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
+@@ -377,7 +371,6 @@ github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1
+ github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
+ github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
+ github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
+-github.com/jung-kurt/gofpdf v1.0.3-0.20190309125859-24315acbbda5/go.mod h1:7Id9E/uU8ce6rXgefFLlgrJj/GYY22cpxn+r32jIOes=
+ github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
+ github.com/kisielk/errcheck v1.5.0/go.mod h1:pFxgyoBC7bSaBwPgfKdkLd5X25qrDl4LWUI2bnpBCr8=
+ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
+@@ -447,7 +440,6 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
+ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
+ github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
+ github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
+-github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
+ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
+ github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
+ github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
+@@ -511,8 +503,8 @@ github.com/prometheus/statsd_exporter v0.28.0/go.mod h1:Lq41vNkMLfiPANmI+uHb5/rp
+ github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 h1:bsUq1dX0N8AOIL7EB/X911+m4EHsnWEHeJ0c+3TTBrg=
+ github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
+ github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
+-github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
+-github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
++github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
++github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
+ github.com/rs/cors v1.6.0/go.mod h1:gFx+x8UowdsKA9AchylcLynDq+nNFfI8FkUZdN/jGCU=
+ github.com/rs/xid v1.6.0 h1:fV591PaemRlL6JfRxGDEPl69wICngIQ3shQtzfy2gxU=
+ github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
+@@ -557,7 +549,6 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
+ github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+-github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+ github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
+ github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+@@ -646,10 +637,7 @@ golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5y
+ golang.org/x/crypto v0.6.0/go.mod h1:OFC/31mSvZgRz0V1QTNCzfAI1aIRzbiufJtkMIlEp58=
+ golang.org/x/crypto v0.42.0 h1:chiH31gIWm57EkTXpwnqf8qeuMUi0yekh6mT2AvFlqI=
+ golang.org/x/crypto v0.42.0/go.mod h1:4+rDnOTJhQCx2q7/j6rAN5XDw8kPjeaXEUR2eL94ix8=
+-golang.org/x/exp v0.0.0-20180321215751-8460e604b9de/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+-golang.org/x/exp v0.0.0-20180807140117-3d87b88a115f/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+ golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+-golang.org/x/exp v0.0.0-20190125153040-c74c464bbbf2/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+ golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+ golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=
+ golang.org/x/exp v0.0.0-20190829153037-c13cbed26979/go.mod h1:86+5VVa7VpoJ4kLfm080zCjGlMRFzhUhsZKEZO7MGek=
+@@ -661,7 +649,6 @@ golang.org/x/exp v0.0.0-20200207192155-f17229e696bd/go.mod h1:J/WKrq2StrnmMY6+EH
+ golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6/go.mod h1:3jZMyOhIsHpP37uCMkUooju7aAi5cS1Q23tOzKc+0MU=
+ golang.org/x/exp v0.0.0-20250911091902-df9299821621 h1:2id6c1/gto0kaHYyrixvknJ8tUK/Qs5IsmBtrc+FtgU=
+ golang.org/x/exp v0.0.0-20250911091902-df9299821621/go.mod h1:TwQYMMnGpvZyc+JpB/UAuTNIsVJifOlSkrZkhcvpVUk=
+-golang.org/x/image v0.0.0-20180708004352-c73c2afc3b81/go.mod h1:ux5Hcp/YLpHSI86hEcLt0YII63i6oz57MZXIpbrjZUs=
+ golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
+ golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
+ golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
+@@ -817,12 +804,10 @@ golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxb
+ golang.org/x/time v0.0.0-20191024005414-555d28b269f0/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
+ golang.org/x/time v0.12.0 h1:ScB/8o8olJvc+CQPWrK3fPZNfh7qgwCrY0zJmoEQLSE=
+ golang.org/x/time v0.12.0/go.mod h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=
+-golang.org/x/tools v0.0.0-20180525024113-a5b4c53f6e8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+ golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+ golang.org/x/tools v0.0.0-20181030221726-6c7e314b6563/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+ golang.org/x/tools v0.0.0-20190114222345-bf090417da8b/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+ golang.org/x/tools v0.0.0-20190125232054-d66bd3c5d5a6/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+-golang.org/x/tools v0.0.0-20190206041539-40960b6deb8e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
+ golang.org/x/tools v0.0.0-20190226205152-f727befe758c/go.mod h1:9Yl7xja0Znq3iFh3HoIrodX9oNMXvdceNzlUR8zjMvY=
+ golang.org/x/tools v0.0.0-20190311212946-11955173bddd/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+ golang.org/x/tools v0.0.0-20190312151545-0bb0c0a6e846/go.mod h1:LCzVGOaR6xXOjkQ3onu1FJEFr0SW1gC7cKk1uF8kGRs=
+@@ -872,12 +857,8 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
+ golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+ golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+ golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
+-gonum.org/v1/gonum v0.0.0-20180816165407-929014505bf4/go.mod h1:Y+Yx5eoAFn32cQvJDxZx5Dpnq+c3wtXuadVZAcxbbBo=
+-gonum.org/v1/gonum v0.8.2/go.mod h1:oe/vMfY3deqTw+1EZJhuvEW2iwGF1bW9wwu7XCu0+v0=
+ gonum.org/v1/gonum v0.16.0 h1:5+ul4Swaf3ESvrOnidPp4GZbzf0mxVQpDCYUQE7OJfk=
+ gonum.org/v1/gonum v0.16.0/go.mod h1:fef3am4MQ93R2HHpKnLk4/Tbh/s0+wqD5nfa6Pnwy4E=
+-gonum.org/v1/netlib v0.0.0-20190313105609-8cb42192e0e0/go.mod h1:wa6Ws7BG/ESfp6dHfk7C6KdzKA7wR7u/rKwOGE66zvw=
+-gonum.org/v1/plot v0.0.0-20190515093506-e2840ee46a6b/go.mod h1:Wt8AAjI+ypCyYX3nZBvf6cAIx93T+c/OS2HFAYskSZc=
+ google.golang.org/api v0.4.0/go.mod h1:8k5glujaEP+g9n7WNsDg8QP6cUVNI86fCNMcbazEtwE=
+ google.golang.org/api v0.7.0/go.mod h1:WtwebWUNSVBH/HAw79HIFXZNqEvBhG+Ra+ax0hx3E3M=
+ google.golang.org/api v0.8.0/go.mod h1:o4eAsZoiT+ibD93RtjEohWalFOjRDx6CVaqeizhEnKg=
+@@ -968,7 +949,6 @@ gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLks
+ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+ gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+ gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+-gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
+ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
+ gopkg.in/errgo.v2 v2.1.0/go.mod h1:hNsd1EY+bozCKY1Ytp96fpM3vjJbqLJn88ws8XvfDNI=
+@@ -992,7 +972,6 @@ honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt
+ honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
+ honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
+ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
+-rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
+ rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
+ rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
+ sourcegraph.com/sourcegraph/appdash v0.0.0-20180110180208-2cc67fd64755/go.mod h1:hI742Nqp5OhwiqlzhgfbWU4mW4yO10fP+LoT9WOswdU=
+diff --git dgraph/dgraph-25.0.0/posting/badger_busy_time.go dgraph/dgraph-25.0.0/posting/badger_busy_time.go
+new file mode 100644
+index 000000000..a00ee5dfe
+--- /dev/null
++++ dgraph/dgraph-25.0.0/posting/badger_busy_time.go
+@@ -0,0 +1,126 @@
++//go:build badgerbusy
++
++package posting
++
++import (
++	"sync"
++	"sync/atomic"
++	"time"
++
++	"github.com/dgraph-io/badger/v4"
++	"github.com/golang/glog"
++)
++
++// BadgerBusyTime measures wall time during which at least one tracked operation is in-flight.
++// How it works in detail:
++//   - Callers call Begin() when starting an operation, and End() when ending it.
++//   - If the active count goes from 0 to 1, we record the start time.
++//     If the active count is already >1, we do nothing.
++//   - If the active count goes from 1 to 0, we add the elapsed time since start to totalNS.
++//     If the active count is already >1, we do nothing.
++//   - WallDuration() returns the total accumulated time.
++type BadgerBusyTime struct {
++	active  atomic.Int64
++	startNS atomic.Int64
++	totalNS atomic.Int64
++}
++
++func (b *BadgerBusyTime) Begin() {
++	if b == nil {
++		return
++	}
++	if b.active.Add(1) == 1 {
++		b.startNS.Store(time.Now().UnixNano())
++	}
++}
++
++func (b *BadgerBusyTime) End() {
++	if b == nil {
++		return
++	}
++	n := b.active.Add(-1)
++	if n < 0 {
++		// Underflow indicates a bug in caller instrumentation; clamp to keep accounting sane.
++		b.active.Store(0)
++		return
++	}
++	if n == 0 {
++		start := b.startNS.Load()
++		if start != 0 {
++			b.totalNS.Add(time.Now().UnixNano() - start)
++		}
++	}
++}
++
++func (b *BadgerBusyTime) WallDuration() time.Duration {
++	if b == nil {
++		return 0
++	}
++	return time.Duration(b.totalNS.Load())
++}
++
++type badgerBusyEntry struct {
++	bt   *BadgerBusyTime
++	refs atomic.Int64
++}
++
++var badgerBusyByReadTs sync.Map // map[uint64]*badgerBusyEntry
++
++// RegisterBadgerBusyTime installs a tracker for this readTs and returns a cleanup func.
++// Safe for nested registration: only removed after the last cleanup.
++
++func RegisterBadgerBusyTime(readTs uint64) (*BadgerBusyTime, func()) {
++	if glog.V(3) {
++		glog.Infof("RegisterBadgerBusyTime called for readTs: %d", readTs)
++	}
++	e := &badgerBusyEntry{bt: &BadgerBusyTime{}}
++	actual, _ := badgerBusyByReadTs.LoadOrStore(readTs, e)
++	e = actual.(*badgerBusyEntry)
++	e.refs.Add(1)
++
++	cleanup := func() {
++		if e.refs.Add(-1) == 0 {
++			val, ok := badgerBusyByReadTs.Load(readTs)
++			if ok && val == e {
++				badgerBusyByReadTs.Delete(readTs)
++				if glog.V(3) {
++					glog.Infof("Unregistered BadgerBusyTime for readTs: %d. Total wall(ms)=%d",
++						readTs, e.bt.WallDuration().Milliseconds())
++				}
++			}
++		}
++	}
++	return e.bt, cleanup
++}
++
++func badgerBusyForReadTs(readTs uint64) *BadgerBusyTime {
++	val, ok := badgerBusyByReadTs.Load(readTs)
++	if !ok {
++		return nil
++	}
++	return val.(*badgerBusyEntry).bt
++}
++
++// BeginBadgerBusyForReadTs begins busy-time tracking for readTs and returns an End func.
++// Safe to call even if no tracker is registered (it returns a no-op End).
++func BeginBadgerBusyForReadTs(readTs uint64) func() {
++	bt := badgerBusyForReadTs(readTs)
++	if bt == nil {
++		return func() {}
++	}
++	bt.Begin()
++	return func() { bt.End() }
++}
++
++// BeginBadgerBusyFromTxn begins busy-time tracking using txn.ReadTs() and returns an End func.
++// Safe to call even if txn is nil or no tracker is registered.
++func BeginBadgerBusyFromTxn(txn *badger.Txn) func() {
++	if txn == nil {
++		return func() {}
++	}
++	return BeginBadgerBusyForReadTs(txn.ReadTs())
++}
++
++func BadgerBusyForReadTs(readTs uint64) *BadgerBusyTime {
++	return badgerBusyForReadTs(readTs)
++}
+diff --git dgraph/dgraph-25.0.0/posting/list.go dgraph/dgraph-25.0.0/posting/list.go
+index 2a3638cca..a97904e67 100644
+--- dgraph/dgraph-25.0.0/posting/list.go
++++ dgraph/dgraph-25.0.0/posting/list.go
+@@ -929,6 +929,25 @@ func (l *List) addMutationInternal(ctx context.Context, txn *Txn, t *pb.Directed
+ 			hex.EncodeToString(l.key), mpost)
+ 	}
+ 
++	// TR/DG: /rollup/drain recorder — record this dirtied posting-list key. This is the
++	// universal APPLY-path point: data (addMutationHelper), index (addIndexMutation),
++	// reverse (addReverseMutationHelper), and count mutations all reach it, and it runs
++	// for commitNow txns. So recordedKeys captures the TRUE dirtied set — unlike the old
++	// getInternal fetch hook (missed blind SETs) or the CommitToDisk enumeration (skipped
++	// for commitNow). DrainRecorded then rolls up exactly these keys. Off unless enabled.
++	if IncrRollup.recordEnabled.Load() {
++		IncrRollup.recordMu.Lock()
++		IncrRollup.recordedKeys[string(l.key)] = struct{}{}
++		IncrRollup.recordMu.Unlock()
++		if IncrRollup.recordVerbose.Load() {
++			op := "SET"
++			if t.Op == pb.DirectedEdge_DEL {
++				op = "DEL"
++			}
++			glog.Infof("T/DG: [drain-record] %s %s", op, pk.String())
++		}
++	}
++
+ 	x.PrintMutationEdge(t, pk, txn.StartTs)
+ 
+ 	// We ensure that commit marks are applied to posting lists in the right
+@@ -2241,6 +2260,14 @@ func (l *List) readListPart(startUid uint64) (*pb.PostingList, error) {
+ 			"cannot generate key for list with base key %s and start UID %d",
+ 			hex.EncodeToString(l.key), startUid)
+ 	}
++	// Attribute this Badger read to the caller's readTs (query readTs), not l.minTs.
++	// l.minTs is just the immutable layer timestamp and won't match q.ReadTs.
++	if l.mutationMap != nil {
++		if bt := badgerBusyForReadTs(l.mutationMap.readTs); bt != nil {
++			bt.Begin()
++			defer bt.End()
++		}
++	}
+ 	txn := pstore.NewTransactionAt(l.minTs, false)
+ 	defer txn.Discard()
+ 	item, err := txn.Get(key)
+diff --git dgraph/dgraph-25.0.0/posting/lists.go dgraph/dgraph-25.0.0/posting/lists.go
+index fa2fc1c66..88081e947 100644
+--- dgraph/dgraph-25.0.0/posting/lists.go
++++ dgraph/dgraph-25.0.0/posting/lists.go
+@@ -17,6 +17,7 @@ import (
+ 	"google.golang.org/protobuf/proto"
+ 
+ 	"github.com/dgraph-io/badger/v4"
++	"github.com/dgraph-io/badger/v4/y"
+ 	"github.com/dgraph-io/dgo/v250/protos/api"
+ 	"github.com/dgraph-io/ristretto/v2/z"
+ 	"github.com/hypermodeinc/dgraph/v25/protos/pb"
+@@ -31,6 +32,28 @@ var (
+ 	pstore                *badger.DB
+ 	closer                *z.Closer
+ 	EnableDetailedMetrics bool
++
++	// ForceNoLocalCache when true makes all queries skip the per-txn LocalCache,
++	// reading every posting list directly from Badger. Gives deterministic KV
++	// counts but inflated (no dedup across concurrent SubGraph blocks).
++	// Toggle via PUT /localcache/disable and PUT /localcache/enable.
++	ForceNoLocalCache bool
++
++	// ForceLocalCacheLock when true holds the write lock through the Badger
++	// read in getInternal, preventing the TOCTOU race where concurrent goroutines
++	// both miss the cache and both read from Badger. Gives deterministic KV
++	// counts at the cost of serializing posting list reads.
++	// Toggle via PUT /localcache/lock and PUT /localcache/unlock.
++	ForceLocalCacheLock bool
++
++	getInternalHitCounter       = y.RegisterFuncCounter("posting.lc.getInternal.hit")
++	getInternalMissCounter      = y.RegisterFuncCounter("posting.lc.getInternal.miss")
++	getInternalLCDisableCounter = y.RegisterFuncCounter("posting.lc.getInternal.disable")
++	getSinglePostingHitCounter  = y.RegisterFuncCounter("posting.lc.GetSinglePosting.hit")
++	getSinglePostingMissCounter = y.RegisterFuncCounter("posting.lc.GetSinglePosting.miss")
++	getNoStoreCounter           = y.RegisterFuncCounter("posting.GetNoStore")
++	setLCCounter                = y.RegisterFuncCounter("posting.lc.setIfAbsent")
++	noCacheCounter              = y.RegisterFuncCounter("posting.NoCache")
+ )
+ 
+ // Init initializes the posting lists package, the in memory and dirty list hash.
+@@ -57,6 +80,7 @@ func Cleanup() {
+ // GetNoStore returns the list stored in the key or creates a new one if it doesn't exist.
+ // It does not store the list in any cache.
+ func GetNoStore(key []byte, readTs uint64) (rlist *List, err error) {
++	y.Inc(getNoStoreCounter)
+ 	return getNew(key, pstore, readTs, false)
+ }
+ 
+@@ -144,6 +168,7 @@ func NewLocalCache(startTs uint64) *LocalCache {
+ // NoCache returns a new LocalCache instance, which won't cache anything. Useful to pass startTs
+ // around.
+ func NoCache(startTs uint64) *LocalCache {
++	y.Inc(noCacheCounter)
+ 	return &LocalCache{startTs: startTs}
+ }
+ 
+@@ -173,11 +198,25 @@ func (lc *LocalCache) Find(pred []byte, filter func([]byte) bool) (uint64, error
+ 	itOpt.Prefix = prefix
+ 	it := txn.NewIterator(itOpt)
+ 	defer it.Close()
+-
+-	for it.Seek(startKey); it.Valid(); {
++	bt := badgerBusyForReadTs(lc.startTs)
++    if bt != nil {
++        bt.Begin()
++        it.Seek(startKey)
++        bt.End()
++    } else {
++        it.Seek(startKey)
++    }
++
++	for ;it.Valid(); {
+ 		item := it.Item()
+ 		if bytes.Equal(item.Key(), prevKey) {
+-			it.Next()
++            if bt != nil {
++                bt.Begin()
++                it.Next()
++                bt.End()
++            } else {
++                it.Next()
++            }
+ 			continue
+ 		}
+ 		prevKey = append(prevKey[:0], item.Key()...)
+@@ -254,21 +293,38 @@ func (lc *LocalCache) SetIfAbsent(key string, updated *List) *List {
+ 	if pl, ok := lc.plists[key]; ok {
+ 		return pl
+ 	}
++	y.Inc(setLCCounter)
+ 	lc.plists[key] = updated
+ 	return updated
+ }
+ 
+ func (lc *LocalCache) getInternal(key []byte, readFromDisk, readUids bool) (*List, error) {
+ 	skey := string(key)
++
++	// NOTE: the /rollup/drain recorder used to hook here (getInternal, the fetch point),
++	// but that only caught FETCHED keys — a blind SET dirties a list without fetching it,
++	// so writes were undercounted. The recorder now hooks the APPLY path
++	// (List.addMutationInternal), which sees every dirtied key. See DrainRecorded.
++
++	// ForceNoLocalCache: bypass cache entirely, always read from Badger.
++	// Deterministic but inflated counts (no dedup across concurrent blocks).
++	if ForceNoLocalCache {
++		y.Inc(getInternalLCDisableCounter)
++		return getNew(key, pstore, lc.startTs, readUids)
++	}
++
+ 	getNewPlistNil := func() (*List, error) {
+ 		lc.RLock()
+ 		defer lc.RUnlock()
+ 		if lc.plists == nil {
++			y.Inc(getInternalLCDisableCounter)
+ 			return getNew(key, pstore, lc.startTs, readUids)
+ 		}
+ 		if l, ok := lc.plists[skey]; ok {
++			y.Inc(getInternalHitCounter)
+ 			return l, nil
+ 		}
++		y.Inc(getInternalMissCounter)
+ 		return nil, nil
+ 	}
+ 
+@@ -276,6 +332,42 @@ func (lc *LocalCache) getInternal(key []byte, readFromDisk, readUids bool) (*Lis
+ 		return l, err
+ 	}
+ 
++	// ForceLocalCacheLock: hold write lock through Badger read to prevent the
++	// TOCTOU race where two goroutines both miss cache and both read from Badger.
++	// Serializes posting list reads but gives deterministic KV counts.
++	if ForceLocalCacheLock {
++		lc.Lock()
++		// Double-check under write lock — another goroutine may have populated it.
++		if l, ok := lc.plists[skey]; ok {
++			lc.Unlock()
++			y.Inc(getInternalHitCounter)
++			return l, nil
++		}
++		var pl *List
++		if readFromDisk {
++			var err error
++			pl, err = getNew(key, pstore, lc.startTs, readUids)
++			if err != nil {
++				lc.Unlock()
++				return nil, err
++			}
++		} else {
++			pl = &List{
++				key:         key,
++				plist:       new(pb.PostingList),
++				mutationMap: newMutableLayer(),
++			}
++		}
++		if delta, ok := lc.deltas[skey]; ok && len(delta) > 0 {
++			pl.setMutation(lc.startTs, delta)
++		}
++		lc.plists[skey] = pl
++		lc.Unlock()
++		return pl, nil
++	}
++
++	// Default path (original): read from Badger without holding lock.
++	// Subject to TOCTOU race — concurrent goroutines may both read the same key.
+ 	var pl *List
+ 	if readFromDisk {
+ 		var err error
+@@ -302,6 +394,11 @@ func (lc *LocalCache) getInternal(key []byte, readFromDisk, readUids bool) (*Lis
+ }
+ 
+ func (lc *LocalCache) readPostingListAt(key []byte) (*pb.PostingList, error) {
++	// Track "Badger busy wall time" for this query (keyed by readTs).
++	if bt := badgerBusyForReadTs(lc.startTs); bt != nil {
++		bt.Begin()
++		defer bt.End()
++	}
+ 	if EnableDetailedMetrics {
+ 		start := time.Now()
+ 		defer func() {
+@@ -359,9 +456,10 @@ func (lc *LocalCache) GetSinglePosting(key []byte) (*pb.PostingList, error) {
+ 		// If both pl and err are empty, that means that there was no data in local cache, hence we should
+ 		// read the data from badger.
+ 		if pl != nil || err != nil {
++			y.Inc(getSinglePostingHitCounter)
+ 			return pl, err
+ 		}
+-
++		y.Inc(getSinglePostingMissCounter)
+ 		return lc.readPostingListAt(key)
+ 	}
+ 
+@@ -416,6 +514,9 @@ func (lc *LocalCache) UpdateDeltasAndDiscardLists() {
+ 		data := pl.getMutation(lc.startTs)
+ 		if len(data) > 0 {
+ 			lc.deltas[key] = data
++			// NOTE: the /rollup/drain recorder used to also hook here (commit-flush), but
++			// this path is racily skipped/torn-down for commitNow txns, so it added nothing
++			// for the write MBs. The recorder now hooks List.addMutationInternal (apply path).
+ 		}
+ 		lc.maxVersions[key] = pl.maxVersion()
+ 		// We can't run pl.release() here because LocalCache is still being used by other callers
+diff --git dgraph/dgraph-25.0.0/posting/mvcc.go dgraph/dgraph-25.0.0/posting/mvcc.go
+index 06b70fdce..1b27781fc 100644
+--- dgraph/dgraph-25.0.0/posting/mvcc.go
++++ dgraph/dgraph-25.0.0/posting/mvcc.go
+@@ -9,6 +9,7 @@ import (
+ 	"bytes"
+ 	"context"
+ 	"encoding/hex"
++	"fmt"
+ 	"math"
+ 	"strconv"
+ 	"sync"
+@@ -23,6 +24,7 @@ import (
+ 
+ 	"github.com/dgraph-io/badger/v4"
+ 	bpb "github.com/dgraph-io/badger/v4/pb"
++	"github.com/dgraph-io/badger/v4/y"
+ 	"github.com/dgraph-io/dgo/v250/protos/api"
+ 	"github.com/dgraph-io/ristretto/v2"
+ 	"github.com/dgraph-io/ristretto/v2/z"
+@@ -30,6 +32,25 @@ import (
+ 	"github.com/hypermodeinc/dgraph/v25/x"
+ )
+ 
++var (
++	// Register counters at package init
++	rollupKeyCounter      = y.RegisterFuncCounter("posting.rollUpKey")
++	readPostingCounter    = y.RegisterFuncCounter("posting.ReadPostingList")
++	mlReadDataCounter     = y.RegisterFuncCounter("posting.ml.ReadData")
++	mlCacheHitCounter     = y.RegisterFuncCounter("posting.ml.readFromCache.hit")
++	mlCacheMissCounter    = y.RegisterFuncCounter("posting.ml.readFromCache.miss")
++	mlReadFromDiskCounter = y.RegisterFuncCounter("posting.ml.readFromDisk")
++	mlIterateDiskCounter  = y.RegisterFuncCounter("posting.ml.IterateDisk")
++	setMLCounter          = y.RegisterFuncCounter("posting.ml.set")
++	getMLCounter          = y.RegisterFuncCounter("posting.ml.get")
++	delCacheCounter       = y.RegisterFuncCounter("posting.ml.del")
++	clearCacheCounter     = y.RegisterFuncCounter("posting.ml.clear")
++	needsRollupP0Counter  = y.RegisterFuncCounter("posting.needrollup.P0")
++	needsRollupP1Counter  = y.RegisterFuncCounter("posting.needrollup.P1")
++	// commitToDiskCounter   = x.RegisterFuncCounter("posting.CommitToDisk")
++	// forceRollupAllCounter = x.RegisterFuncCounter("posting.ForceRollupAll")
++)
++
+ type pooledKeys struct {
+ 	// keysCh is populated with batch of 64 keys that needs to be rolled up during reads
+ 	keysCh chan *[][]byte
+@@ -50,6 +71,272 @@ type incrRollupi struct {
+ 	// later on
+ 	getNewTs func(bool) uint64
+ 	closer   *z.Closer
++
++	writer *TxnWriter
++
++	// TR/DG
++	paused             atomic.Bool   // true if rollup is paused
++	pauseChan          chan struct{} // channel to signal pause of rollup
++	resumeChan         chan struct{} // channel to signal resume of rollup
++	forceRollupRunning atomic.Bool   // true if a force rollup is running
++	forceAll           chan struct{} // channel to signal force rollup of all keys
++
++	// TR/DG: precise write-cost measurement (write microbenchmarks). When recordEnabled
++	// is set, every dirtied posting-list key is recorded at the APPLY path
++	// (List.addMutationInternal — data/index/reverse/count mutations all reach it, incl.
++	// commitNow). DrainRecorded (/rollup/drain) then rolls up ONLY those keys — fast (no
++	// full-store scan) and complete (see DrainRecorded).
++	recordEnabled atomic.Bool
++	recordVerbose atomic.Bool // when set (with recordEnabled), log each recorded key + op
++	recordMu      sync.Mutex
++	recordedKeys  map[string]struct{}
++}
++
++// SetRecordVerbose toggles per-key logging in the apply-path recorder: with it on, each
++// dirtied key + op (SET/DEL) is glog'd as it is recorded. For eyeballing exactly what the
++// recorder captures during a mutation. Independent of the /rollup/drain/peek snapshot.
++func (ir *incrRollupi) SetRecordVerbose(on bool) {
++	ir.recordVerbose.Store(on)
++	glog.Infof("T/DG: ir.SetRecordVerbose(%v)", on)
++}
++
++// PeekRecorded returns a readable list of the currently recorded dirtied keys (parsed:
++// predicate + key-type + uid/term) WITHOUT rolling up or clearing them. Lets a caller
++// verify the recorder captured exactly the expected keys before calling /rollup/drain.
++func (ir *incrRollupi) PeekRecorded() []string {
++	ir.recordMu.Lock()
++	defer ir.recordMu.Unlock()
++	out := make([]string, 0, len(ir.recordedKeys))
++	for k := range ir.recordedKeys {
++		out = append(out, describeRecordedKey([]byte(k)))
++	}
++	return out
++}
++
++// describeRecordedKey parses a raw posting-list key into "attr|type|uid" (|term for index).
++func describeRecordedKey(key []byte) string {
++	pk, err := x.Parse(key)
++	if err != nil {
++		return "unparseable:" + hex.EncodeToString(key)
++	}
++	switch {
++	case pk.IsReverse():
++		return fmt.Sprintf("%s|reverse|uid=%#x", pk.Attr, pk.Uid)
++	case pk.IsIndex():
++		return fmt.Sprintf("%s|index|term=%q", pk.Attr, pk.Term)
++	case pk.IsCountOrCountRev():
++		return fmt.Sprintf("%s|count|count=%d", pk.Attr, pk.Count)
++	default:
++		return fmt.Sprintf("%s|data|uid=%#x", pk.Attr, pk.Uid)
++	}
++}
++
++func (ir *incrRollupi) Pause() {
++	if ir.paused.CompareAndSwap(false, true) {
++		// close existing channel to signal pause
++		close(ir.pauseChan)
++		// create a new channel for future use
++		ir.pauseChan = make(chan struct{})
++	}
++	glog.Info("T/DG: ir.Pause called")
++}
++
++func (ir *incrRollupi) Resume() {
++	if ir.paused.CompareAndSwap(true, false) {
++		// close existing channel to signal resume
++		close(ir.resumeChan)
++		// create a new channel for future use
++		ir.resumeChan = make(chan struct{})
++	}
++	glog.Info("T/DG: ir.Resume called")
++}
++
++func (ir *incrRollupi) IsPaused() bool {
++	return ir.paused.Load()
++}
++
++// TR/DG: recorder for EXPERIMENTAL precise write-cost measurement (write MBs).
++// EnableRecording starts recording dirtied posting-list keys (and clears any prior
++// set). DisableRecording stops and clears.
++func (ir *incrRollupi) EnableRecording() {
++	ir.recordMu.Lock()
++	ir.recordedKeys = make(map[string]struct{})
++	ir.recordMu.Unlock()
++	ir.recordEnabled.Store(true)
++	glog.Info("T/DG: ir.EnableRecording called")
++}
++
++func (ir *incrRollupi) DisableRecording() {
++	ir.recordEnabled.Store(false)
++	ir.recordMu.Lock()
++	ir.recordedKeys = make(map[string]struct{})
++	ir.recordMu.Unlock()
++	glog.Info("T/DG: ir.DisableRecording called")
++}
++
++// DrainRecorded rolls up the keys recorded since the last drain (keys dirtied by
++// mutations committed while recording was enabled), then clears the set. Returns the
++// number of keys rolled up. Fast (no full-store scan) — contrast ForceRollupAll.
++//
++// COMPLETE (2026-07-04): the recorder hooks the APPLY path (List.addMutationInternal),
++// which every dirtied posting-list passes through — data, index, reverse, and count,
++// for commitNow txns too. So the recorded set == the true dirtied set, and a follow-up
++// ForceRollupAll finds 0 additional SETs (validated: control + indexed both S2=0). The
++// earlier version hooked getInternal (the FETCH point) and undercounted — a blind SET
++// dirties a list without fetching it, so writes were missed. Uses the same rollUpKeyBatch
++// path (and shared ir.writer) as ForceRollupAll; call with rollup paused / writes
++// single-threaded so only this drain rolls up.
++func (ir *incrRollupi) DrainRecorded() (int, error) {
++	ir.recordMu.Lock()
++	keys := make([][]byte, 0, len(ir.recordedKeys))
++	for k := range ir.recordedKeys {
++		keys = append(keys, []byte(k))
++	}
++	ir.recordedKeys = make(map[string]struct{})
++	ir.recordMu.Unlock()
++	if len(keys) == 0 {
++		return 0, nil
++	}
++	if err := ir.rollUpKeyBatch(keys); err != nil {
++		return 0, err
++	}
++	return len(keys), nil
++}
++
++func (ir *incrRollupi) ForceRollupAll(ctx context.Context) error {
++	// Check if already running; if so, return immediately
++	if !ir.forceRollupRunning.CompareAndSwap(false, true) {
++		glog.Warning("T/DG: ForceRollupAll already in progress, ignoring duplicate request")
++		return errors.New("force rollup already in progress")
++	}
++	defer ir.forceRollupRunning.Store(false)
++	glog.Info("T/DG: ir.ForceRollupAll called")
++	err := ir.doForceRollupAll(ctx) // pass context.Background() if you don't want cancellation
++	if err != nil {
++		glog.Infof("T/DG: ir.ForceRollupAll completed with err: %v", err)
++		return err
++	}
++	glog.Info("T/DG: ir.ForceRollupAll completed")
++	return nil
++}
++
++func (ir *incrRollupi) doForceRollupAll(ctx context.Context) error {
++	glog.Infof("T/DG: Starting force rollup of all keys...")
++	// Iterate over all keys in Badger with the posting list prefix
++	// Iterate the latest view; we don't need values, only keys+metadata.
++	txn := pstore.NewTransactionAt(math.MaxUint64, false)
++	defer txn.Discard()
++
++	itOpt := badger.DefaultIteratorOptions
++	itOpt.AllVersions = false
++	itOpt.PrefetchValues = false
++	it := txn.NewIterator(itOpt)
++	defer it.Close()
++
++	processed, skipped, alreadyrRolled := 0, 0, 0
++	checkStop := time.NewTicker(2 * time.Second)
++	defer checkStop.Stop()
++
++	const batchSize = 10000
++	batch := make([][]byte, 0, batchSize)
++
++	for it.Rewind(); it.Valid(); it.Next() {
++		item := it.Item()
++
++		// Parse and skip non-main or malformed keys.
++		pk, err := x.Parse(item.Key())
++		if err != nil {
++			skipped++
++			continue
++		}
++		// Skip parts of multi-part lists; only roll up via main keys.
++		if pk.HasStartUid {
++			skipped++
++			continue
++		}
++		// Skip empty or schema postings.
++		um := item.UserMeta()
++		if um&BitEmptyPosting > 0 || um&BitSchemaPosting > 0 {
++			skipped++
++			continue
++		}
++		if um&BitDeltaPosting == 0 {
++			alreadyrRolled++
++			continue
++		}
++
++		// Respect shutdown while doing a long sweep.
++		select {
++		case <-ctx.Done():
++			glog.Infof("T/DG: Force rollup canceled by client: %v", ctx.Err())
++			return ctx.Err()
++		case <-ir.closer.HasBeenClosed():
++			glog.Infof("T/DG: Force rollup aborted: service shutting down")
++			glog.V(2).Infof("T/DG: Completed force rollup of all keys (processed=%d skipped=%d)", processed, skipped)
++			return ErrHighPriorityOp
++		case <-checkStop.C:
++			// periodic yield; nothing to do
++		default:
++		}
++
++		batch = append(batch, item.KeyCopy(nil))
++		if len(batch) >= batchSize {
++			if err := ir.rollUpKeyBatch(batch); err != nil {
++				glog.Warningf("T/DG: batch rollup error: %v", err)
++			}
++			processed += len(batch)
++			batch = batch[:0]
++		}
++
++		// // Roll up this key immediately (synchronous).
++		// if err := ir.rollUpKey(ir.writer, item.KeyCopy(nil)); err != nil {
++		// 	glog.Warningf("T/DG: force rollup error key=%s err=%v", hex.EncodeToString(item.Key()), err)
++		// 	continue
++		// }
++		// processed++
++		if (processed+1)%1000000 == 0 {
++			glog.V(1).Infof("T/DG: Force rollup progress: %d keys (skipped=%d, alreadyRolledUp=%d)", processed, skipped, alreadyrRolled)
++		}
++	}
++
++	// Process remaining
++	if len(batch) > 0 {
++		ir.rollUpKeyBatch(batch)
++		processed += len(batch)
++	}
++
++	fmt.Printf("T/DG: Completed force rollup of all keys (processed=%d skipped=%d alreadyRolledUp=%d)\n", processed, skipped, alreadyrRolled)
++	return nil
++}
++
++func (ir *incrRollupi) rollUpKeyBatch(keys [][]byte) error {
++	ts := ir.getNewTs(false)
++	waitCh, ok := o.addToWaiters(ts)
++	if ok {
++		<-waitCh
++	}
++
++	var kvsList []*bpb.KVList
++	for _, key := range keys {
++		l, err := GetNoStore(key, ts)
++		if err != nil {
++			continue
++		}
++		kvs, err := l.Rollup(nil, ts)
++		if err != nil {
++			continue
++		}
++		kvsList = append(kvsList, &bpb.KVList{Kv: kvs})
++		RemoveCacheFor(key)
++	}
++
++	// Write all at once
++	for _, kvs := range kvsList {
++		if err := ir.writer.Write(kvs); err != nil {
++			return err
++		}
++	}
++	return nil
+ }
+ 
+ type CachePL struct {
+@@ -86,10 +373,18 @@ func init() {
+ 			},
+ 		}
+ 	}
++
++	// TR/DG
++	IncrRollup.pauseChan = make(chan struct{})
++	IncrRollup.resumeChan = make(chan struct{})
++	IncrRollup.forceAll = make(chan struct{}, 1)
++	IncrRollup.recordedKeys = make(map[string]struct{})
+ }
+ 
+ // rollUpKey takes the given key's posting lists, rolls it up and writes back to badger
+ func (ir *incrRollupi) rollUpKey(writer *TxnWriter, key []byte) error {
++	y.Inc(rollupKeyCounter)
++
+ 	// Get a new non read only ts. This makes sure that no other txn would write at this
+ 	// ts, overwriting some data. Wait to read the Posting list until ts-1 have been applied
+ 	// to badger. This helps us prevent issues with wal replay, as we now have a timestamp
+@@ -137,6 +432,11 @@ func (ir *incrRollupi) rollUpKey(writer *TxnWriter, key []byte) error {
+ // TODO: When the opRollup is not running the keys from keysPool of ir are dropped. Figure out some
+ // way to handle that.
+ func (ir *incrRollupi) addKeyToBatch(key []byte, priority int) {
++	if priority == 0 {
++		y.Inc(needsRollupP0Counter)
++	} else {
++		y.Inc(needsRollupP1Counter)
++	}
+ 	rki := ir.priorityKeys[priority]
+ 	batch := rki.keysPool.Get().(*[][]byte)
+ 	*batch = append(*batch, key)
+@@ -162,6 +462,7 @@ func (ir *incrRollupi) Process(closer *z.Closer, getNewTs func(bool) uint64) {
+ 	defer closer.Done()
+ 
+ 	writer := NewTxnWriter(pstore)
++	ir.writer = writer
+ 	defer writer.Flush()
+ 
+ 	m := make(map[uint64]int64) // map hash(key) to ts. hash(key) to limit the size of the map.
+@@ -173,6 +474,7 @@ func (ir *incrRollupi) Process(closer *z.Closer, getNewTs func(bool) uint64) {
+ 	defer forceRollupTick.Stop()
+ 
+ 	doRollup := func(batch *[][]byte, priority int) {
++		// glog.V(1).Infof("T/DG: doRollup: pr %d batch %d", priority, len(*batch))
+ 		currTs := time.Now().Unix()
+ 		for _, key := range *batch {
+ 			hash := z.MemHash(key)
+@@ -190,9 +492,25 @@ func (ir *incrRollupi) Process(closer *z.Closer, getNewTs func(bool) uint64) {
+ 	}
+ 
+ 	for {
++
++		// TR/DG: Check if paused
++		if ir.IsPaused() {
++			glog.V(4).Infof("T/DG: Process.RollupPaused")
++			select {
++			case <-closer.HasBeenClosed():
++				return
++			case <-ir.resumeChan:
++				glog.V(4).Infof("T/DG: Process.RollupResumed")
++				continue
++			}
++		}
++
+ 		select {
+ 		case <-closer.HasBeenClosed():
+ 			return
++		case <-ir.pauseChan:
++			// glog.V(4).Infof("T/DG: Rollup paused")
++			continue
+ 		case <-cleanupTick.C:
+ 			currTs := time.Now().Unix()
+ 			for hash, ts := range m {
+@@ -352,6 +670,7 @@ func (c *Cache) get(key []byte) (*CachePL, bool) {
+ 	if c == nil {
+ 		return nil, false
+ 	}
++	y.Inc(getMLCounter)
+ 	val, ok := c.data.Get(key)
+ 	if !ok {
+ 		c.numCacheReadFails.Add(1)
+@@ -369,6 +688,7 @@ func (c *Cache) set(key []byte, i *CachePL) {
+ 	if c == nil {
+ 		return
+ 	}
++	y.Inc(setMLCounter)
+ 	c.numCacheSave.Add(1)
+ 	c.data.Set(key, i, 1)
+ }
+@@ -377,6 +697,7 @@ func (c *Cache) del(key []byte) {
+ 	if c == nil {
+ 		return
+ 	}
++	y.Inc(delCacheCounter)
+ 	c.data.Del(key)
+ }
+ 
+@@ -384,6 +705,7 @@ func (c *Cache) clear() {
+ 	if c == nil {
+ 		return
+ 	}
++	y.Inc(clearCacheCounter)
+ 	c.data.Clear()
+ }
+ 
+@@ -418,6 +740,7 @@ type IterateDiskArgs struct {
+ }
+ 
+ func (ml *MemoryLayer) IterateDisk(ctx context.Context, f IterateDiskArgs) error {
++	y.Inc(mlIterateDiskCounter)
+ 	txn := pstore.NewTransactionAt(f.ReadTs, false)
+ 	defer txn.Discard()
+ 
+@@ -433,10 +756,25 @@ func (ml *MemoryLayer) IterateDisk(ctx context.Context, f IterateDiskArgs) error
+ 
+ 	count := 0
+ 
+-	for it.Seek(f.StartKey); it.Valid(); {
++	bt := badgerBusyForReadTs(f.ReadTs)
++    if bt != nil {
++        bt.Begin()
++        it.Seek(f.StartKey)
++        bt.End()
++    } else {
++        it.Seek(f.StartKey)
++    }
++
++	for ; it.Valid(); {
+ 		item := it.Item()
+ 		if bytes.Equal(item.Key(), prevKey) {
+-			it.Next()
++            if bt != nil {
++                bt.Begin()
++                it.Next()
++                bt.End()
++            } else {
++                it.Next()
++            }
+ 			continue
+ 		}
+ 		prevKey = append(prevKey[:0], item.Key()...)
+@@ -478,7 +816,14 @@ func (ml *MemoryLayer) IterateDisk(ctx context.Context, f IterateDiskArgs) error
+ 			}
+ 		}
+ 
+-		l, err := ReadPostingList(item.KeyCopy(nil), it)
++		var l *List
++        if bt != nil {
++            bt.Begin()
++            l, err = ReadPostingList(item.KeyCopy(nil), it)
++            bt.End()
++        } else {
++            l, err = ReadPostingList(item.KeyCopy(nil), it)
++        }
+ 		if err != nil {
+ 			return err
+ 		}
+@@ -529,6 +874,18 @@ func initMemoryLayer(cacheSize int64, removeOnUpdate bool) *MemoryLayer {
+ 			for range ticker.C {
+ 				// Record the posting list cache hit ratio
+ 				ostats.Record(context.Background(), x.PLCacheHitRatio.M(m.Ratio()))
++				u := m.Hits()
++				if u > uint64(math.MaxInt64) {
++					ostats.Record(context.Background(), x.PLCacheHitCount.M(math.MaxInt64))
++				} else {
++					ostats.Record(context.Background(), x.PLCacheHitCount.M(int64(u)))
++				}
++				v := m.Misses()
++				if v > uint64(math.MaxInt64) {
++					ostats.Record(context.Background(), x.PLCacheMissCount.M(math.MaxInt64))
++				} else {
++					ostats.Record(context.Background(), x.PLCacheMissCount.M(int64(v)))
++				}
+ 
+ 				if EnableDetailedMetrics {
+ 					x.NumPostingListCacheSave.M(ml.cache.numCacheRead.Load())
+@@ -631,6 +988,7 @@ func unmarshalOrCopy(plist *pb.PostingList, item *badger.Item) error {
+ // Use forward iterator with allversions enabled in iter options.
+ // key would now be owned by the posting list. So, ensure that it isn't reused elsewhere.
+ func ReadPostingList(key []byte, it *badger.Iterator) (*List, error) {
++	y.Inc(readPostingCounter)
+ 	// Previously, ReadPostingList was not checking that a multi-part list could only
+ 	// be read via the main key. This lead to issues during rollup because multi-part
+ 	// lists ended up being rolled-up multiple times. This issue was caught by the
+@@ -757,16 +1115,19 @@ func (ml *MemoryLayer) readFromCache(key []byte, readTs uint64) *List {
+ 	cacheItem, ok := ml.cache.get(key)
+ 
+ 	if ok && cacheItem.list != nil && cacheItem.list.minTs <= readTs {
++		y.Inc(mlCacheHitCounter)
+ 		cacheItem.list.RLock()
+ 		lCopy := copyList(cacheItem.list)
+ 		cacheItem.list.RUnlock()
+ 		checkForRollup(key, lCopy)
+ 		return lCopy
+ 	}
++	y.Inc(mlCacheMissCounter)
+ 	return nil
+ }
+ 
+ func (ml *MemoryLayer) readFromDisk(key []byte, pstore *badger.DB, readTs uint64, readUids bool) (*List, error) {
++	y.Inc(mlReadFromDiskCounter)
+ 	txn := pstore.NewTransactionAt(readTs, false)
+ 	defer txn.Discard()
+ 
+@@ -777,8 +1138,18 @@ func (ml *MemoryLayer) readFromDisk(key []byte, pstore *badger.DB, readTs uint64
+ 	iterOpts.PrefetchValues = false
+ 	itr := txn.NewKeyIterator(key, iterOpts)
+ 	defer itr.Close()
+-	itr.Seek(key)
+-	l, err := ReadPostingList(key, itr)
++	var l *List
++	var err error
++	bt := badgerBusyForReadTs(readTs)
++	if bt != nil {
++        bt.Begin()
++        itr.Seek(key)
++        l, err = ReadPostingList(key, itr)
++        bt.End()
++	} else {
++		itr.Seek(key)
++		l, err = ReadPostingList(key, itr)
++	}
+ 	if err != nil {
+ 		return l, err
+ 	}
+@@ -801,6 +1172,7 @@ func (ml *MemoryLayer) saveInCache(key []byte, l *List) {
+ }
+ 
+ func (ml *MemoryLayer) ReadData(key []byte, pstore *badger.DB, readTs uint64, readUids bool) (*List, error) {
++	y.Inc(mlReadDataCounter)
+ 	// We first try to read the data from cache, if it is present. If it's not present, then we would read the
+ 	// latest data from the disk. This would get stored in the cache. If this read has a minTs > readTs then
+ 	// we would have to read the correct timestamp from the disk.
+@@ -809,7 +1181,15 @@ func (ml *MemoryLayer) ReadData(key []byte, pstore *badger.DB, readTs uint64, re
+ 		l.mutationMap.setTs(readTs)
+ 		return l, nil
+ 	}
+-	l, err := ml.readFromDisk(key, pstore, math.MaxUint64, readUids)
++	bt := badgerBusyForReadTs(readTs)
++	var err error
++	if bt != nil {
++		bt.Begin()
++		l, err = ml.readFromDisk(key, pstore, math.MaxUint64, readUids)
++		bt.End()
++	} else {
++		l, err = ml.readFromDisk(key, pstore, math.MaxUint64, readUids)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git dgraph/dgraph-25.0.0/posting/nobadger_busy_time.go dgraph/dgraph-25.0.0/posting/nobadger_busy_time.go
+new file mode 100644
+index 000000000..594e3c2d6
+--- /dev/null
++++ dgraph/dgraph-25.0.0/posting/nobadger_busy_time.go
+@@ -0,0 +1,36 @@
++//go:build !badgerbusy
++
++package posting
++
++import (
++	"time"
++
++	"github.com/dgraph-io/badger/v4"
++)
++
++// BadgerBusyTime is a no-op when badgerbusy build tag is not set
++type BadgerBusyTime struct{}
++
++func (b *BadgerBusyTime) Begin()                      {}
++func (b *BadgerBusyTime) End()                        {}
++func (b *BadgerBusyTime) WallDuration() time.Duration { return 0 }
++
++func RegisterBadgerBusyTime(readTs uint64) (*BadgerBusyTime, func()) {
++	return nil, func() {}
++}
++
++func BeginBadgerBusyForReadTs(readTs uint64) func() {
++	return func() {}
++}
++
++func BeginBadgerBusyFromTxn(txn *badger.Txn) func() {
++	return func() {}
++}
++
++func BadgerBusyForReadTs(readTs uint64) *BadgerBusyTime {
++	return nil
++}
++
++func badgerBusyForReadTs(readTs uint64) *BadgerBusyTime {
++	return nil
++}
+diff --git dgraph/dgraph-25.0.0/query/query.go dgraph/dgraph-25.0.0/query/query.go
+index 795d3d246..b27be77b9 100644
+--- dgraph/dgraph-25.0.0/query/query.go
++++ dgraph/dgraph-25.0.0/query/query.go
+@@ -7,6 +7,7 @@ package query
+ 
+ import (
+ 	"context"
++	"encoding/json"
+ 	"fmt"
+ 	"math"
+ 	"sort"
+@@ -17,6 +18,8 @@ import (
+ 
+ 	"github.com/golang/glog"
+ 	"github.com/pkg/errors"
++	ostats "go.opencensus.io/stats"
++	"go.opencensus.io/tag"
+ 	"go.opentelemetry.io/otel"
+ 	"go.opentelemetry.io/otel/attribute"
+ 	"go.opentelemetry.io/otel/trace"
+@@ -24,6 +27,7 @@ import (
+ 
+ 	"github.com/hypermodeinc/dgraph/v25/algo"
+ 	"github.com/hypermodeinc/dgraph/v25/dql"
++	"github.com/hypermodeinc/dgraph/v25/posting"
+ 	"github.com/hypermodeinc/dgraph/v25/protos/pb"
+ 	"github.com/hypermodeinc/dgraph/v25/schema"
+ 	"github.com/hypermodeinc/dgraph/v25/types"
+@@ -354,7 +358,7 @@ func (sg *SubGraph) DebugPrint(prefix string) {
+ 	if sg.DestUIDs != nil {
+ 		dst = len(sg.DestUIDs.Uids)
+ 	}
+-	glog.Infof("%s[%q Alias:%q Func:%v SrcSz:%v Op:%q DestSz:%v IsCount: %v ValueSz:%v]\n",
++	fmt.Printf("%s[%q Alias:%q Func:%v SrcSz:%v Op:%q DestSz:%v IsCount: %v ValueSz:%v]\n",
+ 		prefix, sg.Attr, sg.Params.Alias, sg.SrcFunc, src, sg.FilterOp,
+ 		dst, sg.Params.DoCount, len(sg.valueMatrix))
+ 	for _, f := range sg.Filters {
+@@ -365,6 +369,93 @@ func (sg *SubGraph) DebugPrint(prefix string) {
+ 	}
+ }
+ 
++// explainNode serializes one SubGraph node into a plain map for the EXPLAIN JSON. It mirrors
++// the DebugPrint walk (Filters then Children) but emits structured data the Python cost model
++// (cost_eval/dgraph_plan) can parse, instead of scraping the DebugPrint text from alpha.log.
++//
++// The static plan (built pre-execution) carries the access structure the cost rules need: the
++// root index func (SrcFunc), the `~`-prefixed reverse attr, the selected scalar predicates
++// (children), the @filter subtree, order/first/offset, and @count. SrcUIDs/DestUIDs are only
++// populated after execution, so the per-node sizes (srcSz/destSz) are included only in profile
++// mode.
++func (sg *SubGraph) explainNode(profile bool) map[string]interface{} {
++	node := map[string]interface{}{
++		"attr":     sg.Attr,
++		"alias":    sg.Params.Alias,
++		"reverse":  strings.HasPrefix(sg.Attr, "~"),
++		"docount":  sg.Params.DoCount,
++		"first":    sg.Params.Count,
++		"offset":   sg.Params.Offset,
++		"expand":   sg.Params.Expand,
++		"filterOp": sg.FilterOp,
++	}
++	if sg.SrcFunc != nil {
++		args := make([]string, len(sg.SrcFunc.Args))
++		for i, a := range sg.SrcFunc.Args {
++			args[i] = a.Value
++		}
++		node["func"] = map[string]interface{}{
++			"name":  sg.SrcFunc.Name,
++			"args":  args,
++			"count": sg.SrcFunc.IsCount,
++		}
++	}
++	if len(sg.Params.Order) > 0 {
++		order := make([]map[string]interface{}, len(sg.Params.Order))
++		for i, o := range sg.Params.Order {
++			order[i] = map[string]interface{}{"attr": o.Attr, "desc": o.Desc}
++		}
++		node["order"] = order
++	}
++	if len(sg.Params.Langs) > 0 {
++		node["langs"] = sg.Params.Langs
++	}
++	if len(sg.Filters) > 0 {
++		filters := make([]map[string]interface{}, len(sg.Filters))
++		for i, f := range sg.Filters {
++			filters[i] = f.explainNode(profile)
++		}
++		node["filters"] = filters
++	}
++	if len(sg.Children) > 0 {
++		children := make([]map[string]interface{}, len(sg.Children))
++		for i, c := range sg.Children {
++			children[i] = c.explainNode(profile)
++		}
++		node["children"] = children
++	}
++	if profile {
++		var src, dst int
++		if sg.SrcUIDs != nil {
++			src = len(sg.SrcUIDs.Uids)
++		}
++		if sg.DestUIDs != nil {
++			dst = len(sg.DestUIDs.Uids)
++		}
++		node["srcSz"] = src
++		node["destSz"] = dst
++		node["count_vals"] = len(sg.counts)
++		node["value_vals"] = len(sg.valueMatrix)
++	}
++	return node
++}
++
++// buildExplainJSON serializes the whole request plan (one entry per top-level query block) to
++// JSON. See explainNode for the per-node shape.
++func (req *Request) buildExplainJSON(profile bool) []byte {
++	subgraphs := make([]map[string]interface{}, len(req.Subgraphs))
++	for i, sg := range req.Subgraphs {
++		subgraphs[i] = sg.explainNode(profile)
++	}
++	out, err := json.Marshal(map[string]interface{}{"subgraphs": subgraphs})
++	if err != nil {
++		// Marshaling a tree of plain maps should never fail; surface it inside the JSON so the
++		// caller still gets a parseable (if degenerate) response rather than a silent empty body.
++		return []byte(fmt.Sprintf("{%q:%q}", "error", err.Error()))
++	}
++	return out
++}
++
+ // getValue gets the value from the task.
+ func getValue(tv *pb.TaskValue) (types.Val, error) {
+ 	vID := types.TypeID(tv.ValType)
+@@ -770,6 +861,9 @@ type ContextKey int
+ const (
+ 	// DebugKey is the key used to toggle debug mode.
+ 	DebugKey ContextKey = iota
++	// ExplainKey carries the EXPLAIN mode ("structure" | "profile") from the HTTP handler
++	// down to ProcessQuery. Empty means normal execution. See (*Request).buildExplainJSON.
++	ExplainKey
+ )
+ 
+ func isDebug(ctx context.Context) bool {
+@@ -2850,6 +2944,14 @@ type Request struct {
+ 	Subgraphs []*SubGraph
+ 
+ 	Vars map[string]varValue
++
++	// Explain, when non-empty, makes ProcessQuery emit the static SubGraph plan as JSON
++	// instead of executing ("structure") or in addition to executing ("profile") the query.
++	// Set from the `?explain=` HTTP param via ExplainKey.
++	Explain string
++	// ExplainJson holds the serialized plan when Explain is set; doQuery returns it as the
++	// response body in place of the normal result encoding.
++	ExplainJson []byte
+ }
+ 
+ // ProcessQuery processes query part of the request (without mutations).
+@@ -2886,6 +2988,24 @@ func (req *Request) ProcessQuery(ctx context.Context) (err error) {
+ 	}
+ 	req.Latency.Parsing += time.Since(loopStart)
+ 
++	// print the request subgraphs.
++	if glog.V(1) {
++		glog.Infof("T/DG: Request Subgraphs: len %d", len(req.Subgraphs))
++		for i, sg := range req.Subgraphs {
++			glog.Infof("T/DG: \t sub graph %d: %s", i, sg.Attr)
++			prefix := "\t"
++			sg.DebugPrint(prefix)
++			fmt.Println(prefix)
++		}
++	}
++
++	// EXPLAIN structure mode: the plan is fully built here (subgraphs built post-rewrite,
++	// pre-execution), so serialize it and return WITHOUT executing.
++	if req.Explain == "structure" {
++		req.ExplainJson = req.buildExplainJSON(false)
++		return nil
++	}
++
+ 	execStart := time.Now()
+ 	hasExecuted := make([]bool, len(req.Subgraphs))
+ 	numQueriesDone := 0
+@@ -3027,24 +3147,71 @@ func (req *Request) ProcessQuery(ctx context.Context) (err error) {
+ 	if len(shortestSg) != 0 {
+ 		req.Subgraphs = append(req.Subgraphs, shortestSg...)
+ 	}
++
++	// EXPLAIN profile mode: emit the plan AFTER execution, so each node's SrcUIDs/DestUIDs
++	// sizes are populated (the analog of Nebula's PROFILE row counts). doQuery returns this
++	// in place of the normal result encoding.
++	if req.Explain == "profile" {
++		req.ExplainJson = req.buildExplainJSON(true)
++	}
+ 	return nil
+ }
+ 
+ // ExecutionResult holds the result of running a query.
+ type ExecutionResult struct {
+-	Subgraphs  []*SubGraph
+-	SchemaNode []*pb.SchemaNode
+-	Types      []*pb.TypeUpdate
+-	Metrics    map[string]uint64
++	Subgraphs   []*SubGraph
++	SchemaNode  []*pb.SchemaNode
++	Types       []*pb.TypeUpdate
++	Metrics     map[string]uint64
++	ExplainJson []byte
+ }
+ 
+ // Process handles a query request.
+ func (req *Request) Process(ctx context.Context) (er ExecutionResult, err error) {
++	start := time.Now()
++	// Register once for the lifetime of the query request (covers ProcessGraph + SortOverNetwork).
++	bt, cleanup := posting.RegisterBadgerBusyTime(req.ReadTs)
++	defer cleanup()
++
++	defer func() {
++		totalWall := time.Since(start)
++		storageWall := bt.WallDuration()
++
++		status := x.TagValueStatusOK
++		if err != nil {
++			status = x.TagValueStatusError
++		}
++
++		mctx := x.WithMethod(ctx, "query")
++		if cctx, e := tag.New(mctx, tag.Upsert(x.KeyStatus, status)); e == nil {
++			mctx = cctx
++		}
++
++		glog.V(3).Info("Query status:", status, " total wall:", totalWall.String(),
++			" storage wall:", storageWall.String())
++
++		ostats.Record(mctx,
++			x.QueryStorageWallTotalNs.M(float64(storageWall.Nanoseconds())),
++		)
++
++		// Optional: also attach percentage to the trace span (not a metric).
++		span := trace.SpanFromContext(ctx)
++		if span != nil && totalWall > 0 {
++			pct := 100.0 * float64(storageWall) / float64(totalWall)
++			span.AddEvent("query_storage_wall_time", trace.WithAttributes(
++				attribute.Int64("query_wall_ms", totalWall.Milliseconds()),
++				attribute.Int64("storage_wall_ms", storageWall.Milliseconds()),
++				attribute.Float64("storage_wall_pct", pct),
++			))
++		}
++	}()
++
+ 	err = req.ProcessQuery(ctx)
+ 	if err != nil {
+ 		return er, err
+ 	}
+ 	er.Subgraphs = req.Subgraphs
++	er.ExplainJson = req.ExplainJson
+ 	// calculate metrics.
+ 	metrics := make(map[string]uint64)
+ 	for _, sg := range er.Subgraphs {
+diff --git dgraph/dgraph-25.0.0/worker/mutation.go dgraph/dgraph-25.0.0/worker/mutation.go
+index 47ef32b5c..0185657aa 100644
+--- dgraph/dgraph-25.0.0/worker/mutation.go
++++ dgraph/dgraph-25.0.0/worker/mutation.go
+@@ -362,6 +362,9 @@ func hasEdges(attr string, startTs uint64) bool {
+ 	txn := pstore.NewTransactionAt(startTs, false)
+ 	defer txn.Discard()
+ 
++	endBusy := posting.BeginBadgerBusyForReadTs(startTs)
++	defer endBusy()
++
+ 	it := txn.NewIterator(iterOpt)
+ 	defer it.Close()
+ 
+diff --git dgraph/dgraph-25.0.0/worker/sort.go dgraph/dgraph-25.0.0/worker/sort.go
+index 834eea495..fa84f6c58 100644
+--- dgraph/dgraph-25.0.0/worker/sort.go
++++ dgraph/dgraph-25.0.0/worker/sort.go
+@@ -11,6 +11,7 @@ import (
+ 	"fmt"
+ 	"sort"
+ 	"strings"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/golang/glog"
+@@ -261,9 +262,17 @@ func sortWithIndex(ctx context.Context, ts *pb.SortMessage) *sortresult {
+ 	defer itr.Close()
+ 
+ 	r := new(pb.SortResult)
++	bt := posting.BadgerBusyForReadTs(ts.ReadTs)
++	if bt != nil {
++		bt.Begin()
++		itr.Seek(seekKey)
++		bt.End()
++	} else {
++		itr.Seek(seekKey)
++	}
+ BUCKETS:
+ 	// Outermost loop is over index buckets.
+-	for itr.Seek(seekKey); itr.Valid(); itr.Next() {
++	for  itr.Valid() {
+ 		item := itr.Item()
+ 		key := item.Key() // No need to copy.
+ 		select {
+@@ -290,6 +299,13 @@ BUCKETS:
+ 				return resultWithError(err)
+ 			}
+ 		}
++		if bt != nil {
++			bt.Begin()
++			itr.Next()
++			bt.End()
++		} else {
++			itr.Next()
++		}
+ 	}
+ 
+ 	var multiSortOffsets []int32
+@@ -471,6 +487,32 @@ func multiSort(ctx context.Context, r *sortresult, ts *pb.SortMessage) error {
+ 	return nil
+ }
+ 
++// DetSortEnabled toggles deterministic sort selection. When true,
++// processSort skips the sortWithIndex / sortWithoutIndex race (see
++// common.md §10) and instead picks one path deterministically based on
++// whether the primary sort column has a sortable index. Default is
++// false (race behaviour preserved). Toggled via the HTTP endpoints
++// /detsort/enable and /detsort/disable on alpha.
++var DetSortEnabled atomic.Bool
++
++// attrHasSortableIndex returns true if `attr` has at least one tokenizer
++// whose IsSortable() returns true. Mirrors the check inside sortWithIndex
++// (the tokenizer-selection loop near the top of that function) without
++// performing the index scan. Used by the deterministic-sort path to
++// pick between sortWithIndex and sortWithoutIndex without spawning the
++// race goroutines.
++func attrHasSortableIndex(ctx context.Context, attr string) bool {
++	if !schema.State().IsIndexed(ctx, attr) {
++		return false
++	}
++	for _, t := range schema.State().Tokenizer(ctx, attr) {
++		if t.IsSortable() {
++			return true
++		}
++	}
++	return false
++}
++
+ // processSort does sorting with pagination. It works by iterating over index
+ // buckets. As it iterates, it intersects with each UID list of the UID
+ // matrix. To optimize for pagination, we maintain the "offsets and sizes" or
+@@ -479,9 +521,13 @@ func multiSort(ctx context.Context, r *sortresult, ts *pb.SortMessage) error {
+ // enough for our pagination params. When all the UID lists are done, we stop
+ // iterating over the index.
+ func processSort(ctx context.Context, ts *pb.SortMessage) (*pb.SortResult, error) {
++	start := time.Now()
++	bt, cleanup := posting.RegisterBadgerBusyTime(ts.ReadTs)
++	defer cleanup()
+ 	span := trace.SpanFromContext(ctx)
+ 	stop := x.SpanTimer(span, "processSort")
+ 	defer stop()
++	res, err := func() (*pb.SortResult, error) {
+ 
+ 	span.SetAttributes(
+ 		attribute.Int("startTs", int(ts.ReadTs)),
+@@ -510,32 +556,48 @@ func processSort(ctx context.Context, ts *pb.SortMessage) (*pb.SortResult, error
+ 	cctx, cancel := context.WithCancel(ctx)
+ 	defer cancel()
+ 
+-	resCh := make(chan *sortresult, 2)
+-	go func() {
+-		select {
+-		case <-time.After(3 * time.Millisecond):
+-			// Wait between ctx chan and time chan.
+-		case <-ctx.Done():
+-			resCh <- &sortresult{err: ctx.Err()}
+-			return
++	var r *sortresult
++	if DetSortEnabled.Load() {
++		// Deterministic sort: pick the path up front based on whether the
++		// primary sort column has a sortable index. Skips the race in the
++		// else branch so KV-op counts are reproducible across runs.
++		span.SetAttributes(attribute.String("detSort", "true"))
++		if attrHasSortableIndex(ctx, ts.Order[0].Attr) {
++			r = sortWithIndex(cctx, ts)
++		} else {
++			r = sortWithoutIndex(cctx, ts)
+ 		}
+-		r := sortWithoutIndex(cctx, ts)
+-		resCh <- r
+-	}()
++	} else {
++		// Default behaviour: race sortWithoutIndex (after a 3ms head start
++		// for sortWithIndex) against sortWithIndex; first to finish wins.
++		// See common.md §10 — the loser's partial KV ops still accumulate.
++		resCh := make(chan *sortresult, 2)
++		go func() {
++			select {
++			case <-time.After(3 * time.Millisecond):
++				// Wait between ctx chan and time chan.
++			case <-ctx.Done():
++				resCh <- &sortresult{err: ctx.Err()}
++				return
++			}
++			rr := sortWithoutIndex(cctx, ts)
++			resCh <- rr
++		}()
+ 
+-	go func() {
+-		sr := sortWithIndex(cctx, ts)
+-		resCh <- sr
+-	}()
++		go func() {
++			sr := sortWithIndex(cctx, ts)
++			resCh <- sr
++		}()
+ 
+-	r := <-resCh
+-	if r.err == nil {
+-		cancel()
+-		// wait for other goroutine to get cancelled
+-		<-resCh
+-	} else {
+-		span.AddEvent(fmt.Sprintf("Error processing sort: %+v", r.err))
+ 		r = <-resCh
++		if r.err == nil {
++			cancel()
++			// wait for other goroutine to get cancelled
++			<-resCh
++		} else {
++			span.AddEvent(fmt.Sprintf("Error processing sort: %+v", r.err))
++			r = <-resCh
++		}
+ 	}
+ 
+ 	if r.err != nil {
+@@ -548,6 +610,19 @@ func processSort(ctx context.Context, ts *pb.SortMessage) (*pb.SortResult, error
+ 
+ 	err := multiSort(ctx, r, ts)
+ 	return r.reply, err
++	}()
++
++	wall := time.Since(start)
++	badgerWall := bt.WallDuration()
++	if wall > 0 && span != nil {
++		pct := 100.0 * float64(badgerWall) / float64(wall)
++		span.AddEvent("badger_busy_wall_time", trace.WithAttributes(
++			attribute.Int64("query_wall_ms", wall.Milliseconds()),
++			attribute.Int64("badger_busy_wall_ms", badgerWall.Milliseconds()),
++			attribute.Float64("badger_busy_wall_pct", pct),
++		))
++	}
++	return res, err
+ }
+ 
+ func destUids(uidMatrix []*pb.List) *pb.List {
+diff --git dgraph/dgraph-25.0.0/worker/task.go dgraph/dgraph-25.0.0/worker/task.go
+index ba7e85957..d7af4f365 100644
+--- dgraph/dgraph-25.0.0/worker/task.go
++++ dgraph/dgraph-25.0.0/worker/task.go
+@@ -12,6 +12,7 @@ import (
+ 	"sort"
+ 	"strconv"
+ 	"strings"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/golang/glog"
+@@ -25,6 +26,7 @@ import (
+ 	"google.golang.org/protobuf/proto"
+ 
+ 	"github.com/dgraph-io/badger/v4"
++	"github.com/dgraph-io/badger/v4/y"
+ 	"github.com/dgraph-io/dgo/v250/protos/api"
+ 	"github.com/hypermodeinc/dgraph/v25/algo"
+ 	"github.com/hypermodeinc/dgraph/v25/conn"
+@@ -40,6 +42,20 @@ import (
+ 	"github.com/hypermodeinc/dgraph/v25/x"
+ )
+ 
++var (
++	helpProcessTaskCounter             = y.RegisterFuncCounter("qs.helpProcessTask")
++	handleUidPostingsCounter           = y.RegisterFuncCounter("qs.handleUidPostings")
++	handleValuePostingsCounter         = y.RegisterFuncCounter("qs.handleValuePostings")
++	handleHasFunctionCounter           = y.RegisterFuncCounter("qs.handleHasFunction")
++	handleHasWithOrderFunctionCounter  = y.RegisterFuncCounter("qs.handleHasWithOrderFunction")
++	handleCompareScalarFunctionCounter = y.RegisterFuncCounter("qs.handleCompareScalarFunction")
++	handleRegexFunctionCounter         = y.RegisterFuncCounter("qs.handleRegexFunction")
++	handleMatchFunctionCounter         = y.RegisterFuncCounter("qs.handleMatchFunction")
++	handleCompareFunctionCounter       = y.RegisterFuncCounter("qs.handleCompareFunction")
++	filterGeoFunctionCounter           = y.RegisterFuncCounter("qs.filterGeoFunction")
++	filterStringFunctionCounter        = y.RegisterFuncCounter("qs.filterStringFunction")
++)
++
+ func invokeNetworkRequest(ctx context.Context, addr string,
+ 	f func(context.Context, pb.WorkerClient) (interface{}, error)) (interface{}, error) {
+ 	pl, err := conn.GetPools().Get(addr)
+@@ -328,6 +344,7 @@ func (srcFn *functionContext) needsValuePostings(typ types.TypeID) (bool, error)
+ 
+ // Handles fetching of value posting lists and filtering of uids based on that.
+ func (qs *queryState) handleValuePostings(ctx context.Context, args funcArgs) error {
++	y.Inc(handleValuePostingsCounter)
+ 	srcFn := args.srcFn
+ 	q := args.q
+ 
+@@ -757,6 +774,7 @@ func retrieveUidsAndFacets(args funcArgs, pl *posting.List, facetsTree *facetsTr
+ // keys store uid posting lists.
+ func (qs *queryState) handleUidPostings(
+ 	ctx context.Context, args funcArgs, opts posting.ListOptions) error {
++	y.Inc(handleUidPostingsCounter)
+ 	srcFn := args.srcFn
+ 	q := args.q
+ 
+@@ -987,59 +1005,77 @@ const (
+ 
+ // processTask processes the query, accumulates and returns the result.
+ func processTask(ctx context.Context, q *pb.Query, gid uint32) (*pb.Result, error) {
++	start := time.Now()
++	bt, cleanup := posting.RegisterBadgerBusyTime(q.ReadTs)
++	defer cleanup()
+ 	ctx, span := otel.Tracer("").Start(ctx, "processTask."+q.Attr)
+ 	defer span.End()
+ 
+ 	stop := x.SpanTimer(span, "processTask"+q.Attr)
+ 	defer stop()
++	res, err := func() (*pb.Result, error) {
+ 
+-	span.SetAttributes(
+-		attribute.String("startTs", fmt.Sprintf("%d", q.ReadTs)),
+-		attribute.String("node", fmt.Sprintf("%d", groups().Node.Id)),
+-		attribute.String("gid", fmt.Sprintf("%d", gid)))
+-	if err := posting.Oracle().WaitForTs(ctx, q.ReadTs); err != nil {
+-		return nil, err
+-	}
+-	maxAssigned := posting.Oracle().MaxAssigned()
+-	span.AddEvent("Done waiting for maxAssigned", trace.WithAttributes(
+-		attribute.String("attr", q.Attr),
+-		attribute.String("readTs", fmt.Sprintf("%d", q.ReadTs)),
+-		attribute.String("max", fmt.Sprintf("%d", maxAssigned))))
+-	if err := groups().ChecksumsMatch(ctx); err != nil {
+-		return nil, err
+-	}
+-	span.AddEvent("Done waiting for checksum match")
++		span.SetAttributes(
++			attribute.String("startTs", fmt.Sprintf("%d", q.ReadTs)),
++			attribute.String("node", fmt.Sprintf("%d", groups().Node.Id)),
++			attribute.String("gid", fmt.Sprintf("%d", gid)))
++		if err := posting.Oracle().WaitForTs(ctx, q.ReadTs); err != nil {
++			return nil, err
++		}
++		maxAssigned := posting.Oracle().MaxAssigned()
++		span.AddEvent("Done waiting for maxAssigned", trace.WithAttributes(
++			attribute.String("attr", q.Attr),
++			attribute.String("readTs", fmt.Sprintf("%d", q.ReadTs)),
++			attribute.String("max", fmt.Sprintf("%d", maxAssigned))))
++		if err := groups().ChecksumsMatch(ctx); err != nil {
++			return nil, err
++		}
++		span.AddEvent("Done waiting for checksum match")
+ 
+-	// If a group stops serving tablet and it gets partitioned away from group
+-	// zero, then it wouldn't know that this group is no longer serving this
+-	// predicate. There's no issue if a we are serving a particular tablet and
+-	// we get partitioned away from group zero as long as it's not removed.
+-	// BelongsToReadOnly is called instead of BelongsTo to prevent this alpha
+-	// from requesting to serve this tablet.
+-	knownGid, err := groups().BelongsToReadOnly(q.Attr, q.ReadTs)
+-	switch {
+-	case err != nil:
+-		return nil, err
+-	case knownGid == 0:
+-		return nil, errNonExistentTablet
+-	case knownGid != groups().groupId():
+-		return nil, errUnservedTablet
+-	}
++		// If a group stops serving tablet and it gets partitioned away from group
++		// zero, then it wouldn't know that this group is no longer serving this
++		// predicate. There's no issue if a we are serving a particular tablet and
++		// we get partitioned away from group zero as long as it's not removed.
++		// BelongsToReadOnly is called instead of BelongsTo to prevent this alpha
++		// from requesting to serve this tablet.
++		knownGid, err := groups().BelongsToReadOnly(q.Attr, q.ReadTs)
++		switch {
++		case err != nil:
++			return nil, err
++		case knownGid == 0:
++			return nil, errNonExistentTablet
++		case knownGid != groups().groupId():
++			return nil, errUnservedTablet
++		}
+ 
+-	var qs queryState
+-	if q.Cache == UseTxnCache {
+-		qs.cache = posting.Oracle().CacheAt(q.ReadTs)
+-	}
+-	if qs.cache == nil {
+-		qs.cache = posting.NoCache(q.ReadTs)
+-	}
+-	// For now, remove the query level cache. It is causing contention for queries with high
+-	// fan-out.
+-	out, err := qs.helpProcessTask(ctx, q, gid)
+-	if err != nil {
+-		return nil, err
++		var qs queryState
++		if q.Cache == UseTxnCache {
++			qs.cache = posting.Oracle().CacheAt(q.ReadTs)
++		}
++		if qs.cache == nil {
++			qs.cache = posting.NoCache(q.ReadTs)
++		}
++		// For now, remove the query level cache. It is causing contention for queries with high
++		// fan-out.
++		out, err := qs.helpProcessTask(ctx, q, gid)
++		if err != nil {
++			return nil, err
++		}
++		return out, nil
++	}()
++	wall := time.Since(start)
++	badgerWall := bt.WallDuration()
++
++	if wall > 0 {
++		pct := 100.0 * float64(badgerWall) / float64(wall)
++		span.AddEvent("badger_busy_wall_time", trace.WithAttributes(
++			attribute.Int64("query_wall_ms", wall.Milliseconds()),
++			attribute.Int64("badger_busy_wall_ms", badgerWall.Milliseconds()),
++			attribute.Float64("badger_busy_wall_pct", pct),
++		))
+ 	}
+-	return out, nil
++
++	return res, err
+ }
+ 
+ type queryState struct {
+@@ -1075,6 +1111,7 @@ func (qs *queryState) helpProcessTask(ctx context.Context, q *pb.Query, gid uint
+ 		// more need to store the star value in this field.
+ 		q.Langs = nil
+ 	}
++	y.Inc(helpProcessTaskCounter)
+ 
+ 	typ, err := schema.State().TypeOf(attr)
+ 	if err != nil {
+@@ -1210,6 +1247,7 @@ func (qs *queryState) handleCompareScalarFunction(ctx context.Context, arg funcA
+ 		readTs:  arg.q.ReadTs,
+ 		reverse: arg.q.Reverse,
+ 	}
++	y.Inc(handleCompareScalarFunctionCounter)
+ 	return qs.evaluate(cp, arg.out)
+ }
+ 
+@@ -1234,6 +1272,7 @@ func (qs *queryState) handleRegexFunction(ctx context.Context, arg funcArgs) err
+ 	if typ != types.StringID {
+ 		return errors.Errorf("Got non-string type. Regex match is allowed only on string type.")
+ 	}
++	y.Inc(handleRegexFunctionCounter)
+ 	useIndex := schema.State().HasTokenizer(ctx, tok.IdentTrigram, attr)
+ 	span.AddEvent("Trigram index information", trace.WithAttributes(
+ 		attribute.Bool("trigram_index_found", useIndex),
+@@ -1367,6 +1406,7 @@ func (qs *queryState) handleCompareFunction(ctx context.Context, arg funcArgs) e
+ 	x.AssertTrue(len(arg.out.UidMatrix) > 0)
+ 	isList := schema.State().IsList(attr)
+ 	lang := langForFunc(arg.q.Langs)
++	y.Inc(handleCompareFunctionCounter)
+ 
+ 	filterRow := func(row int, compareFunc func(types.Val) bool) error {
+ 		select {
+@@ -1528,6 +1568,7 @@ func (qs *queryState) handleMatchFunction(ctx context.Context, arg funcArgs) err
+ 				"Please add a trigram index or use has/uid function with match() as filter.",
+ 			x.ParseAttr(attr))
+ 	}
++	y.Inc(handleMatchFunctionCounter)
+ 
+ 	isList := schema.State().IsList(attr)
+ 	lang := langForFunc(arg.q.Langs)
+@@ -1588,6 +1629,7 @@ func (qs *queryState) handleMatchFunction(ctx context.Context, arg funcArgs) err
+ }
+ 
+ func (qs *queryState) filterGeoFunction(ctx context.Context, arg funcArgs) error {
++	y.Inc(filterGeoFunctionCounter)
+ 	span := trace.SpanFromContext(ctx)
+ 	stop := x.SpanTimer(span, "filterGeoFunction")
+ 	defer stop()
+@@ -1658,6 +1700,7 @@ func (qs *queryState) filterGeoFunction(ctx context.Context, arg funcArgs) error
+ // `has(name)`. We could potentially have a query level cache, which can be used to speed things up
+ // a bit. Or, try to reduce the number of UIDs which make it here.
+ func (qs *queryState) filterStringFunction(arg funcArgs) error {
++	y.Inc(filterStringFunctionCounter)
+ 	if glog.V(3) {
+ 		glog.Infof("filterStringFunction. arg: %+v\n", arg.q)
+ 		defer glog.Infof("Done filterStringFunction")
+@@ -1835,6 +1878,30 @@ func checkUidZero(uids []uint64) bool {
+ 	return false
+ }
+ 
++// FilterPathMode pins the access path a filter takes, for cost-model
++// measurement. See EqFilterPath / IneqFilterPath.
++type FilterPathMode int32
++
++const (
++	FilterPathDefault   FilterPathMode = iota // engine heuristic (stock behaviour)
++	FilterPathIndex                            // pin index / uid-postings path
++	FilterPathPerVertex                        // pin per-vertex / value-postings path
++)
++
++// EqFilterPath, TypeFilterPath, and IneqFilterPath pin the access path chosen
++// for, respectively: user eq() filters and type() filters (both go through
++// planForEqFilter — type(X) lowers to eq(dgraph.type, X), but gets its own knob)
++// and inequality filters (lt/le/ge/gt/between in parseSrcFn). They bypass the
++// uid-count / Count-Min-Sketch heuristics so KV-op counts are reproducible. The
++// checkUidZero guard still forces the index path. Force-index silently falls
++// back to per-vertex when the predicate has no usable index (no tokens). Toggled
++// via /eqfilterpath/*, /typefilterpath/*, /ineqfilterpath/* on alpha; default = stock.
++var (
++	EqFilterPath   atomic.Int32 // holds a FilterPathMode (user eq() filters, non-dgraph.type)
++	TypeFilterPath atomic.Int32 // holds a FilterPathMode (type() = eq(dgraph.type, X) filters)
++	IneqFilterPath atomic.Int32 // holds a FilterPathMode (lt/le/ge/gt/between filters)
++)
++
+ func planForEqFilter(fc *functionContext, pred string, uidlist []uint64) {
+ 	if checkUidZero(uidlist) {
+ 		// We have a uid which has 0 in it. Mostly it would happen when there is only 0. But any one item
+@@ -1844,6 +1911,24 @@ func planForEqFilter(fc *functionContext, pred string, uidlist []uint64) {
+ 		return
+ 	}
+ 
++	// Force-path knobs. type(X) lowers to eq(dgraph.type, X); route it to the
++	// dedicated /typefilterpath knob, all other eq() filters to /eqfilterpath.
++	// Reached only when tokens already exist (indexed eq), so force-index is
++	// always valid.
++	forced := EqFilterPath.Load()
++	if x.ParseAttr(pred) == "dgraph.type" {
++		forced = TypeFilterPath.Load()
++	}
++	switch FilterPathMode(forced) {
++	case FilterPathIndex:
++		fc.n = len(fc.tokens)
++		return
++	case FilterPathPerVertex:
++		fc.tokens = fc.tokens[:0]
++		fc.n = len(uidlist)
++		return
++	}
++
+ 	if uint64(len(uidlist)) < Config.TypeFilterUidLimit {
+ 		fc.tokens = fc.tokens[:0]
+ 		fc.n = len(uidlist)
+@@ -1919,9 +2004,21 @@ func parseSrcFn(ctx context.Context, q *pb.Query) (*functionContext, error) {
+ 			}
+ 		}
+ 
++		// Force-path knob (/ineqfilterpath) for inequality filters: index → keep
++		// generating/holding tokens (skip the small-uid short-circuit here and the
++		// token-discard in the switch below); per_vertex → skip token generation.
++		// uid 0 still forces the index path (the !checkUidZero guard below).
++		ineqMode := FilterPathMode(IneqFilterPath.Load())
++
+ 		generateIneqTokens := true
+-		if fc.fname != eq && q.UidList != nil && uint64(len(q.UidList.Uids)) < Config.TypeFilterUidLimit {
+-			if !checkUidZero(q.UidList.Uids) {
++		if fc.fname != eq && q.UidList != nil && !checkUidZero(q.UidList.Uids) {
++			switch {
++			case ineqMode == FilterPathIndex:
++				// keep generateIneqTokens = true so an indexed attr still produces tokens
++			case ineqMode == FilterPathPerVertex:
++				fc.n = len(q.UidList.Uids)
++				generateIneqTokens = false
++			case uint64(len(q.UidList.Uids)) < Config.TypeFilterUidLimit:
+ 				fc.n = len(q.UidList.Uids)
+ 				generateIneqTokens = false
+ 			}
+@@ -1990,6 +2087,9 @@ func parseSrcFn(ctx context.Context, q *pb.Query) (*functionContext, error) {
+ 		switch {
+ 		case q.UidList != nil && !isIndexedAttr:
+ 			fc.n = len(q.UidList.Uids)
++		// Force-index (/ineqfilterpath): keep tokens, skip the token-discard below.
++		case q.UidList != nil && ineqMode == FilterPathIndex && fc.fname != eq:
++			fc.n = len(fc.tokens)
+ 		case q.UidList != nil && len(fc.tokens) > len(q.UidList.Uids) && fc.fname != eq:
+ 			fc.tokens = fc.tokens[:0]
+ 			fc.n = len(q.UidList.Uids)
+@@ -2505,7 +2605,10 @@ func (qs *queryState) evaluate(cp countParams, out *pb.Result) error {
+ 	itr := txn.NewIterator(itOpt)
+ 	defer itr.Close()
+ 
+-	for itr.Seek(countKey); itr.Valid(); itr.Next() {
++	endBusy := posting.BeginBadgerBusyForReadTs(cp.readTs)
++	itr.Seek(countKey)
++	endBusy()
++	for itr.Valid() {
+ 		item := itr.Item()
+ 		var key []byte
+ 		key = item.KeyCopy(key)
+@@ -2526,12 +2629,16 @@ func (qs *queryState) evaluate(cp countParams, out *pb.Result) error {
+ 			return err
+ 		}
+ 		out.UidMatrix = append(out.UidMatrix, uids)
++		endBusy = posting.BeginBadgerBusyForReadTs(cp.readTs)
++		itr.Next()
++		endBusy()
+ 	}
+ 	return nil
+ }
+ 
+ func (qs *queryState) handleHasWithOrderFunction(ctx context.Context, q *pb.Query, out *pb.Result,
+ 	rev bool, offset, first int, srcFn *functionContext) error {
++	y.Inc(handleHasWithOrderFunctionCounter)
+ 	if first == 0 {
+ 		first = math.MaxInt
+ 	}
+@@ -2614,6 +2721,7 @@ func (qs *queryState) handleHasWithOrderFunction(ctx context.Context, q *pb.Quer
+ 
+ func (qs *queryState) handleHasFunction(ctx context.Context, q *pb.Query, out *pb.Result,
+ 	srcFn *functionContext) error {
++	y.Inc(handleHasFunctionCounter)
+ 	span := trace.SpanFromContext(ctx)
+ 	stop := x.SpanTimer(span, "handleHasFunction")
+ 	defer stop()
+diff --git dgraph/dgraph-25.0.0/worker/tokens.go dgraph/dgraph-25.0.0/worker/tokens.go
+index 3dc534c18..0dd50fcc0 100644
+--- dgraph/dgraph-25.0.0/worker/tokens.go
++++ dgraph/dgraph-25.0.0/worker/tokens.go
+@@ -12,6 +12,7 @@ import (
+ 	"github.com/pkg/errors"
+ 
+ 	"github.com/dgraph-io/badger/v4"
++	"github.com/hypermodeinc/dgraph/v25/posting"
+ 	"github.com/hypermodeinc/dgraph/v25/schema"
+ 	"github.com/hypermodeinc/dgraph/v25/tok"
+ 	"github.com/hypermodeinc/dgraph/v25/types"
+@@ -211,9 +212,18 @@ func getInequalityTokens(ctx context.Context, readTs uint64, attr, f, lang strin
+ 		ineqTokenInBytes2 = []byte(ineqTokensFinal[1])
+ 	}
+ 
++	bt := posting.BadgerBusyForReadTs(readTs)
++	if bt != nil {
++		bt.Begin()
++		itr.Seek(seekKey)
++		bt.End()
++	} else {
++		itr.Seek(seekKey)
++	}
++
+ 	var out []string
+ LOOP:
+-	for itr.Seek(seekKey); itr.Valid(); itr.Next() {
++	for itr.Valid(){
+ 		item := itr.Item()
+ 		key := item.Key()
+ 		k, err := x.Parse(key)
+@@ -251,6 +261,14 @@ LOOP:
+ 			// for le or ge or any other fn consider the key
+ 			out = append(out, k.Term)
+ 		}
++
++		if bt != nil {
++			bt.Begin()
++			itr.Next()
++			bt.End()
++		} else {
++			itr.Next()
++		}
+ 	}
+ 
+ 	return out, ineqTokensFinal, nil
+diff --git dgraph/dgraph-25.0.0/x/metrics.go dgraph/dgraph-25.0.0/x/metrics.go
+index e5aed5b95..404ec2dda 100644
+--- dgraph/dgraph-25.0.0/x/metrics.go
++++ dgraph/dgraph-25.0.0/x/metrics.go
+@@ -10,6 +10,7 @@ import (
+ 	"expvar"
+ 	"fmt"
+ 	"log"
++	"math"
+ 	"net/http"
+ 	"os"
+ 	"os/exec"
+@@ -67,6 +68,14 @@ var (
+ 	BadgerReadLatencyMs = ostats.Float64("badger_read_latency_ms",
+ 		"Latency of the various methods", ostats.UnitMilliseconds)
+ 
++	// QueryLatencyTotalNs is the cumulative wall time spent processing queries on this Alpha.
++	QueryLatencyTotalNs = ostats.Float64("query_latency_total_ns",
++		"Cumulative wall time spent processing queries", ostats.UnitNone)
++	// QueryStorageWallTotalNs is the cumulative wall time during which at least one tracked
++	// storage operation (Badger/posting read paths) was in-flight while processing queries.
++	QueryStorageWallTotalNs = ostats.Float64("query_storage_wall_total_ns",
++		"Cumulative wall time (nano) spent in tracked storage operations during queries", ostats.UnitNone)
++
+ 	// Point-in-time metrics.
+ 
+ 	// PendingQueries records the current number of pending queries.
+@@ -127,12 +136,24 @@ var (
+ 	// PBlockHitRatio records the hit ratio of posting store block cache.
+ 	PBlockHitRatio = ostats.Float64("hit_ratio_postings_block",
+ 		"Hit ratio of p store block cache", ostats.UnitDimensionless)
++	PBlockHitCount = ostats.Int64("hit_count_postings_block",
++		"Hit count of p store block cache", ostats.UnitDimensionless)
++	PBlockMissCount = ostats.Int64("miss_count_postings_block",
++		"Miss count of p store block cache", ostats.UnitDimensionless)
+ 	// PIndexHitRatio records the hit ratio of posting store index cache.
+ 	PIndexHitRatio = ostats.Float64("hit_ratio_postings_index",
+ 		"Hit ratio of p store index cache", ostats.UnitDimensionless)
++	PIndexHitCount = ostats.Int64("hit_count_postings_index",
++		"Hit count of p store index cache", ostats.UnitDimensionless)
++	PIndexMissCount = ostats.Int64("miss_count_postings_index",
++		"Miss count of p store index cache", ostats.UnitDimensionless)
+ 	// PLCacheHitRatio records the hit ratio of posting list cache.
+ 	PLCacheHitRatio = ostats.Float64("hit_ratio_posting_cache",
+ 		"Hit ratio of posting list cache", ostats.UnitDimensionless)
++	PLCacheHitCount = ostats.Int64("hit_count_posting_cache",
++		"Hit count of posting list cache", ostats.UnitDimensionless)
++	PLCacheMissCount = ostats.Int64("miss_count_posting_cache",
++		"Miss count of posting list cache", ostats.UnitDimensionless)
+ 	// RaftHasLeader records whether this instance has a leader
+ 	RaftHasLeader = ostats.Int64("raft_has_leader",
+ 		"Whether or not a leader exists for the group", ostats.UnitDimensionless)
+@@ -210,6 +231,20 @@ var (
+ 			Aggregation: view.Count(),
+ 			TagKeys:     allTagKeys,
+ 		},
++		{
++			Name:        QueryLatencyTotalNs.Name(),
++			Measure:     QueryLatencyTotalNs,
++			Description: QueryLatencyTotalNs.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
++		{
++			Name:        QueryStorageWallTotalNs.Name(),
++			Measure:     QueryStorageWallTotalNs,
++			Description: QueryStorageWallTotalNs.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
+ 		{
+ 			Name:        NumPostingListCacheRead.Name(),
+ 			Measure:     NumPostingListCacheRead,
+@@ -373,6 +408,20 @@ var (
+ 			Aggregation: view.LastValue(),
+ 			TagKeys:     allTagKeys,
+ 		},
++		{
++			Name:        PBlockHitCount.Name(),
++			Measure:     PBlockHitCount,
++			Description: PBlockHitCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
++		{
++			Name:        PBlockMissCount.Name(),
++			Measure:     PBlockMissCount,
++			Description: PBlockMissCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
+ 		{
+ 			Name:        PIndexHitRatio.Name(),
+ 			Measure:     PIndexHitRatio,
+@@ -380,6 +429,20 @@ var (
+ 			Aggregation: view.LastValue(),
+ 			TagKeys:     allTagKeys,
+ 		},
++		{
++			Name:        PIndexHitCount.Name(),
++			Measure:     PIndexHitCount,
++			Description: PIndexHitCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
++		{
++			Name:        PIndexMissCount.Name(),
++			Measure:     PIndexMissCount,
++			Description: PIndexMissCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
+ 		{
+ 			Name:        PLCacheHitRatio.Name(),
+ 			Measure:     PLCacheHitRatio,
+@@ -387,6 +450,20 @@ var (
+ 			Aggregation: view.LastValue(),
+ 			TagKeys:     allTagKeys,
+ 		},
++		{
++			Name:        PLCacheHitCount.Name(),
++			Measure:     PLCacheHitCount,
++			Description: PLCacheHitCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
++		{
++			Name:        PLCacheMissCount.Name(),
++			Measure:     PLCacheMissCount,
++			Description: PLCacheMissCount.Description(),
++			Aggregation: view.LastValue(),
++			TagKeys:     allTagKeys,
++		},
+ 		{
+ 			Name:        MaxAssignedTs.Name(),
+ 			Measure:     MaxAssignedTs,
+@@ -700,11 +777,55 @@ func MonitorCacheHealth(db *badger.DB, closer *z.Closer) {
+ 	defer ticker.Stop()
+ 	backgroundContext := context.Background()
+ 
++	// Live block/index cache hit/miss counters, published to /debug/vars and read
++	// synchronously on each scrape. The PBlock*/PIndex* opencensus measures below
++	// are only refreshed by this 10s ticker — too coarse to attribute hits/misses
++	// to a single (sub-second) query. These expvar.Func gauges read ristretto's
++	// live atomic counters at scrape time, so the kvstats experiment can take an
++	// exact per-query delta from before/after /debug/vars snapshots. ristretto's
++	// *Metrics methods are nil-safe, so a disabled cache simply reads 0.
++	publishCacheCounter := func(name string, read func() uint64) {
++		if expvar.Get(name) == nil { // MonitorCacheHealth runs once, but stay re-entrant-safe
++			expvar.Publish(name, expvar.Func(func() interface{} { return read() }))
++		}
++	}
++	publishCacheCounter("badger_custom_block_cache_hits", func() uint64 { return db.BlockCacheMetrics().Hits() })
++	publishCacheCounter("badger_custom_block_cache_misses", func() uint64 { return db.BlockCacheMetrics().Misses() })
++	publishCacheCounter("badger_custom_index_cache_hits", func() uint64 { return db.IndexCacheMetrics().Hits() })
++	publishCacheCounter("badger_custom_index_cache_misses", func() uint64 { return db.IndexCacheMetrics().Misses() })
++
+ 	for {
+ 		select {
+ 		case <-ticker.C:
+-			ostats.Record(backgroundContext, PBlockHitRatio.M(db.BlockCacheMetrics().Ratio()))
+-			ostats.Record(backgroundContext, PIndexHitRatio.M(db.IndexCacheMetrics().Ratio()))
++			blockCacheMetrics := db.BlockCacheMetrics()
++			ostats.Record(backgroundContext, PBlockHitRatio.M(blockCacheMetrics.Ratio()))
++			u := blockCacheMetrics.Hits()
++			if u > uint64(math.MaxInt64) {
++				ostats.Record(context.Background(), PBlockHitCount.M(math.MaxInt64))
++			} else {
++				ostats.Record(context.Background(), PBlockHitCount.M(int64(u)))
++			}
++			v := blockCacheMetrics.Misses()
++			if v > uint64(math.MaxInt64) {
++				ostats.Record(context.Background(), PBlockMissCount.M(math.MaxInt64))
++			} else {
++				ostats.Record(context.Background(), PBlockMissCount.M(int64(v)))
++			}
++
++			indexCacheMetrics := db.IndexCacheMetrics()
++			ostats.Record(backgroundContext, PIndexHitRatio.M(indexCacheMetrics.Ratio()))
++			u = indexCacheMetrics.Hits()
++			if u > uint64(math.MaxInt64) {
++				ostats.Record(context.Background(), PIndexHitCount.M(math.MaxInt64))
++			} else {
++				ostats.Record(context.Background(), PIndexHitCount.M(int64(u)))
++			}
++			v = indexCacheMetrics.Misses()
++			if v > uint64(math.MaxInt64) {
++				ostats.Record(context.Background(), PIndexMissCount.M(math.MaxInt64))
++			} else {
++				ostats.Record(context.Background(), PIndexMissCount.M(int64(v)))
++			}
+ 		case <-closer.HasBeenClosed():
+ 			return
+ 		}

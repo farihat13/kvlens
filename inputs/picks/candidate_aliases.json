@@ -1,0 +1,887 @@
+{
+  "_doc": "candidate names that older captures and records use, which name no candidate today: {workload: {query: {old name: {body_sha, now}}}}. 'now' is the candidate with that body today (candidates.canonical_rows reads this only for a row that carries no body_sha; a row's own body_sha is matched first). Written once at each renaming (2026-10-28; 2026-10-29: the generated plan files, from the names at 65b294f and the earlier entries, by body_sha), checked by tests/unit/check_candidate_aliases.py; never extended by hand.",
+  "interactive": {
+    "ic1": {
+      "default": {
+        "body_sha": "ba99f52a6c29",
+        "now": "ic1_expand_name_matches(index_eq+fetch_deferred)"
+      },
+      "ic1_expand_name_matches:default": {
+        "body_sha": "ba99f52a6c29",
+        "now": "ic1_expand_name_matches(index_eq+fetch_deferred)"
+      },
+      "ic1_expand_name_matches:whole_row_read": {
+        "body_sha": "ae59ed4ac33a",
+        "now": "ic1_expand_name_matches(index_eq+fetch_inline)"
+      },
+      "ic1_level2_expansion:default": {
+        "body_sha": "cc0d4bacc66f",
+        "now": "index_eq+fetch_deferred"
+      },
+      "ic1_level2_expansion:whole_row_read": {
+        "body_sha": "e852ee0003d0",
+        "now": "index_eq+fetch_inline"
+      },
+      "whole_row_read": {
+        "body_sha": "ae59ed4ac33a",
+        "now": "ic1_expand_name_matches(index_eq+fetch_inline)"
+      }
+    },
+    "ic3": {
+      "default": {
+        "body_sha": "eb23d0664c13",
+        "now": "ic3_country_lists(index_eq+index_eq+range_index)"
+      },
+      "ic3_country_lists": {
+        "body_sha": "eb23d0664c13",
+        "now": "ic3_country_lists(index_eq+index_eq+range_index)"
+      },
+      "ic3_exact_window:default": {
+        "body_sha": "b2e424782d62",
+        "now": "ic3_exact_window(index_eq+index_eq+range_index)"
+      },
+      "ic3_exact_window_country_lists:default": {
+        "body_sha": "ba75d86553b7",
+        "now": "ic3_exact_window_country_lists(index_eq+index_eq+range_index)"
+      },
+      "ic3_per_message_location": {
+        "body_sha": "c1a4c61a641b",
+        "now": "index_eq+index_eq+range_index"
+      },
+      "sorted_range_index_whole_row_read": {
+        "body_sha": "ba75d86553b7",
+        "now": "ic3_exact_window_country_lists(index_eq+index_eq+range_index)"
+      }
+    },
+    "ic4": {
+      "default": {
+        "body_sha": "1d67ba0e754b",
+        "now": "filter_probe"
+      },
+      "ic4_fused:default": {
+        "body_sha": "e40d400f8114",
+        "now": "filter_fused"
+      },
+      "ic4_scan:default": {
+        "body_sha": "1d67ba0e754b",
+        "now": "filter_probe"
+      },
+      "ic4_scan:type_index": {
+        "body_sha": "38961ab2a02a",
+        "now": "filter_index"
+      },
+      "label_scoped_props_whole_row_read_not_type_index_single_posting": {
+        "body_sha": "e40d400f8114",
+        "now": "filter_fused"
+      },
+      "type_index_single_posting": {
+        "body_sha": "38961ab2a02a",
+        "now": "filter_index"
+      }
+    },
+    "ic5": {
+      "ic5_listjoin": {
+        "body_sha": "39e902e53fed",
+        "now": "ic5_listjoin(ic5)"
+      },
+      "ic5_per_post_creator": {
+        "body_sha": "c4dcca81e8e3",
+        "now": "ic5"
+      }
+    },
+    "ic6": {
+      "default": {
+        "body_sha": "f73d6b9e0801",
+        "now": "index_eq+filter_probe"
+      },
+      "ic6_scan:default": {
+        "body_sha": "f73d6b9e0801",
+        "now": "index_eq+filter_probe"
+      },
+      "ic6_scan:type_index": {
+        "body_sha": "fd09c24ad4f7",
+        "now": "index_eq+filter_index"
+      },
+      "type_index_single_posting": {
+        "body_sha": "fd09c24ad4f7",
+        "now": "index_eq+filter_index"
+      }
+    },
+    "ic8": {
+      "default": {
+        "body_sha": "ea569a190ca5",
+        "now": "index_walk"
+      },
+      "index_entries_by_docid": {
+        "body_sha": "37eb2f457823",
+        "now": "one_phase"
+      }
+    },
+    "ic10": {
+      "default": {
+        "body_sha": "fa8facde3d9c",
+        "now": "ic10_interest_lists(filter_probe+fetch_deferred)"
+      },
+      "ic10_fof_from_person_run:default": {
+        "body_sha": "ed485793caf5",
+        "now": "ic10_fof_from_person_run<-ic10_interest_lists(filter_probe+fetch_deferred)"
+      },
+      "ic10_fof_from_person_run:label_rows_one_run_type_index_single_posting": {
+        "body_sha": "e845a0e52bc6",
+        "now": "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_deferred)"
+      },
+      "ic10_fof_from_person_run:label_rows_one_run_type_index_whole_row_read": {
+        "body_sha": "cfcebce7c341",
+        "now": "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_inline)"
+      },
+      "ic10_interest_lists:default": {
+        "body_sha": "fa8facde3d9c",
+        "now": "ic10_interest_lists(filter_probe+fetch_deferred)"
+      },
+      "ic10_interest_lists:type_index_single_posting": {
+        "body_sha": "acbb6f99fd2b",
+        "now": "ic10_interest_lists(filter_index+fetch_deferred)"
+      },
+      "ic10_interest_lists:type_index_whole_row_read": {
+        "body_sha": "9a22db31ce8f",
+        "now": "ic10_interest_lists(filter_index+fetch_inline)"
+      },
+      "ic10_per_post_tags:default": {
+        "body_sha": "64a0eb962fe1",
+        "now": "filter_probe+fetch_deferred"
+      },
+      "ic10_per_post_tags:type_index_single_posting": {
+        "body_sha": "d26e370f2314",
+        "now": "filter_index+fetch_deferred"
+      },
+      "ic10_per_post_tags:type_index_whole_row_read": {
+        "body_sha": "a9842a57d881",
+        "now": "filter_index+fetch_inline"
+      },
+      "ic10_scan:default": {
+        "body_sha": "fa8facde3d9c",
+        "now": "ic10_interest_lists(filter_probe+fetch_deferred)"
+      },
+      "ic10_scan:type_index_single_posting": {
+        "body_sha": "acbb6f99fd2b",
+        "now": "ic10_interest_lists(filter_index+fetch_deferred)"
+      },
+      "ic10_scan:type_index_whole_row_read": {
+        "body_sha": "9a22db31ce8f",
+        "now": "ic10_interest_lists(filter_index+fetch_inline)"
+      },
+      "index_entries_by_docid_label_rows_one_run_type_index_type_index_single_posting_whole_row_read": {
+        "body_sha": "cfcebce7c341",
+        "now": "ic10_fof_from_person_run<-ic10_interest_lists(filter_index+fetch_inline)"
+      },
+      "type_index_single_posting": {
+        "body_sha": "acbb6f99fd2b",
+        "now": "ic10_interest_lists(filter_index+fetch_deferred)"
+      },
+      "type_index_whole_row_read": {
+        "body_sha": "9a22db31ce8f",
+        "now": "ic10_interest_lists(filter_index+fetch_inline)"
+      }
+    },
+    "ic12": {
+      "default": {
+        "body_sha": "286f2d241b90",
+        "now": "filter_probe+index_eq"
+      },
+      "ic12_scan:default": {
+        "body_sha": "286f2d241b90",
+        "now": "filter_probe+index_eq"
+      },
+      "ic12_scan:type_index": {
+        "body_sha": "6cbbb35312ec",
+        "now": "filter_index+index_eq"
+      },
+      "type_index_not_type_index_single_posting_at_0.1": {
+        "body_sha": "6cbbb35312ec",
+        "now": "filter_index+index_eq"
+      },
+      "type_index_single_posting": {
+        "body_sha": "6cbbb35312ec",
+        "now": "filter_index+index_eq"
+      }
+    },
+    "is2": {
+      "default": {
+        "body_sha": "63cd66534995",
+        "now": "two_phase"
+      },
+      "default_not_sorted_range_index_at_0.1": {
+        "body_sha": "1dd6cc7e866c",
+        "now": "index_walk"
+      },
+      "whole_row_read": {
+        "body_sha": "5eb78e08d905",
+        "now": "one_phase"
+      }
+    },
+    "is7": {
+      "adjacency_lists_reverse_adjacency": {
+        "body_sha": "9bc2e1e1375b",
+        "now": "edge_probe"
+      },
+      "default": {
+        "body_sha": "b615b3693be4",
+        "now": "edge_probe_out"
+      },
+      "whole_row_read_not_type_index_single_posting": {
+        "body_sha": "be3797ea5f2d",
+        "now": "materialize_intersect"
+      }
+    },
+    "ic2": {
+      "ic2": {
+        "body_sha": "ab3c78320716",
+        "now": "index_walk"
+      }
+    },
+    "ic7": {
+      "ic7": {
+        "body_sha": "db587d8419be",
+        "now": "materialize_intersect"
+      }
+    },
+    "ic9": {
+      "ic9": {
+        "body_sha": "d391417a18e0",
+        "now": "index_walk"
+      }
+    },
+    "ic11": {
+      "ic11": {
+        "body_sha": "8a78140294f6",
+        "now": "index_eq"
+      }
+    }
+  },
+  "microbench": {
+    "entry_eq_scan": {
+      "default": {
+        "body_sha": "35287e6ae3a4",
+        "now": "hand"
+      },
+      "whole_label_scan_by_default": {
+        "body_sha": "82eba23ee3b0",
+        "now": "hand+fused"
+      }
+    },
+    "entry_range": {
+      "default": {
+        "body_sha": "3428d996eda5",
+        "now": "hand~3428d9"
+      },
+      "sorted_range_index": {
+        "body_sha": "60b076020602",
+        "now": "hand~60b076"
+      }
+    },
+    "entry_range_scan": {
+      "default": {
+        "body_sha": "95f378cdec4b",
+        "now": "hand"
+      },
+      "whole_label_scan_by_default": {
+        "body_sha": "e38240c1c00d",
+        "now": "hand+fused"
+      }
+    },
+    "topk1": {
+      "default": {
+        "body_sha": "42d8be8bbec0",
+        "now": "hand~42d8be"
+      },
+      "per_type_index": {
+        "body_sha": "36dce21671c6",
+        "now": "hand~36dce2"
+      }
+    },
+    "topk10": {
+      "default": {
+        "body_sha": "b63a59991228",
+        "now": "hand~b63a59"
+      },
+      "per_type_index": {
+        "body_sha": "5e126bb7ae62",
+        "now": "hand~5e126b"
+      }
+    },
+    "topk100": {
+      "default": {
+        "body_sha": "bf08eed00425",
+        "now": "hand~bf08ee"
+      },
+      "per_type_index": {
+        "body_sha": "b27c483a3dc3",
+        "now": "hand~b27c48"
+      }
+    },
+    "topk10_scan": {
+      "default": {
+        "body_sha": "2a7a7e96e16b",
+        "now": "hand~2a7a7e"
+      },
+      "whole_label_scan_by_default_whole_row_read": {
+        "body_sha": "155372a81877",
+        "now": "hand+fused~155372"
+      },
+      "whole_row_read": {
+        "body_sha": "f131b2032f7f",
+        "now": "hand~f131b2"
+      }
+    },
+    "edge_probe": {
+      "adjacency_lists_reverse_adjacency": {
+        "body_sha": "2cab1bb45c41",
+        "now": "edge_probe"
+      },
+      "default": {
+        "body_sha": "3ac2e6c1616f",
+        "now": "edge_probe_out"
+      }
+    },
+    "hop1_posts_props": {
+      "default": {
+        "body_sha": "c5e1d5ab84ba",
+        "now": "hand+probe"
+      },
+      "hop1_posts_props_fused:default": {
+        "body_sha": "fc526d1ae370",
+        "now": "hand~fc526d"
+      },
+      "label_scoped_props_whole_row_read_not_index_entries_by_docid_label_scan_carries_props": {
+        "body_sha": "fc526d1ae370",
+        "now": "hand~fc526d"
+      },
+      "type_index_single_posting": {
+        "body_sha": "37bd1672b9a9",
+        "now": "hand~37bd16"
+      },
+      "type_index_single_posting_whole_row_read_not_sorted_range_index_at_0.1+3": {
+        "body_sha": "37bd1672b9a9",
+        "now": "hand~37bd16"
+      }
+    },
+    "nhop2p": {
+      "nhop2p_from_person_run:default": {
+        "body_sha": "33bd704e8edb",
+        "now": "nhop2p_from_person_run(hand)"
+      },
+      "nhop2p": {
+        "body_sha": "17006b0f0414",
+        "now": "hand"
+      }
+    },
+    "hop2_post_likers": {
+      "default": {
+        "body_sha": "3ceb7214ded3",
+        "now": "hand+probe"
+      },
+      "type_index_single_posting": {
+        "body_sha": "54b5ffa05397",
+        "now": "hand"
+      },
+      "type_index_single_posting_whole_row_read_not_sorted_range_index_at_0.1+3": {
+        "body_sha": "54b5ffa05397",
+        "now": "hand"
+      },
+      "whole_row_read_not_sorted_range_index": {
+        "body_sha": "3ceb7214ded3",
+        "now": "hand+probe"
+      }
+    },
+    "fof_posters_profile": {
+      "default": {
+        "body_sha": "86db83112422",
+        "now": "hand+probe~86db83"
+      },
+      "fof_posters_profile_from_person_run:default": {
+        "body_sha": "dfd725764405",
+        "now": "fof_posters_profile_from_person_run(hand)+probe"
+      },
+      "fof_posters_profile_from_person_run:label_rows_one_run_type_index": {
+        "body_sha": "bba7b07ed62e",
+        "now": "fof_posters_profile_from_person_run(hand)"
+      },
+      "fof_posters_profile_scan:default": {
+        "body_sha": "86db83112422",
+        "now": "hand+probe~86db83"
+      },
+      "fof_posters_profile_scan:type_index_single_posting": {
+        "body_sha": "2f66607af77d",
+        "now": "hand~2f6660"
+      },
+      "fof_posters_profile_scan:type_index_whole_row_read": {
+        "body_sha": "dc6ac43507a7",
+        "now": "hand~dc6ac4"
+      },
+      "type_index_single_posting": {
+        "body_sha": "2f66607af77d",
+        "now": "hand~2f6660"
+      },
+      "type_index_whole_row_read": {
+        "body_sha": "dc6ac43507a7",
+        "now": "hand~dc6ac4"
+      },
+      "whole_row_read": {
+        "body_sha": "812ebf8fdb78",
+        "now": "hand+probe~812ebf"
+      }
+    },
+    "point1": {
+      "point1": {
+        "body_sha": "7844675e6eb4",
+        "now": "hand"
+      }
+    },
+    "point4": {
+      "point4": {
+        "body_sha": "49688cf446c7",
+        "now": "hand"
+      }
+    },
+    "point7": {
+      "point7": {
+        "body_sha": "068012a4034b",
+        "now": "hand"
+      }
+    },
+    "point_post": {
+      "point_post": {
+        "body_sha": "0c98408c1136",
+        "now": "hand"
+      }
+    },
+    "entrylabel_person": {
+      "entrylabel_person": {
+        "body_sha": "06d605dfa1b7",
+        "now": "hand"
+      }
+    },
+    "entrylabel_forum": {
+      "entrylabel_forum": {
+        "body_sha": "f011bf3c70e2",
+        "now": "hand"
+      }
+    },
+    "entrylabel_post": {
+      "entrylabel_post": {
+        "body_sha": "fc522d8450b9",
+        "now": "hand"
+      }
+    },
+    "entry_eq": {
+      "entry_eq": {
+        "body_sha": "e53cb507161d",
+        "now": "index_eq"
+      }
+    },
+    "hop1_knows": {
+      "hop1_knows": {
+        "body_sha": "8bb972b64359",
+        "now": "hand"
+      }
+    },
+    "hop1_knows_out": {
+      "hop1_knows_out": {
+        "body_sha": "8057b164dbb1",
+        "now": "hand"
+      }
+    },
+    "hop1p_knows": {
+      "hop1p_knows": {
+        "body_sha": "7d76b93f5370",
+        "now": "hand"
+      }
+    },
+    "hop1p1_knows": {
+      "hop1p1_knows": {
+        "body_sha": "9323215dc897",
+        "now": "hand"
+      }
+    },
+    "hop1p3_knows": {
+      "hop1p3_knows": {
+        "body_sha": "bb1747621a12",
+        "now": "hand"
+      }
+    },
+    "hop1p7_knows": {
+      "hop1p7_knows": {
+        "body_sha": "b89a127be5de",
+        "now": "hand"
+      }
+    },
+    "hop1_hascreator": {
+      "hop1_hascreator": {
+        "body_sha": "a83fe99fb626",
+        "now": "hand"
+      }
+    },
+    "hop1_hasmember": {
+      "hop1_hasmember": {
+        "body_sha": "fb4b0cafd4af",
+        "now": "hand"
+      }
+    },
+    "hop1_hastag": {
+      "hop1_hastag": {
+        "body_sha": "e8e65228da62",
+        "now": "hand"
+      }
+    },
+    "hop1_label": {
+      "hop1_label": {
+        "body_sha": "da3f9b090f71",
+        "now": "filter_probe"
+      }
+    },
+    "hop1_propfilter": {
+      "hop1_propfilter": {
+        "body_sha": "e9cbfc872a9f",
+        "now": "hand"
+      }
+    },
+    "hop1_edgefilter": {
+      "hop1_edgefilter": {
+        "body_sha": "64ded3c3c05c",
+        "now": "hand"
+      }
+    },
+    "hop1_msgs_date": {
+      "hop1_msgs_date": {
+        "body_sha": "4677a5b8913a",
+        "now": "hand"
+      }
+    },
+    "hop1_msgs_content": {
+      "hop1_msgs_content": {
+        "body_sha": "c2623ebf2317",
+        "now": "hand"
+      }
+    },
+    "nhop1": {
+      "nhop1": {
+        "body_sha": "41ea1900dc91",
+        "now": "hand"
+      }
+    },
+    "nhop2": {
+      "nhop2": {
+        "body_sha": "2ca58ffef761",
+        "now": "hand"
+      }
+    },
+    "nhop3": {
+      "nhop3": {
+        "body_sha": "0c2584cda5e0",
+        "now": "hand"
+      }
+    },
+    "nhop4": {
+      "nhop4": {
+        "body_sha": "2664fe65d1c2",
+        "now": "hand"
+      }
+    },
+    "nhop5": {
+      "nhop5": {
+        "body_sha": "7d52833dde51",
+        "now": "hand"
+      }
+    },
+    "nhop6": {
+      "nhop6": {
+        "body_sha": "eea3874aa7fc",
+        "now": "hand"
+      }
+    },
+    "nhop4p": {
+      "nhop4p": {
+        "body_sha": "d7dc027eb2d9",
+        "now": "hand"
+      }
+    },
+    "nhop2_hetero": {
+      "nhop2_hetero": {
+        "body_sha": "641bfa356849",
+        "now": "hand"
+      }
+    },
+    "chain": {
+      "chain": {
+        "body_sha": "7b8f9786fa37",
+        "now": "hand"
+      }
+    },
+    "chain3": {
+      "chain3": {
+        "body_sha": "5d1a8f361449",
+        "now": "hand"
+      }
+    }
+  },
+  "bi": {
+    "bi1": {
+      "bi1_scan:default": {
+        "body_sha": "0b8042508972",
+        "now": "bi1_scan(hand)"
+      },
+      "bi1_scan:whole_label_scan_by_default": {
+        "body_sha": "ef25d56d5328",
+        "now": "bi1_scan(hand+fused)"
+      },
+      "default": {
+        "body_sha": "d2cf86774091",
+        "now": "hand+probe~d2cf86"
+      },
+      "per_type_index_whole_row_read": {
+        "body_sha": "c41508575efe",
+        "now": "hand~c41508"
+      },
+      "type_index_single_posting": {
+        "body_sha": "6e4d8afda2a1",
+        "now": "hand~6e4d8a"
+      }
+    },
+    "bi12": {
+      "bi12_scan:default": {
+        "body_sha": "eba2e88f2b34",
+        "now": "bi12_scan(hand)"
+      },
+      "bi12_scan:whole_label_scan_by_default": {
+        "body_sha": "21014b1af3ba",
+        "now": "bi12_scan(hand+fused)"
+      },
+      "bi12_scan_run:default": {
+        "body_sha": "21759efc4186",
+        "now": "bi12_scan_run(hand)"
+      },
+      "bi12_scan_run:label_rows_one_run_whole_label_scan_by_default": {
+        "body_sha": "eaa7ea9337d8",
+        "now": "bi12_scan_run(hand+fused)"
+      },
+      "bi12_source:default": {
+        "body_sha": "c3c54760ec8c",
+        "now": "bi12_source(hand)+probe~c3c547"
+      },
+      "bi12_source:per_type_index_whole_row_read": {
+        "body_sha": "933257a3b630",
+        "now": "bi12_source(hand)~933257"
+      },
+      "bi12_source:type_index_single_posting": {
+        "body_sha": "140df0a0c372",
+        "now": "bi12_source(hand)~140df0"
+      },
+      "default": {
+        "body_sha": "4643605927e4",
+        "now": "hand+probe~464360"
+      },
+      "per_type_index_whole_row_read": {
+        "body_sha": "607d225f8185",
+        "now": "hand~607d22"
+      },
+      "type_index_single_posting": {
+        "body_sha": "427ed33dcbc5",
+        "now": "hand~427ed3"
+      }
+    },
+    "bi9": {
+      "bi9_run:default": {
+        "body_sha": "a17c5cf0376b",
+        "now": "bi9_run(hand)"
+      },
+      "bi9_source:default": {
+        "body_sha": "a7447d39fc04",
+        "now": "bi9_source(hand)+probe"
+      },
+      "bi9_source:per_type_index_whole_row_read": {
+        "body_sha": "233d050b4053",
+        "now": "bi9_source(hand)~233d05"
+      },
+      "bi9_source:type_index_single_posting": {
+        "body_sha": "b90d8c34c0bc",
+        "now": "bi9_source(hand)~b90d8c"
+      },
+      "bi9_source_run:default": {
+        "body_sha": "e108e6036d30",
+        "now": "bi9_source_run(hand)"
+      },
+      "default": {
+        "body_sha": "f7dcba8bb648",
+        "now": "hand+probe"
+      },
+      "per_type_index_whole_row_read": {
+        "body_sha": "24e1d023bd29",
+        "now": "hand~24e1d0"
+      },
+      "type_index_single_posting": {
+        "body_sha": "7fb032e41fc4",
+        "now": "hand~7fb032"
+      }
+    },
+    "bi2": {
+      "bi2_run:default": {
+        "body_sha": "1ecc4910b150",
+        "now": "bi2_run(hand)"
+      },
+      "default": {
+        "body_sha": "4c1f5f0a00bf",
+        "now": "hand+probe~4c1f5f"
+      },
+      "index_entries_by_docid_type_index_single_posting": {
+        "body_sha": "78c926cd8a17",
+        "now": "hand~78c926"
+      },
+      "type_index_single_posting": {
+        "body_sha": "415aab3cef88",
+        "now": "hand~415aab"
+      },
+      "whole_row_read_not_index_entries_by_docid": {
+        "body_sha": "8d4e829979ef",
+        "now": "hand~8d4e82"
+      }
+    },
+    "bi5": {
+      "default": {
+        "body_sha": "248448994b4a",
+        "now": "hand+probe"
+      },
+      "type_index_type_index_single_posting_not_per_type_index": {
+        "body_sha": "240b889facec",
+        "now": "hand~240b88"
+      },
+      "whole_row_read": {
+        "body_sha": "c9d31eda4830",
+        "now": "hand~c9d31e"
+      }
+    },
+    "bi7": {
+      "default": {
+        "body_sha": "8abc5a117dd7",
+        "now": "hand+probe"
+      },
+      "type_index_type_index_single_posting_not_per_type_index": {
+        "body_sha": "c7bd76ed9114",
+        "now": "hand~c7bd76"
+      },
+      "whole_row_read": {
+        "body_sha": "fe582de343c4",
+        "now": "hand~fe582d"
+      }
+    },
+    "bi8": {
+      "default": {
+        "body_sha": "76db68711097",
+        "now": "hand+probe~76db68"
+      },
+      "index_entries_by_docid_type_index_single_posting": {
+        "body_sha": "2c33f29e741e",
+        "now": "hand~2c33f2"
+      },
+      "type_index_single_posting": {
+        "body_sha": "5023dbbd1476",
+        "now": "hand~5023db"
+      },
+      "whole_row_read_not_index_entries_by_docid": {
+        "body_sha": "828f077a618c",
+        "now": "hand~828f07"
+      }
+    },
+    "bi3": {
+      "bi3_source:default": {
+        "body_sha": "15a2e9eafec1",
+        "now": "bi3_source(hand)+probe"
+      },
+      "bi3_source:type_index_type_index_single_posting_not_per_type_index": {
+        "body_sha": "b74f94b8a747",
+        "now": "bi3_source(hand)~b74f94"
+      },
+      "bi3_source:whole_row_read": {
+        "body_sha": "c68ac6e8afec",
+        "now": "bi3_source(hand)~c68ac6"
+      },
+      "default": {
+        "body_sha": "0e02579aea29",
+        "now": "hand+probe"
+      },
+      "type_index_type_index_single_posting_not_per_type_index": {
+        "body_sha": "c12411072604",
+        "now": "hand~c12411"
+      },
+      "whole_row_read": {
+        "body_sha": "a4eca18cff92",
+        "now": "hand~a4eca1"
+      }
+    },
+    "bi4": {
+      "default": {
+        "body_sha": "48b07cecdca8",
+        "now": "hand"
+      },
+      "whole_label_scan_by_default": {
+        "body_sha": "c4600685f469",
+        "now": "hand+fused"
+      }
+    },
+    "bi13": {
+      "bi13_run:default": {
+        "body_sha": "59d7ec6081b1",
+        "now": "bi13_run(hand)"
+      },
+      "bi13": {
+        "body_sha": "93a2d5aee39e",
+        "now": "hand"
+      }
+    },
+    "bi16": {
+      "bi16_index": {
+        "body_sha": "58e4c787686c",
+        "now": "bi16_index(hand)"
+      },
+      "bi16": {
+        "body_sha": "b4e38a51bf3b",
+        "now": "hand"
+      }
+    },
+    "bi14": {
+      "bi14": {
+        "body_sha": "87e0ff97bea7",
+        "now": "hand"
+      }
+    },
+    "bi11": {
+      "bi11": {
+        "body_sha": "8298c2e4630b",
+        "now": "hand"
+      }
+    },
+    "bi6": {
+      "bi6": {
+        "body_sha": "4f4e66fe2c48",
+        "now": "hand"
+      }
+    },
+    "bi18": {
+      "bi18": {
+        "body_sha": "082baff9a825",
+        "now": "hand"
+      }
+    },
+    "bi17": {
+      "bi17": {
+        "body_sha": "44b050c52ec5",
+        "now": "hand"
+      }
+    },
+    "bi10": {
+      "bi10": {
+        "body_sha": "643dcc345523",
+        "now": "hand"
+      }
+    }
+  }
+}

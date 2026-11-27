@@ -1,0 +1,19 @@
+{
+ "file": "interactive_5_param.txt",
+ "query": "ic5",
+ "generated_by": "python data/gen_ic5_params.py --sf 0.3 --percentile 0.25",
+ "script": "data/gen_ic5_params.py",
+ "source": "$LDBC_SNB_DATA_DIR/sf0.3/CsvBasic-LongDateFormatter/dynamic",
+ "selection": "anchors = the hosted interactive_5_param.txt personIds (same set + order); minDate recomputed per anchor = its friends+fof (2-hop undirected knows, symmetrized, minus self) forum-membership joinDates sorted ascending, value at index floor(0.25 * len) -- a fixed low percentile so ~75% of memberships have joinDate > minDate",
+ "percentile": 0.25,
+ "row_count": 35,
+ "dead_anchors_dropped": 0,
+ "qualifying_fraction": {
+  "min": 0.75,
+  "median": 0.75,
+  "max": 0.75
+ },
+ "date": "2026-09-15",
+ "git_sha": "244702e016b7dfdcb308f14a02d00eb34d0d100f",
+ "note": "hosted interactive_5_param.txt (LDBC's own params for this graph) sets minDate too high -> no network membership joins after it -> IC5 empty + short-circuit; this regen recomputes minDate per anchor from the data. <data dir>/datasets/ is gitignored, so this tracked copy under the experiment is the source of truth; the loader prefers it."
+}

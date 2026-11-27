@@ -1,0 +1,516 @@
+{
+  "plan": "iu1",
+  "question": "Add a person with all properties, their city, three interests, one university, one company and five friends.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "city": {
+      "type": "int"
+    },
+    "interest1": {
+      "type": "int"
+    },
+    "interest2": {
+      "type": "int"
+    },
+    "interest3": {
+      "type": "int"
+    },
+    "university1": {
+      "type": "int"
+    },
+    "company1": {
+      "type": "int"
+    },
+    "friend1": {
+      "type": "int"
+    },
+    "friend2": {
+      "type": "int"
+    },
+    "friend3": {
+      "type": "int"
+    },
+    "friend4": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Person"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842624
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1099511627776
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1099511627776
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "city_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "city"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Place"
+            },
+            {
+              "param": "city"
+            }
+          ]
+        },
+        {
+          "param": "city"
+        }
+      ]
+    },
+    "interest1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "interest1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "interest1"
+            }
+          ]
+        },
+        {
+          "param": "interest1"
+        }
+      ]
+    },
+    "interest2_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "interest2"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "interest2"
+            }
+          ]
+        },
+        {
+          "param": "interest2"
+        }
+      ]
+    },
+    "interest3_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "interest3"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "interest3"
+            }
+          ]
+        },
+        {
+          "param": "interest3"
+        }
+      ]
+    },
+    "university1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "university1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Organisation"
+            },
+            {
+              "param": "university1"
+            }
+          ]
+        },
+        {
+          "param": "university1"
+        }
+      ]
+    },
+    "company1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "company1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Organisation"
+            },
+            {
+              "param": "company1"
+            }
+          ]
+        },
+        {
+          "param": "company1"
+        }
+      ]
+    },
+    "friend1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "friend1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "friend1"
+            }
+          ]
+        },
+        {
+          "param": "friend1"
+        }
+      ]
+    },
+    "friend2_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "friend2"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "friend2"
+            }
+          ]
+        },
+        {
+          "param": "friend2"
+        }
+      ]
+    },
+    "friend3_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "friend3"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "friend3"
+            }
+          ]
+        },
+        {
+          "param": "friend3"
+        }
+      ]
+    },
+    "friend4_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "friend4"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "friend4"
+            }
+          ]
+        },
+        {
+          "param": "friend4"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "v",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Person",
+      "props": {
+        "firstName": "Wtest",
+        "lastName": "Writer",
+        "gender": "other",
+        "birthday": 631152000000,
+        "creationDate": 1577836800000,
+        "locationIP": "10.0.0.1",
+        "browserUsed": "Chrome",
+        "email": [
+          "w@example.org"
+        ],
+        "language": [
+          "en"
+        ]
+      }
+    },
+    {
+      "name": "loc0",
+      "op": "insert_edge",
+      "etype": "isLocatedIn",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "city_vid"
+      },
+      "props": {},
+      "src_label": "Person",
+      "dst_label": "Place"
+    },
+    {
+      "name": "tag0",
+      "op": "insert_edge",
+      "etype": "hasInterest",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "interest1_vid"
+      },
+      "props": {},
+      "src_label": "Person",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag1",
+      "op": "insert_edge",
+      "etype": "hasInterest",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "interest2_vid"
+      },
+      "props": {},
+      "src_label": "Person",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag2",
+      "op": "insert_edge",
+      "etype": "hasInterest",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "interest3_vid"
+      },
+      "props": {},
+      "src_label": "Person",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "uni0",
+      "op": "insert_edge",
+      "etype": "studyAt",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "university1_vid"
+      },
+      "props": {
+        "classYear": 2015
+      },
+      "src_label": "Person",
+      "dst_label": "Organisation"
+    },
+    {
+      "name": "co0",
+      "op": "insert_edge",
+      "etype": "workAt",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "company1_vid"
+      },
+      "props": {
+        "workFrom": 2018
+      },
+      "src_label": "Person",
+      "dst_label": "Organisation"
+    },
+    {
+      "name": "kn0",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "me_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    },
+    {
+      "name": "kn1",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "friend1_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    },
+    {
+      "name": "kn2",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "friend2_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    },
+    {
+      "name": "kn3",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "friend3_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    },
+    {
+      "name": "kn4",
+      "op": "insert_edge",
+      "etype": "knows",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "friend4_vid"
+      },
+      "props": {
+        "creationDate": 1577836800000
+      },
+      "src_label": "Person",
+      "dst_label": "Person"
+    }
+  ],
+  "output": "kn4"
+}

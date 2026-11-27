@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "owners": {
+      "pack": 65536
+    },
+    "split": "never"
+  },
+  "adjacency": {
+    "group": "owner",
+    "owners": {
+      "pack": 65536
+    },
+    "split": "never"
+  },
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "split": "never",
+    "term": "exact",
+    "scope": "type"
+  },
+  "vertex_props_by_label": {
+    "Forum": {
+      "group": "owner",
+      "owners": "one",
+      "split": "never"
+    }
+  },
+  "adjacency_by_etype": {
+    "hasInterest": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "hasModerator": {
+      "group": "item",
+      "owners": "one",
+      "split": "never"
+    },
+    "hasType": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "isSubclassOf": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    }
+  }
+}

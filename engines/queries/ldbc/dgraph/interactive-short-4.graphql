@@ -1,0 +1,16 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS4. Content of a message
+#
+# Given a Message with ID $messageId, retrieve its content and creation date.
+#
+# Params:
+#   $messageId  : string     (e.g., "933")
+
+query IS4($messageId: string) {
+  message(func: eq(id, $messageId)) @filter(type(post) OR type(comment)) {
+    id
+    content
+    imageFile
+    creationDate
+  }
+}

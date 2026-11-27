@@ -1,0 +1,212 @@
+{
+  "plan": "reply_thread_render",
+  "question": "Given a message, list its direct replies with their content and each reply author's name.",
+  "params_like": "is7",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "msg_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "reply_thread_render": {
+      "steps": [
+        {
+          "name": "replies",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "replyOf",
+          "dir": "in"
+        },
+        {
+          "name": "rvids",
+          "op": "dedup",
+          "items": {
+            "ref": "replies"
+          }
+        },
+        {
+          "name": "rprops",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "rvids"
+          },
+          "props": [
+            "id",
+            "content",
+            "creationDate",
+            "locationIP",
+            "browserUsed",
+            "length"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "auth_e",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "rvids"
+          },
+          "etype": "hasCreator",
+          "dir": "out",
+          "pairs": true
+        },
+        {
+          "name": "auth_v",
+          "op": "pluck",
+          "rows": {
+            "ref": "auth_e"
+          },
+          "field": "dst"
+        },
+        {
+          "name": "auth_p",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "auth_v"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "auth_named",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_p"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "auth_join",
+          "op": "join",
+          "left": {
+            "ref": "auth_e"
+          },
+          "right": {
+            "ref": "auth_named"
+          },
+          "left_on": "dst",
+          "right_on": "_vid"
+        },
+        {
+          "name": "auth_by_reply",
+          "op": "rename",
+          "rows": {
+            "ref": "auth_join"
+          },
+          "names": {
+            "src": "_reply"
+          }
+        },
+        {
+          "name": "rmsg_named",
+          "op": "rename",
+          "rows": {
+            "ref": "rprops"
+          },
+          "names": {
+            "id": "messageId",
+            "content": "messageContent",
+            "creationDate": "messageCreationDate",
+            "locationIP": "messageLocationIP",
+            "browserUsed": "messageBrowserUsed",
+            "length": "messageLength"
+          }
+        },
+        {
+          "name": "with_auth",
+          "op": "join",
+          "left": {
+            "ref": "rmsg_named"
+          },
+          "right": {
+            "ref": "auth_by_reply"
+          },
+          "left_on": "_vid",
+          "right_on": "_reply"
+        },
+        {
+          "name": "sorted",
+          "op": "top_k",
+          "rows": {
+            "ref": "with_auth"
+          },
+          "keys": [
+            [
+              "messageId",
+              "asc"
+            ]
+          ],
+          "k": null
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "sorted"
+          },
+          "fields": [
+            "messageId",
+            "messageContent",
+            "messageCreationDate",
+            "messageLocationIP",
+            "messageBrowserUsed",
+            "messageLength",
+            "personId",
+            "personFirstName",
+            "personLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "reply_thread_render": {
+      "sha": "bcbee5538ce5",
+      "requires": [],
+      "sources": [
+        "reply_thread_render"
+      ]
+    }
+  }
+}

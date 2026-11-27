@@ -1,0 +1,20 @@
+{
+ "what": "the hosted LDBC SNB sf30 Interactive substitution params, copied VERBATIM so runs use the same params on a fresh machine (<data dir>/datasets/ is gitignored; capturing-data rule 5)",
+ "source": "<data dir>/datasets/ldbc/substitution_parameters-sf30/ (the hosted download)",
+ "copied": "2026-10-05",
+ "content": "identical to the hosted files (sha256 below), IC1-12; which file a query reads is decided by param_sources.json (one level up): hosted by default, ours/ where it says so",
+ "sha256": {
+  "interactive_1_param.txt": "088d2eaf742c96d903b406d7b1998365139770fda5ec2594cf55efcb564e98a6",
+  "interactive_2_param.txt": "9603805320f1dcf351e86535df50f5538c9e7d1c026ce8493c6e09f5921edf9f",
+  "interactive_3_param.txt": "b05d6b3b43e9248d934c9391e803d78f22624a6f79a08428100a344d046b294f",
+  "interactive_4_param.txt": "6541984ca0f5c4617021828344ebb9fc4fee7f56254ccd6c16074b13bacdcf5a",
+  "interactive_5_param.txt": "dee6241db9d4968ff2b8846a97e1610c127244edf523a0b7f33bdc689cf07187",
+  "interactive_6_param.txt": "5625943dee78b6f83afa5695d3cde0eebd49d825fb9c5f9cca58ce2499860915",
+  "interactive_7_param.txt": "a03dec393d1570bf94c25c4b9ec2c15ca30af1f7e46271078a1da6a62f5344b7",
+  "interactive_8_param.txt": "eaad985f85f6006a69b263772d4d5199a0a597c72481569e12dc173513a61a78",
+  "interactive_9_param.txt": "4321323635c7b51cd3dab6e245a9ad9ae90c7e6577f3d3a939ee17a91230b2c4",
+  "interactive_10_param.txt": "f0e82d7854f029147fe04a02bf23d015af1d8ad1469ff43b065e308756168bb4",
+  "interactive_11_param.txt": "47517c928ca7bfa4e2f9b002dc37bcd6c424bc758b98789bfde4e1e503f2afb2",
+  "interactive_12_param.txt": "de4025fba4c250415bd4e875de037975016f72052fd4db02389c67bf67da14b8"
+ }
+}

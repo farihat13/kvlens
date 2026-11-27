@@ -1,0 +1,218 @@
+{
+  "plan": "iu4",
+  "question": "Add a forum with its moderator and three tags.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    },
+    "tag1": {
+      "type": "int"
+    },
+    "tag2": {
+      "type": "int"
+    },
+    "tag3": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Forum"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842625
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1099511627776
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1099511627776
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "me_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    },
+    "tag1_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag1"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag1"
+            }
+          ]
+        },
+        {
+          "param": "tag1"
+        }
+      ]
+    },
+    "tag2_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag2"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag2"
+            }
+          ]
+        },
+        {
+          "param": "tag2"
+        }
+      ]
+    },
+    "tag3_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "tag3"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Tag"
+            },
+            {
+              "param": "tag3"
+            }
+          ]
+        },
+        {
+          "param": "tag3"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "v",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Forum",
+      "props": {
+        "title": "IU4 forum",
+        "creationDate": 1577836800000
+      }
+    },
+    {
+      "name": "mod0",
+      "op": "insert_edge",
+      "etype": "hasModerator",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "me_vid"
+      },
+      "props": {},
+      "src_label": "Forum",
+      "dst_label": "Person"
+    },
+    {
+      "name": "tag0",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag1_vid"
+      },
+      "props": {},
+      "src_label": "Forum",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag1",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag2_vid"
+      },
+      "props": {},
+      "src_label": "Forum",
+      "dst_label": "Tag"
+    },
+    {
+      "name": "tag2",
+      "op": "insert_edge",
+      "etype": "hasTag",
+      "src": {
+        "let": "new_vid"
+      },
+      "dst": {
+        "let": "tag3_vid"
+      },
+      "props": {},
+      "src_label": "Forum",
+      "dst_label": "Tag"
+    }
+  ],
+  "output": "tag2"
+}

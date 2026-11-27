@@ -1,0 +1,20 @@
+// IC11: Job referral
+// Find 1-2 hop friends who worked at companies in countryName before workFromYear
+LET startPerson = CONCAT("Person/", @personId)
+
+FOR friend IN 1..2 ANY startPerson knows
+    FILTER friend._id != startPerson
+    COLLECT f = friend INTO groups
+    FOR company, workEdge IN 1..1 OUTBOUND f workAt
+        FILTER workEdge.workFrom < @workFromYear
+        FOR country IN 1..1 OUTBOUND company isLocatedIn
+            FILTER country.name == @countryName
+            SORT workEdge.workFrom ASC, TO_NUMBER(f._key) ASC, company.name DESC
+            LIMIT 10
+            RETURN {
+                personId: TO_NUMBER(f._key),
+                personFirstName: f.firstName,
+                personLastName: f.lastName,
+                organizationName: company.name,
+                organizationWorkFrom: workEdge.workFrom
+            }

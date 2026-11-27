@@ -1,0 +1,87 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS2. Recent messages of a person
+# 
+# Given a start Person with ID $personId, retrieve the last 10 Messages created by that user. 
+# For eachMessage, return that Message, the original Post in its conversation (post), and 
+# the author of that Post(originalPoster). 
+# If any of the Messages is a Post, then the original Post (post) will be the sameMessage, 
+# i.e. that Message will appear twice in that result.
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+# Results:
+# 1 message.id ID R
+# 2 message.content or message.imageFile (for photos) Text R
+# 3 message.creationDate DateTime R
+# 4 post.id ID R
+# 5 originalPoster.id ID R
+# 6 originalPoster.firstName String R
+# 7 originalPoster.lastName String R
+# Sort: 
+# 1 message.creationDate ↓
+# 2 message.id ↓
+# Limit: 10
+
+# DEVIATION FROM SPEC:
+# - Instead of total top 10 recent messages, we return top 5 posts and top 5 comments to
+#   work around NebulaGraph's limitation of not being able to apply ORDER BY/LIMIT
+#   after UNION ALL.
+# - To match Dgraph's limitation of variable-length path, capped the REPLY_OF traversal to maximum 3 hops.
+
+## Branch 1: Posts written by this person
+MATCH (author:Person)<-[:HAS_CREATOR]-(message:Post)
+WHERE id(author) == $personId
+
+# For Posts, the original post is itself
+WITH message, message AS post
+
+MATCH (post)-[:HAS_CREATOR]->(origAuthor:Person)
+
+RETURN
+    id(message) AS messageId,
+    # coalesce(message.Post.content, message.Post.imageFile) AS messageContent,
+    CASE
+      WHEN (message.Post.content IS NOT NULL AND message.Post.content != "") THEN message.Post.content
+      ELSE message.Post.imageFile
+    END AS messageContent,
+    message.Post.creationDate AS messageCreationDate,
+    id(post) AS originalPostId,
+    id(origAuthor) AS originalPostAuthorId,
+    origAuthor.Person.firstName AS originalPostAuthorFirstName,
+    origAuthor.Person.lastName AS originalPostAuthorLastName,
+    toInteger(split(tostring(id(message)), "_")[1]) AS messageIdInt
+
+ORDER BY messageCreationDate DESC, messageIdInt DESC
+LIMIT 5
+
+UNION ALL
+
+## Branch 2: Comments written by this person
+MATCH (author:Person)<-[:HAS_CREATOR]-(message:`Comment`)
+WHERE id(author) == $personId
+
+# Follow the reply chain to a POST
+OPTIONAL MATCH (message)-[:REPLY_OF*1..3]->(post:Post)-[:HAS_CREATOR]->(origAuthor:Person)
+
+# Use DISTINCT to avoid duplicates if multiple paths exist
+WITH DISTINCT message, post, origAuthor
+
+RETURN
+    id(message) AS messageId,
+    message.`Comment`.content AS messageContent,
+    message.`Comment`.creationDate AS messageCreationDate,
+    id(post) AS originalPostId,
+    id(origAuthor) AS originalPostAuthorId,
+    CASE 
+        WHEN origAuthor IS NOT NULL THEN origAuthor.Person.firstName
+        ELSE ""
+        END AS originalPostAuthorFirstName,
+    CASE 
+        WHEN origAuthor IS NOT NULL THEN origAuthor.Person.lastName
+        ELSE ""
+        END AS originalPostAuthorLastName,
+    toInteger(split(tostring(id(message)), "_")[1]) AS messageIdInt
+
+ORDER BY messageCreationDate DESC, messageIdInt DESC
+LIMIT 5;
+

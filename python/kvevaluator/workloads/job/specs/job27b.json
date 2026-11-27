@@ -1,0 +1,272 @@
+{
+ "query": "job27b",
+ "aliases": {
+  "cc": "complete_cast",
+  "cct1": "comp_cast_type",
+  "cct2": "comp_cast_type",
+  "cn": "company_name",
+  "ct": "company_type",
+  "k": "keyword",
+  "lt": "link_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "ml": "movie_link",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "lt",
+   "id",
+   "ml",
+   "link_type_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "keyword_id",
+   "k",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "company_type_id",
+   "ct",
+   "id"
+  ],
+  [
+   "mc",
+   "company_id",
+   "cn",
+   "id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "t",
+   "id"
+  ],
+  [
+   "t",
+   "id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "cct1",
+   "id",
+   "cc",
+   "subject_id"
+  ],
+  [
+   "cct2",
+   "id",
+   "cc",
+   "status_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ml",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ]
+ ],
+ "predicates": {
+  "cc": [],
+  "cct1": [
+   [
+    "in",
+    "cct1",
+    "kind",
+    [
+     "cast",
+     "crew"
+    ]
+   ]
+  ],
+  "cct2": [
+   [
+    "cmp",
+    "=",
+    "cct2",
+    "kind",
+    "complete"
+   ]
+  ],
+  "cn": [
+   [
+    "cmp",
+    "!=",
+    "cn",
+    "country_code",
+    "[pl]"
+   ],
+   [
+    "or",
+    [
+     [
+      "like",
+      "cn",
+      "name",
+      "%Film%",
+      false
+     ],
+     [
+      "like",
+      "cn",
+      "name",
+      "%Warner%",
+      false
+     ]
+    ]
+   ]
+  ],
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "sequel"
+   ]
+  ],
+  "lt": [
+   [
+    "like",
+    "lt",
+    "link",
+    "%follow%",
+    false
+   ]
+  ],
+  "mc": [
+   [
+    "null",
+    "mc",
+    "note",
+    true
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Germany",
+     "Swedish",
+     "German"
+    ]
+   ]
+  ],
+  "mk": [],
+  "ml": [],
+  "t": [
+   [
+    "cmp",
+    "=",
+    "t",
+    "production_year",
+    1998
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "producing_company",
+   "cn",
+   "name"
+  ],
+  [
+   "link_type",
+   "lt",
+   "link"
+  ],
+  [
+   "complete_western_sequel",
+   "t",
+   "title"
+  ]
+ ]
+}

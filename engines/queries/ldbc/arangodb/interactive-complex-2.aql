@@ -1,0 +1,56 @@
+// CORRECTED IC2 — the engine's canonical query (engine/data/queries), used by every case study.
+//
+// The pinned cost_eval query (data/costeval/queries/arangodb/interactive-complex-2.aql) uses per-branch
+// LIMIT 10 "to match Nebula", which its own header admits "may be incorrect when the true top-20 needs
+// >10 from one branch". With LIMIT 10, arango/nebula return a WRONG top-20 on
+// p2-5 (one friend's dense run of recent posts fills the top-10, dropping more-recent posts from other
+// friends); the sim (correct) and dgraph (first: 20 per branch) agree.
+//
+// Fix: per-branch LIMIT 20 — provably correct (the final result keeps 20; worst case all 20 from one
+// branch, so each branch's top-20 suffices; the union of per-branch top-20s always contains the true
+// top-20). Only the per-branch LIMIT changed from the pinned query.
+//
+// Owned here (engine/data/queries) rather than editing the cost_eval pinned query, because cost_eval's
+// measured.csv + cost model are calibrated against the LIMIT-10 text (reproducibility). compare.py's
+// load_query_local reads this set; cost_eval still loads its own pinned copy.
+
+LET person = DOCUMENT(CONCAT("Person/", @personId))
+
+LET topPosts = (
+    FOR friend IN 1..1 ANY person knows
+        FOR msg IN 1..1 INBOUND friend hasCreator
+            FILTER IS_SAME_COLLECTION("Post", msg)
+            FILTER msg.creationDate < @maxDate
+            SORT msg.creationDate DESC, TO_NUMBER(msg._key) ASC
+            LIMIT 20
+            RETURN {
+                personId: TO_NUMBER(friend._key),
+                personFirstName: friend.firstName,
+                personLastName: friend.lastName,
+                messageId: TO_NUMBER(msg._key),
+                messageContent: msg.content != null AND msg.content != "" ? msg.content : msg.imageFile,
+                messageCreationDate: msg.creationDate
+            }
+)
+
+LET topComments = (
+    FOR friend IN 1..1 ANY person knows
+        FOR msg IN 1..1 INBOUND friend hasCreator
+            FILTER IS_SAME_COLLECTION("Comment", msg)
+            FILTER msg.creationDate < @maxDate
+            SORT msg.creationDate DESC, TO_NUMBER(msg._key) ASC
+            LIMIT 20
+            RETURN {
+                personId: TO_NUMBER(friend._key),
+                personFirstName: friend.firstName,
+                personLastName: friend.lastName,
+                messageId: TO_NUMBER(msg._key),
+                messageContent: msg.content,
+                messageCreationDate: msg.creationDate
+            }
+)
+
+FOR r IN APPEND(topPosts, topComments)
+    SORT r.messageCreationDate DESC, r.messageId ASC
+    LIMIT 20
+    RETURN r

@@ -1,0 +1,26 @@
+# microbench fof_posters_profile -- the Persons reachable by a 2-step knows walk (both
+# directions) who created at least one Post and were born on/after 1985-01-01, with id,
+# firstName, lastName.
+# Evaluator: queries/split.py fof_posters_profile_onephase (nebula's shape): read_neighbors x2
+# (knows, both) -> reach -> read_neighbors(hasCreator, in, pairs) -> the Post type probe per
+# message -> authors -> read_vertex_props([id, firstName, lastName, birthday]) -> filter
+# birthday >= BIRTHDAY_CUTOFF. One row per kept author.
+# BIRTHDAY_CUTOFF = 473385600000 (1985-01-01) is a fixed constant of the shape, not a param.
+# The reach is a 2-step WALK: it includes the anchor and any friend who is also a
+# friend-of-friend, exactly like the evaluator's (no exclusion of earlier layers).
+# mb2 lineage: none.
+# Form: GO 2 STEPS (walk semantics; the step-1 frontier is deduped before step 2) -> GO
+# REVERSELY over HAS_CREATOR with the Post tag test of hop1_label.gql (1 Post-row read per
+# message) -> the distinct authors -> FETCH their row once -> filter on birthday in graphd.
+# MATCH alternative: (a)-[:KNOWS*2..2]-(f) drops the anchor (a path cannot reuse the a-b edge),
+# and an id-only (m:Post) endpoint skips the label check (see hop1_label.gql).
+YIELD $personId AS s
+| GO 2 STEPS FROM $-.s OVER KNOWS BIDIRECT YIELD DISTINCT id($$) AS f
+| GO FROM $-.f OVER HAS_CREATOR REVERSELY
+  WHERE $$.Post.creationDate IS NOT EMPTY
+  YIELD DISTINCT dst(edge) AS author
+| FETCH PROP ON Person $-.author
+  YIELD id(vertex) AS id, Person.firstName AS firstName, Person.lastName AS lastName,
+        Person.birthday AS birthday
+| YIELD $-.id AS id, $-.firstName AS firstName, $-.lastName AS lastName
+  WHERE $-.birthday >= 473385600000

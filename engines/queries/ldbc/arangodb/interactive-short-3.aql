@@ -1,0 +1,10 @@
+// IS3: Friends of a Person
+// Given a personId, return all friends with friendship creation date
+FOR friend, e IN 1..1 ANY CONCAT("Person/", TO_STRING(@personId)) knows
+    SORT e.creationDate DESC, TO_NUMBER(friend._key) ASC
+    RETURN {
+        friendId: TO_NUMBER(friend._key),
+        friendFirstName: friend.firstName,
+        friendLastName: friend.lastName,
+        friendshipCreationDate: e.creationDate
+    }

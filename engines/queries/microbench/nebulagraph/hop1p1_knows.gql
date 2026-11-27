@@ -1,0 +1,9 @@
+# microbench hop1p1_knows -- a Person's distinct knows-neighbours (both directions) with
+# 1 property (firstName).
+# Evaluator: queries/hop.py _hop1p(1): read_neighbors -> dedup -> read_vertex_props(
+# PERSON_PROPS[:1]) -> sort. One row per distinct neighbour; no id is read.
+# mb2 lineage: none direct (MB26 read 4 props).
+# Form: see hop1p_knows.gql. id($$) is returned only to keep DISTINCT per neighbour (two
+# neighbours can share a firstName); it is the edge's far end, so it reads nothing.
+YIELD $personId AS s
+| GO FROM $-.s OVER KNOWS BIDIRECT YIELD DISTINCT id($$) AS id, $$.Person.firstName AS firstName

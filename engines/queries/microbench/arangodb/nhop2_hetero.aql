@@ -1,0 +1,10 @@
+// microbench nhop2_hetero: the distinct tags on the messages a person created (TM1's
+// heterogeneous chain: person <-hasCreator- message -hasTag-> tag).
+// Reads: the hasCreator _to edge index from the anchor, then the hasTag _from edge index of each
+// message; returns each distinct tag's _key only.
+// Evaluator: queries/nhop.py nhop2_hetero -- read_neighbors(hasCreator, in) + dedup +
+// read_neighbors(hasTag, out) + dedup; one row per tag.
+// mb2 lineage: MB43-44 (no arango text in mb2).
+FOR m IN 1..1 INBOUND CONCAT("Person/", @personId) hasCreator
+    FOR t IN 1..1 OUTBOUND m hasTag
+        RETURN DISTINCT t._key

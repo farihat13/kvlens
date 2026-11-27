@@ -1,0 +1,19 @@
+{
+  "addlink_link1": "Add a new link of type 1 between two nodes, with its visibility, version, time and data.",
+  "addlink_link2": "Add a new link of type 2 between two nodes, with its visibility, version, time and data.",
+  "addnode": "Add a new node with its type, version, time and data.",
+  "composed_getnode": "Given a node, read the whole record of every node it links to by link type 1.",
+  "countlink_link1": "Given a node, count its links of link type 1.",
+  "countlink_link2": "Given a node, count its links of link type 2.",
+  "deletelink_link1": "Delete a link of type 1 by marking it hidden, leaving the link in place.",
+  "deletelink_link2": "Delete a link of type 2 by marking it hidden, leaving the link in place.",
+  "deletenode": "Delete a node's record, leaving its links in place.",
+  "getlink_link1": "Given a node and a list of target nodes, read the links of type 1 from the node to those targets, with their data.",
+  "getlink_link2": "Given a node and a list of target nodes, read the links of type 2 from the node to those targets, with their data.",
+  "getlinklist_link1": "Given a node, list its up to 10,000 newest links of link type 1, with their data.",
+  "getlinklist_link2": "Given a node, list its up to 10,000 newest links of link type 2, with their data.",
+  "getnode": "Given a node, read its whole record (type, version, time and data).",
+  "updatelink_link1": "Rewrite the visibility, version, time and data of an existing link of type 1.",
+  "updatelink_link2": "Rewrite the visibility, version, time and data of an existing link of type 2.",
+  "updatenode": "Rewrite the version, time and data of an existing node in one write."
+}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "owner",
+    "owners": "one",
+    "split": "never"
+  },
+  "adjacency": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+  },
+  "index": {
+    "group": "item",
+    "owners": "one",
+    "split": "never",
+    "term": "exact",
+    "scope": "type"
+  },
+  "vertex_props_by_label": {
+    "Post": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    },
+    "Comment": {
+      "group": "owner",
+      "owners": {
+        "pack": 65536
+      },
+      "split": "never"
+    }
+  },
+  "adjacency_by_etype": {
+    "hasCreator": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    },
+    "knows": {
+      "group": "owner",
+      "owners": "one",
+      "split": 524288
+    }
+  }
+}

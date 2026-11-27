@@ -1,0 +1,341 @@
+{
+ "query": "job29b",
+ "aliases": {
+  "an": "aka_name",
+  "cc": "complete_cast",
+  "cct1": "comp_cast_type",
+  "cct2": "comp_cast_type",
+  "chn": "char_name",
+  "ci": "cast_info",
+  "cn": "company_name",
+  "it": "info_type",
+  "it3": "info_type",
+  "k": "keyword",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "mk": "movie_keyword",
+  "n": "name",
+  "pi": "person_info",
+  "rt": "role_type",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mk",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "mk",
+   "movie_id",
+   "cc",
+   "movie_id"
+  ],
+  [
+   "cn",
+   "id",
+   "mc",
+   "company_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "rt",
+   "id",
+   "ci",
+   "role_id"
+  ],
+  [
+   "n",
+   "id",
+   "an",
+   "person_id"
+  ],
+  [
+   "ci",
+   "person_id",
+   "an",
+   "person_id"
+  ],
+  [
+   "chn",
+   "id",
+   "ci",
+   "person_role_id"
+  ],
+  [
+   "n",
+   "id",
+   "pi",
+   "person_id"
+  ],
+  [
+   "ci",
+   "person_id",
+   "pi",
+   "person_id"
+  ],
+  [
+   "it3",
+   "id",
+   "pi",
+   "info_type_id"
+  ],
+  [
+   "k",
+   "id",
+   "mk",
+   "keyword_id"
+  ],
+  [
+   "cct1",
+   "id",
+   "cc",
+   "subject_id"
+  ],
+  [
+   "cct2",
+   "id",
+   "cc",
+   "status_id"
+  ]
+ ],
+ "predicates": {
+  "an": [],
+  "cc": [],
+  "cct1": [
+   [
+    "cmp",
+    "=",
+    "cct1",
+    "kind",
+    "cast"
+   ]
+  ],
+  "cct2": [
+   [
+    "cmp",
+    "=",
+    "cct2",
+    "kind",
+    "complete+verified"
+   ]
+  ],
+  "chn": [
+   [
+    "cmp",
+    "=",
+    "chn",
+    "name",
+    "Queen"
+   ]
+  ],
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(voice)",
+     "(voice) (uncredited)",
+     "(voice: English version)"
+    ]
+   ]
+  ],
+  "cn": [
+   [
+    "cmp",
+    "=",
+    "cn",
+    "country_code",
+    "[us]"
+   ]
+  ],
+  "it": [
+   [
+    "cmp",
+    "=",
+    "it",
+    "info",
+    "release dates"
+   ]
+  ],
+  "it3": [
+   [
+    "cmp",
+    "=",
+    "it3",
+    "info",
+    "height"
+   ]
+  ],
+  "k": [
+   [
+    "cmp",
+    "=",
+    "k",
+    "keyword",
+    "computer-animation"
+   ]
+  ],
+  "mc": [],
+  "mi": [
+   [
+    "like",
+    "mi",
+    "info",
+    "USA:%200%",
+    false
+   ]
+  ],
+  "mk": [],
+  "n": [
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "f"
+   ],
+   [
+    "like",
+    "n",
+    "name",
+    "%An%",
+    false
+   ]
+  ],
+  "pi": [],
+  "rt": [
+   [
+    "cmp",
+    "=",
+    "rt",
+    "role",
+    "actress"
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    "=",
+    "t",
+    "title",
+    "Shrek 2"
+   ],
+   [
+    "between",
+    "t",
+    "production_year",
+    2000,
+    2005
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "voiced_char",
+   "chn",
+   "name"
+  ],
+  [
+   "voicing_actress",
+   "n",
+   "name"
+  ],
+  [
+   "voiced_animation",
+   "t",
+   "title"
+  ]
+ ]
+}

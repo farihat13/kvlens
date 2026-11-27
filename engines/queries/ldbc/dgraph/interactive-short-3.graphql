@@ -1,0 +1,27 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS3. Friends of a person
+# 
+# Given a start Person with ID $personId, retrieve all of their friends, and 
+# the date at which they became friends.
+#
+# Sort.  knows.creationDate DESC, friends.id ASC
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+#
+# NOTE: need client-side sorting to achieve required order
+
+query IS3($personId: string) {
+  person(func: eq(id, $personId)) @filter(type(person)) {
+    knows @filter(type(person)) @facets(creationDate) {
+      friendId: id
+      friendFirstName: firstName
+      friendLastName: lastName
+    }
+    ~knows @filter(type(person)) @facets(creationDate) {
+      friendId: id
+      friendFirstName: firstName
+      friendLastName: lastName
+    }
+  }
+}

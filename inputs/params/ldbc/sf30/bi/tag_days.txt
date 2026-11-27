@@ -1,0 +1,6 @@
+tagA|dateA|tagB|dateB|maxKnowsLimit|countA|countB|stratum
+Muammar_Gaddafi|1318723200000|Imelda_Marcos|1336435200000|4|179573|161410|max+partner
+Cliff_Richard|1291248000000|Robert_Fripp|1297728000000|4|248|92576|p99+partner
+Louis_Armstrong|1282262400000|Shapur_II|1286841600000|4|40|80467|p90+partner
+Anywhere_but_Home|1293667200000|Aung_San_Suu_Kyi|1267142400000|4|6|7811|p50+partner
+Duel_of_the_Fates|1305417600000|Yuvan_Shankar_Raja|1290556800000|4|2|16474|p20+partner

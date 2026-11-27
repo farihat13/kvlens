@@ -1,0 +1,5570 @@
+{
+ "plan": "job5a",
+ "question": "Join Order Benchmark query 5a: join 5 IMDb tables (company_type, info_type, movie_companies, movie_info, title) on 5 join conditions, keep the rows that pass 5 filters, and return the smallest value of each of its 1 output columns.",
+ "for": "all formats",
+ "params": {},
+ "variants": [
+  {
+   "requires": [
+    "property_index"
+   ],
+   "plan": "enter_mi_by_index"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "MovieInfo"
+    ]
+   },
+   "plan": "enter_mi_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "MovieInfo"
+    ]
+   },
+   "plan": "enter_mi_by_label_run"
+  },
+  {
+   "requires": [],
+   "lacks": [
+    "whole_label_scan_by_default"
+   ],
+   "on": {
+    "whole_label_scan_by_default": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_scan"
+  },
+  {
+   "requires": [
+    "label_rows_one_run"
+   ],
+   "on": {
+    "label_rows_one_run": [
+     "Title"
+    ]
+   },
+   "plan": "enter_t_by_label_run"
+  }
+ ],
+ "plans": {
+  "enter_mi_by_index": {
+   "steps": [
+    {
+     "name": "s01_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Sweden"
+    },
+    {
+     "name": "s02_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Norway"
+    },
+    {
+     "name": "s03_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Germany"
+    },
+    {
+     "name": "s04_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Denmark"
+    },
+    {
+     "name": "s05_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Swedish"
+    },
+    {
+     "name": "s06_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Denish"
+    },
+    {
+     "name": "s07_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Norwegian"
+    },
+    {
+     "name": "s08_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "German"
+    },
+    {
+     "name": "s09_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s01_mi_ix"
+     },
+     "b": {
+      "ref": "s02_mi_ix"
+     }
+    },
+    {
+     "name": "s10_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_mi_ix_all"
+     },
+     "b": {
+      "ref": "s03_mi_ix"
+     }
+    },
+    {
+     "name": "s11_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_mi_ix_all"
+     },
+     "b": {
+      "ref": "s04_mi_ix"
+     }
+    },
+    {
+     "name": "s12_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_mi_ix_all"
+     },
+     "b": {
+      "ref": "s05_mi_ix"
+     }
+    },
+    {
+     "name": "s13_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_mi_ix_all"
+     },
+     "b": {
+      "ref": "s06_mi_ix"
+     }
+    },
+    {
+     "name": "s14_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_mi_ix_all"
+     },
+     "b": {
+      "ref": "s07_mi_ix"
+     }
+    },
+    {
+     "name": "s15_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_mi_ix_all"
+     },
+     "b": {
+      "ref": "s08_mi_ix"
+     }
+    },
+    {
+     "name": "s16_mi_ix_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mi_ix_all"
+     }
+    },
+    {
+     "name": "s17_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_mi_ix_set"
+     },
+     "props": [
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s18_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "info_type_id"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "info_type_id"
+         },
+         {
+          "lit": [
+           1,
+           2,
+           3,
+           4,
+           5,
+           6,
+           7,
+           8,
+           9,
+           10,
+           11,
+           12,
+           13,
+           14,
+           15,
+           16,
+           17,
+           18,
+           19,
+           20,
+           21,
+           22,
+           23,
+           24,
+           25,
+           26,
+           27,
+           28,
+           29,
+           30,
+           31,
+           32,
+           33,
+           34,
+           35,
+           36,
+           37,
+           38,
+           39,
+           40,
+           41,
+           42,
+           43,
+           44,
+           45,
+           46,
+           47,
+           48,
+           49,
+           50,
+           51,
+           52,
+           53,
+           54,
+           55,
+           56,
+           57,
+           58,
+           59,
+           60,
+           61,
+           62,
+           63,
+           64,
+           65,
+           66,
+           67,
+           68,
+           69,
+           70,
+           71,
+           72,
+           73,
+           74,
+           75,
+           76,
+           77,
+           78,
+           79,
+           80,
+           81,
+           82,
+           83,
+           84,
+           85,
+           86,
+           87,
+           88,
+           89,
+           90,
+           91,
+           92,
+           93,
+           94,
+           95,
+           96,
+           97,
+           98,
+           99,
+           100,
+           101,
+           102,
+           103,
+           104,
+           105,
+           106,
+           107,
+           108,
+           109,
+           110,
+           111,
+           112,
+           113
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s18_mi_keep"
+     }
+    },
+    {
+     "name": "s20_mi_vids",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s21_mi_owner",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mi_vids"
+     },
+     "etype": "info_of",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s22_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s21_mi_owner"
+     },
+     "right": {
+      "ref": "s18_mi_keep"
+     },
+     "left_on": "src",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s23_mi_owner_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_mi_with"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s24_mi_owner_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_mi_owner_col"
+     }
+    },
+    {
+     "name": "s25_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s24_mi_owner_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s26_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s25_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s27_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s28_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_t_back_col"
+     }
+    },
+    {
+     "name": "s29_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s28_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s30_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s29_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s31_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s32_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_mc_dst_col"
+     }
+    },
+    {
+     "name": "s33_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_mc_back_col"
+     }
+    },
+    {
+     "name": "s35_mi_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_mi_with"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s34_mc_back_set"
+     }
+    },
+    {
+     "name": "s36_mi_owner_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_mi_cut"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s37_mi_owner_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_mi_owner_final_col"
+     }
+    },
+    {
+     "name": "s38_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s26_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s37_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s39_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s40_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s42_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_final"
+     }
+    },
+    {
+     "name": "s43_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_mi_cut"
+     }
+    },
+    {
+     "name": "s44_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_t_final"
+     }
+    },
+    {
+     "name": "s45_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s19_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s46_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s45_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s47_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s37_mi_owner_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s48_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s47_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s49_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s48_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s50_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s49_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s51_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s46_base"
+     },
+     "right": {
+      "ref": "s50_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s52_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s42_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s53_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s52_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s54_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s51_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s53_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s55_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s43_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s56_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s55_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s57_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s54_mc_n_in"
+     },
+     "right": {
+      "ref": "s56_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s58_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s44_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s59_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s58_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s60_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s57_mi_n_in"
+     },
+     "right": {
+      "ref": "s59_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s60_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_mi_by_index_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Sweden"
+    },
+    {
+     "name": "s02_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Norway"
+    },
+    {
+     "name": "s03_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Germany"
+    },
+    {
+     "name": "s04_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Denmark"
+    },
+    {
+     "name": "s05_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Swedish"
+    },
+    {
+     "name": "s06_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Denish"
+    },
+    {
+     "name": "s07_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "Norwegian"
+    },
+    {
+     "name": "s08_mi_ix",
+     "op": "read_index_eq",
+     "label": "MovieInfo",
+     "prop": "info",
+     "value": "German"
+    },
+    {
+     "name": "s09_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s01_mi_ix"
+     },
+     "b": {
+      "ref": "s02_mi_ix"
+     }
+    },
+    {
+     "name": "s10_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s09_mi_ix_all"
+     },
+     "b": {
+      "ref": "s03_mi_ix"
+     }
+    },
+    {
+     "name": "s11_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s10_mi_ix_all"
+     },
+     "b": {
+      "ref": "s04_mi_ix"
+     }
+    },
+    {
+     "name": "s12_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s11_mi_ix_all"
+     },
+     "b": {
+      "ref": "s05_mi_ix"
+     }
+    },
+    {
+     "name": "s13_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s12_mi_ix_all"
+     },
+     "b": {
+      "ref": "s06_mi_ix"
+     }
+    },
+    {
+     "name": "s14_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s13_mi_ix_all"
+     },
+     "b": {
+      "ref": "s07_mi_ix"
+     }
+    },
+    {
+     "name": "s15_mi_ix_all",
+     "op": "concat",
+     "a": {
+      "ref": "s14_mi_ix_all"
+     },
+     "b": {
+      "ref": "s08_mi_ix"
+     }
+    },
+    {
+     "name": "s16_mi_ix_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mi_ix_all"
+     }
+    },
+    {
+     "name": "s17_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s16_mi_ix_set"
+     },
+     "props": [
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s18_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s17_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "info_type_id"
+        }
+       },
+       {
+        "in": [
+         {
+          "get": "info_type_id"
+         },
+         {
+          "lit": [
+           1,
+           2,
+           3,
+           4,
+           5,
+           6,
+           7,
+           8,
+           9,
+           10,
+           11,
+           12,
+           13,
+           14,
+           15,
+           16,
+           17,
+           18,
+           19,
+           20,
+           21,
+           22,
+           23,
+           24,
+           25,
+           26,
+           27,
+           28,
+           29,
+           30,
+           31,
+           32,
+           33,
+           34,
+           35,
+           36,
+           37,
+           38,
+           39,
+           40,
+           41,
+           42,
+           43,
+           44,
+           45,
+           46,
+           47,
+           48,
+           49,
+           50,
+           51,
+           52,
+           53,
+           54,
+           55,
+           56,
+           57,
+           58,
+           59,
+           60,
+           61,
+           62,
+           63,
+           64,
+           65,
+           66,
+           67,
+           68,
+           69,
+           70,
+           71,
+           72,
+           73,
+           74,
+           75,
+           76,
+           77,
+           78,
+           79,
+           80,
+           81,
+           82,
+           83,
+           84,
+           85,
+           86,
+           87,
+           88,
+           89,
+           90,
+           91,
+           92,
+           93,
+           94,
+           95,
+           96,
+           97,
+           98,
+           99,
+           100,
+           101,
+           102,
+           103,
+           104,
+           105,
+           106,
+           107,
+           108,
+           109,
+           110,
+           111,
+           112,
+           113
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s19_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s18_mi_keep"
+     }
+    },
+    {
+     "name": "s20_mi_vids",
+     "op": "pluck",
+     "rows": {
+      "ref": "s18_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s21_mi_owner",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s20_mi_vids"
+     },
+     "etype": "info_of",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s22_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s21_mi_owner"
+     },
+     "right": {
+      "ref": "s18_mi_keep"
+     },
+     "left_on": "src",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s23_mi_owner_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_mi_with"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s24_mi_owner_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_mi_owner_col"
+     }
+    },
+    {
+     "name": "s25_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s24_mi_owner_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s26_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s25_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s27_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s28_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_t_back_col"
+     }
+    },
+    {
+     "name": "s29_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s28_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s30_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s29_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s31_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s32_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s31_mc_dst_col"
+     }
+    },
+    {
+     "name": "s33_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s34_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s33_mc_back_col"
+     }
+    },
+    {
+     "name": "s35_mi_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s22_mi_with"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s34_mc_back_set"
+     }
+    },
+    {
+     "name": "s36_mi_owner_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s35_mi_cut"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s37_mi_owner_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s36_mi_owner_final_col"
+     }
+    },
+    {
+     "name": "s38_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s26_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s37_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s39_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s30_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s37_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s40_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s39_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s41_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s40_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s42_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s39_mc_final"
+     }
+    },
+    {
+     "name": "s43_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s35_mi_cut"
+     }
+    },
+    {
+     "name": "s44_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s38_t_final"
+     }
+    },
+    {
+     "name": "s45_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s19_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s46_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s45_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s47_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s38_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s48_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s47_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s49_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s48_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s50_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s46_base"
+     },
+     "right": {
+      "ref": "s49_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s51_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s42_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s52_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s51_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s53_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s50_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s52_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s54_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s43_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s55_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s54_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s56_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s53_mc_n_in"
+     },
+     "right": {
+      "ref": "s55_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s57_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s44_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s58_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s57_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s59_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s56_mi_n_in"
+     },
+     "right": {
+      "ref": "s58_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s59_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_mi_by_scan": {
+   "steps": [
+    {
+     "name": "s01_mi_scan",
+     "op": "read_vertices_by_label",
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s02_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_mi_scan"
+     },
+     "props": [
+      "info",
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s03_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_mi_keep"
+     }
+    },
+    {
+     "name": "s05_mi_vids",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_mi_owner",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_mi_vids"
+     },
+     "etype": "info_of",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s07_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s06_mi_owner"
+     },
+     "right": {
+      "ref": "s03_mi_keep"
+     },
+     "left_on": "src",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s08_mi_owner_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mi_with"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mi_owner_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mi_owner_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mi_owner_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s15_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s17_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_mc_dst_col"
+     }
+    },
+    {
+     "name": "s18_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s19_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_mc_back_col"
+     }
+    },
+    {
+     "name": "s20_mi_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mi_with"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_mc_back_set"
+     }
+    },
+    {
+     "name": "s21_mi_owner_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_mi_cut"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s22_mi_owner_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_mi_owner_final_col"
+     }
+    },
+    {
+     "name": "s23_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s22_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s24_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s22_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s25_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s26_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s27_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s24_mc_final"
+     }
+    },
+    {
+     "name": "s28_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s20_mi_cut"
+     }
+    },
+    {
+     "name": "s29_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s23_t_final"
+     }
+    },
+    {
+     "name": "s30_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s31_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s30_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s32_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s22_mi_owner_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s33_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s32_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s34_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s33_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s35_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s34_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s36_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s31_base"
+     },
+     "right": {
+      "ref": "s35_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s37_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s27_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s38_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s37_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s39_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s36_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s38_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s40_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s28_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s41_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s40_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s42_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s39_mc_n_in"
+     },
+     "right": {
+      "ref": "s41_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s43_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s29_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s44_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s43_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s45_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s42_mi_n_in"
+     },
+     "right": {
+      "ref": "s44_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s45_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_mi_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_mi_scan",
+     "op": "read_vertices_by_label",
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s02_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_mi_scan"
+     },
+     "props": [
+      "info",
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s03_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_mi_keep"
+     }
+    },
+    {
+     "name": "s05_mi_vids",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_mi_owner",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_mi_vids"
+     },
+     "etype": "info_of",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s07_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s06_mi_owner"
+     },
+     "right": {
+      "ref": "s03_mi_keep"
+     },
+     "left_on": "src",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s08_mi_owner_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mi_with"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mi_owner_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mi_owner_col"
+     }
+    },
+    {
+     "name": "s10_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s09_mi_owner_set"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s11_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s10_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s12_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s13_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s12_t_back_col"
+     }
+    },
+    {
+     "name": "s14_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s13_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s15_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s14_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s16_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s17_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s16_mc_dst_col"
+     }
+    },
+    {
+     "name": "s18_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s19_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s18_mc_back_col"
+     }
+    },
+    {
+     "name": "s20_mi_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mi_with"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s19_mc_back_set"
+     }
+    },
+    {
+     "name": "s21_mi_owner_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_mi_cut"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s22_mi_owner_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_mi_owner_final_col"
+     }
+    },
+    {
+     "name": "s23_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s11_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s22_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s24_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s15_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s22_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s25_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s24_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s26_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s25_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s27_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s24_mc_final"
+     }
+    },
+    {
+     "name": "s28_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s20_mi_cut"
+     }
+    },
+    {
+     "name": "s29_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s23_t_final"
+     }
+    },
+    {
+     "name": "s30_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s31_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s30_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s32_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s23_t_final"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s33_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s32_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s34_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s33_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s35_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s31_base"
+     },
+     "right": {
+      "ref": "s34_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s36_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s27_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s37_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s36_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s38_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s35_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s37_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s39_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s28_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s40_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s39_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s41_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s38_mc_n_in"
+     },
+     "right": {
+      "ref": "s40_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s42_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s29_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s43_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s42_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s44_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s41_mi_n_in"
+     },
+     "right": {
+      "ref": "s43_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s44_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_mi_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_mi_run",
+     "op": "read_vertices_by_label",
+     "label": "MovieInfo",
+     "props": [
+      "info",
+      "info_type_id"
+     ]
+    },
+    {
+     "name": "s02_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_mi_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_mi_keep"
+     }
+    },
+    {
+     "name": "s04_mi_vids",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_mi_owner",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s04_mi_vids"
+     },
+     "etype": "info_of",
+     "dir": "out",
+     "pairs": true
+    },
+    {
+     "name": "s06_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s05_mi_owner"
+     },
+     "right": {
+      "ref": "s02_mi_keep"
+     },
+     "left_on": "src",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s07_mi_owner_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s06_mi_with"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s08_mi_owner_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s07_mi_owner_col"
+     }
+    },
+    {
+     "name": "s09_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s08_mi_owner_set"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s10_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s09_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s11_t_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s12_t_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_t_back_col"
+     }
+    },
+    {
+     "name": "s13_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_t_back_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s14_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s13_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s15_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s16_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s15_mc_dst_col"
+     }
+    },
+    {
+     "name": "s17_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s14_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s18_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s17_mc_back_col"
+     }
+    },
+    {
+     "name": "s19_mi_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s06_mi_with"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_mc_back_set"
+     }
+    },
+    {
+     "name": "s20_mi_owner_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_mi_cut"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s21_mi_owner_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_mi_owner_final_col"
+     }
+    },
+    {
+     "name": "s22_t_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s10_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s21_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s23_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s14_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s21_mi_owner_final_set"
+     }
+    },
+    {
+     "name": "s24_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s25_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s26_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s23_mc_final"
+     }
+    },
+    {
+     "name": "s27_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s19_mi_cut"
+     }
+    },
+    {
+     "name": "s28_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s22_t_final"
+     }
+    },
+    {
+     "name": "s29_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s30_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s29_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s31_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s21_mi_owner_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s32_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s31_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s33_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s32_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s34_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s33_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s35_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s30_base"
+     },
+     "right": {
+      "ref": "s34_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s36_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s26_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s37_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s36_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s38_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s35_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s37_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s39_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s27_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s40_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s39_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s41_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s38_mc_n_in"
+     },
+     "right": {
+      "ref": "s40_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s42_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s28_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s43_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s42_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s44_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s41_mi_n_in"
+     },
+     "right": {
+      "ref": "s43_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s44_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_scan": {
+   "steps": [
+    {
+     "name": "s01_t_scan",
+     "op": "read_vertices_by_label",
+     "label": "Title"
+    },
+    {
+     "name": "s02_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_t_scan"
+     },
+     "props": [
+      "production_year"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s03_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_t_keep"
+     }
+    },
+    {
+     "name": "s05_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_t_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s07_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_dst_col"
+     }
+    },
+    {
+     "name": "s11_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s12_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_mc_back_col"
+     }
+    },
+    {
+     "name": "s13_mi_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_mc_back_set"
+     },
+     "etype": "info_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_mi_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_mi_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_mi_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_mi_col"
+     }
+    },
+    {
+     "name": "s16_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_mi_set"
+     },
+     "props": [
+      "info",
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s17_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_mi_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_mi_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_mi_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_mi_ok"
+     }
+    },
+    {
+     "name": "s20_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s19_mi_kept"
+     },
+     "right": {
+      "ref": "s17_mi_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s21_mi_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_mi_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s22_mi_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_mi_back_col"
+     }
+    },
+    {
+     "name": "s23_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s22_mi_back_set"
+     }
+    },
+    {
+     "name": "s24_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s25_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_t_self_final_col"
+     }
+    },
+    {
+     "name": "s26_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s25_t_self_final_set"
+     }
+    },
+    {
+     "name": "s27_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s28_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s29_mi_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_mi_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s25_t_self_final_set"
+     }
+    },
+    {
+     "name": "s30_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s26_mc_final"
+     }
+    },
+    {
+     "name": "s31_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s29_mi_final"
+     }
+    },
+    {
+     "name": "s32_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s23_t_cut"
+     }
+    },
+    {
+     "name": "s33_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s34_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s33_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s35_t_out",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s25_t_self_final_set"
+     },
+     "props": [
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s36_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s35_t_out"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s37_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s36_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s38_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s37_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s39_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s34_base"
+     },
+     "right": {
+      "ref": "s38_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s40_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s30_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s41_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s40_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s42_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s39_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s41_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s43_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s31_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s44_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s43_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s45_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s42_mc_n_in"
+     },
+     "right": {
+      "ref": "s44_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s46_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s32_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s47_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s46_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s48_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s45_mi_n_in"
+     },
+     "right": {
+      "ref": "s47_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s48_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_scan_outputs_early": {
+   "steps": [
+    {
+     "name": "s01_t_scan",
+     "op": "read_vertices_by_label",
+     "label": "Title"
+    },
+    {
+     "name": "s02_t_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s01_t_scan"
+     },
+     "props": [
+      "production_year",
+      "title"
+     ],
+     "label": "Title"
+    },
+    {
+     "name": "s03_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s02_t_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s04_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s03_t_keep"
+     }
+    },
+    {
+     "name": "s05_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s06_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s05_t_self_col"
+     }
+    },
+    {
+     "name": "s07_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s06_t_self_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s08_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s07_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s09_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s10_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s09_mc_dst_col"
+     }
+    },
+    {
+     "name": "s11_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s12_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s11_mc_back_col"
+     }
+    },
+    {
+     "name": "s13_mi_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s12_mc_back_set"
+     },
+     "etype": "info_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s14_mi_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s13_mi_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s15_mi_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s14_mi_col"
+     }
+    },
+    {
+     "name": "s16_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s15_mi_set"
+     },
+     "props": [
+      "info",
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s17_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s16_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s18_mi_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s17_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s19_mi_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s13_mi_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s18_mi_ok"
+     }
+    },
+    {
+     "name": "s20_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s19_mi_kept"
+     },
+     "right": {
+      "ref": "s17_mi_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s21_mi_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s20_mi_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s22_mi_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s21_mi_back_col"
+     }
+    },
+    {
+     "name": "s23_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s03_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s22_mi_back_set"
+     }
+    },
+    {
+     "name": "s24_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s23_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s25_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s24_t_self_final_col"
+     }
+    },
+    {
+     "name": "s26_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s08_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s25_t_self_final_set"
+     }
+    },
+    {
+     "name": "s27_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s26_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s28_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s27_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s29_mi_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s20_mi_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s25_t_self_final_set"
+     }
+    },
+    {
+     "name": "s30_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s26_mc_final"
+     }
+    },
+    {
+     "name": "s31_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s29_mi_final"
+     }
+    },
+    {
+     "name": "s32_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s23_t_cut"
+     }
+    },
+    {
+     "name": "s33_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s04_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s34_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s33_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s35_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s23_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s36_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s35_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s37_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s36_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s38_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s34_base"
+     },
+     "right": {
+      "ref": "s37_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s39_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s30_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s40_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s39_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s41_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s38_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s40_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s42_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s31_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s43_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s42_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s44_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s41_mc_n_in"
+     },
+     "right": {
+      "ref": "s43_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s45_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s32_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s46_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s45_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s47_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s44_mi_n_in"
+     },
+     "right": {
+      "ref": "s46_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s47_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  },
+  "enter_t_by_label_run": {
+   "steps": [
+    {
+     "name": "s01_t_run",
+     "op": "read_vertices_by_label",
+     "label": "Title",
+     "props": [
+      "production_year",
+      "title"
+     ]
+    },
+    {
+     "name": "s02_t_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s01_t_run"
+     },
+     "pred": {
+      "and": [
+       {
+        "notnull": {
+         "get": "production_year"
+        }
+       },
+       {
+        "gt": [
+         {
+          "get": "production_year"
+         },
+         {
+          "lit": 2005
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s03_entry_n",
+     "op": "count",
+     "items": {
+      "ref": "s02_t_keep"
+     }
+    },
+    {
+     "name": "s04_t_self_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s05_t_self_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s04_t_self_col"
+     }
+    },
+    {
+     "name": "s06_mc_company_production",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s05_t_self_set"
+     },
+     "etype": "company_production",
+     "dir": "out",
+     "pairs": true,
+     "edge_props": [
+      "note"
+     ]
+    },
+    {
+     "name": "s07_mc_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s06_mc_company_production"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(theatrical)%"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "note"
+          }
+         },
+         {
+          "like": [
+           {
+            "get": "note"
+           },
+           {
+            "lit": "%(France)%"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s08_mc_dst_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mc_keep"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s09_mc_dst_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s08_mc_dst_col"
+     }
+    },
+    {
+     "name": "s10_mc_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s07_mc_keep"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s11_mc_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s10_mc_back_col"
+     }
+    },
+    {
+     "name": "s12_mi_of",
+     "op": "read_neighbors",
+     "srcs": {
+      "ref": "s11_mc_back_set"
+     },
+     "etype": "info_of",
+     "dir": "in",
+     "pairs": true
+    },
+    {
+     "name": "s13_mi_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s12_mi_of"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s14_mi_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s13_mi_col"
+     }
+    },
+    {
+     "name": "s15_mi_props",
+     "op": "read_vertex_props",
+     "vids": {
+      "ref": "s14_mi_set"
+     },
+     "props": [
+      "info",
+      "info_type_id"
+     ],
+     "label": "MovieInfo"
+    },
+    {
+     "name": "s16_mi_keep",
+     "op": "filter",
+     "rows": {
+      "ref": "s15_mi_props"
+     },
+     "pred": {
+      "and": [
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info"
+           },
+           {
+            "lit": [
+             "Sweden",
+             "Norway",
+             "Germany",
+             "Denmark",
+             "Swedish",
+             "Denish",
+             "Norwegian",
+             "German"
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "and": [
+         {
+          "notnull": {
+           "get": "info_type_id"
+          }
+         },
+         {
+          "in": [
+           {
+            "get": "info_type_id"
+           },
+           {
+            "lit": [
+             1,
+             2,
+             3,
+             4,
+             5,
+             6,
+             7,
+             8,
+             9,
+             10,
+             11,
+             12,
+             13,
+             14,
+             15,
+             16,
+             17,
+             18,
+             19,
+             20,
+             21,
+             22,
+             23,
+             24,
+             25,
+             26,
+             27,
+             28,
+             29,
+             30,
+             31,
+             32,
+             33,
+             34,
+             35,
+             36,
+             37,
+             38,
+             39,
+             40,
+             41,
+             42,
+             43,
+             44,
+             45,
+             46,
+             47,
+             48,
+             49,
+             50,
+             51,
+             52,
+             53,
+             54,
+             55,
+             56,
+             57,
+             58,
+             59,
+             60,
+             61,
+             62,
+             63,
+             64,
+             65,
+             66,
+             67,
+             68,
+             69,
+             70,
+             71,
+             72,
+             73,
+             74,
+             75,
+             76,
+             77,
+             78,
+             79,
+             80,
+             81,
+             82,
+             83,
+             84,
+             85,
+             86,
+             87,
+             88,
+             89,
+             90,
+             91,
+             92,
+             93,
+             94,
+             95,
+             96,
+             97,
+             98,
+             99,
+             100,
+             101,
+             102,
+             103,
+             104,
+             105,
+             106,
+             107,
+             108,
+             109,
+             110,
+             111,
+             112,
+             113
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "name": "s17_mi_ok",
+     "op": "pluck",
+     "rows": {
+      "ref": "s16_mi_keep"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s18_mi_kept",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s12_mi_of"
+     },
+     "field": "dst",
+     "allowed": {
+      "ref": "s17_mi_ok"
+     }
+    },
+    {
+     "name": "s19_mi_with",
+     "op": "join",
+     "left": {
+      "ref": "s18_mi_kept"
+     },
+     "right": {
+      "ref": "s16_mi_keep"
+     },
+     "left_on": "dst",
+     "right_on": "_vid"
+    },
+    {
+     "name": "s20_mi_back_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s19_mi_with"
+     },
+     "field": "src"
+    },
+    {
+     "name": "s21_mi_back_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s20_mi_back_col"
+     }
+    },
+    {
+     "name": "s22_t_cut",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s02_t_keep"
+     },
+     "field": "_vid",
+     "allowed": {
+      "ref": "s21_mi_back_set"
+     }
+    },
+    {
+     "name": "s23_t_self_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s22_t_cut"
+     },
+     "field": "_vid"
+    },
+    {
+     "name": "s24_t_self_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s23_t_self_final_col"
+     }
+    },
+    {
+     "name": "s25_mc_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s07_mc_keep"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s24_t_self_final_set"
+     }
+    },
+    {
+     "name": "s26_mc_dst_final_col",
+     "op": "pluck",
+     "rows": {
+      "ref": "s25_mc_final"
+     },
+     "field": "dst"
+    },
+    {
+     "name": "s27_mc_dst_final_set",
+     "op": "dedup",
+     "items": {
+      "ref": "s26_mc_dst_final_col"
+     }
+    },
+    {
+     "name": "s28_mi_final",
+     "op": "filter_in",
+     "rows": {
+      "ref": "s19_mi_with"
+     },
+     "field": "src",
+     "allowed": {
+      "ref": "s24_t_self_final_set"
+     }
+    },
+    {
+     "name": "s29_mc_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s25_mc_final"
+     }
+    },
+    {
+     "name": "s30_mi_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s28_mi_final"
+     }
+    },
+    {
+     "name": "s31_t_final_n",
+     "op": "count",
+     "items": {
+      "ref": "s22_t_cut"
+     }
+    },
+    {
+     "name": "s32_base0",
+     "op": "as_row",
+     "value": {
+      "ref": "s03_entry_n"
+     },
+     "field": "entry_rows"
+    },
+    {
+     "name": "s33_base",
+     "op": "derive",
+     "rows": {
+      "ref": "s32_base0"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s34_typical_european_movie_some",
+     "op": "filter",
+     "rows": {
+      "ref": "s22_t_cut"
+     },
+     "pred": {
+      "notnull": {
+       "get": "title"
+      }
+     }
+    },
+    {
+     "name": "s35_typical_european_movie_min",
+     "op": "group_agg",
+     "rows": {
+      "ref": "s34_typical_european_movie_some"
+     },
+     "by": [],
+     "aggs": {
+      "typical_european_movie": [
+       "min",
+       "title"
+      ]
+     }
+    },
+    {
+     "name": "s36_typical_european_movie_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s35_typical_european_movie_min"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s37_typical_european_movie_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s33_base"
+     },
+     "right": {
+      "ref": "s36_typical_european_movie_k"
+     },
+     "left_on": "k",
+     "right_on": "k",
+     "default": {
+      "typical_european_movie": null
+     }
+    },
+    {
+     "name": "s38_mc_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s29_mc_final_n"
+     },
+     "field": "rows_mc"
+    },
+    {
+     "name": "s39_mc_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s38_mc_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s40_mc_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s37_typical_european_movie_in"
+     },
+     "right": {
+      "ref": "s39_mc_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s41_mi_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s30_mi_final_n"
+     },
+     "field": "rows_mi"
+    },
+    {
+     "name": "s42_mi_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s41_mi_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s43_mi_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s40_mc_n_in"
+     },
+     "right": {
+      "ref": "s42_mi_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "s44_t_n_row",
+     "op": "as_row",
+     "value": {
+      "ref": "s31_t_final_n"
+     },
+     "field": "rows_t"
+    },
+    {
+     "name": "s45_t_n_k",
+     "op": "derive",
+     "rows": {
+      "ref": "s44_t_n_row"
+     },
+     "into": "k",
+     "fn": {
+      "lit": 0
+     }
+    },
+    {
+     "name": "s46_t_n_in",
+     "op": "left_join",
+     "left": {
+      "ref": "s43_mi_n_in"
+     },
+     "right": {
+      "ref": "s45_t_n_k"
+     },
+     "left_on": "k",
+     "right_on": "k"
+    },
+    {
+     "name": "out",
+     "op": "project",
+     "rows": {
+      "ref": "s46_t_n_in"
+     },
+     "fields": [
+      "typical_european_movie",
+      "rows_mc",
+      "rows_mi",
+      "rows_t"
+     ]
+    }
+   ],
+   "output": "out"
+  }
+ }
+}

@@ -1,0 +1,76 @@
+{
+  "plan": "w_ins_v_full",
+  "question": "Insert a new person with all of its properties, including the indexed ones.",
+  "for": "all formats",
+  "params": {
+    "person": {
+      "type": "int"
+    }
+  },
+  "let": {
+    "new_vid": {
+      "vid": [
+        {
+          "lit": "Person"
+        },
+        {
+          "add": [
+            {
+              "lit": 1125899906842624
+            },
+            {
+              "sub": [
+                {
+                  "param": "person"
+                },
+                {
+                  "mul": [
+                    {
+                      "floordiv": [
+                        {
+                          "param": "person"
+                        },
+                        {
+                          "lit": 1125899906842624
+                        }
+                      ]
+                    },
+                    {
+                      "lit": 1125899906842624
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "out",
+      "op": "insert_vertex",
+      "vid": {
+        "let": "new_vid"
+      },
+      "label": "Person",
+      "props": {
+        "firstName": "Wtest",
+        "lastName": "Writer",
+        "gender": "other",
+        "birthday": 631152000000,
+        "creationDate": 1577836800000,
+        "locationIP": "10.0.0.1",
+        "browserUsed": "Chrome",
+        "email": [
+          "w@example.org"
+        ],
+        "language": [
+          "en"
+        ]
+      }
+    }
+  ],
+  "output": "out"
+}

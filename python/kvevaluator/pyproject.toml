@@ -1,0 +1,18 @@
+[project]
+name = "kvevaluator"
+version = "0.1.0"
+description = "The KVformat evaluator in Python: plans, schemas, formats, layouts, the oracle store, benchmarks, measurement drivers, the run-free predictor."
+requires-python = ">=3.12"
+dependencies = ["numpy==2.4.2", "duckdb==2.0.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The package dir is this member's root (python/kvevaluator/ holds __init__.py), so the wheel maps "." to "kvevaluator"
+# and the editable install puts python/ on the path.
+[tool.hatch.build.targets.wheel]
+only-include = ["."]
+sources = {"" = "kvevaluator"}
+exclude = ["pyproject.toml"]
+dev-mode-dirs = [".."]

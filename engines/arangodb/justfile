@@ -1,0 +1,227 @@
+# Auto-activate venv so recipes work without manual `source .venv/bin/activate`
+export VIRTUAL_ENV := justfile_directory() / ".." / ".." / ".venv"     # the repo venv (just setup)
+export PATH := justfile_directory() / ".." / ".." / ".venv" / "bin" + ":" + env("PATH")
+
+default:
+    @just --list --unsorted
+
+# ----------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------
+
+# Wait for a tmux session to end before proceeding
+wait-for-session-end SESSION:
+	until ! tmux has-session -t {{SESSION}} 2>/dev/null; do sleep 1; done
+
+# =============================
+# Lifecycle
+# =============================
+
+# one-time setup for python dependencies
+py:
+    #!/bin/bash
+    set -euxo pipefail
+    [ -d .venv ] && { echo ".venv already exists" ; exit 0; }
+    uv venv
+    uv sync
+
+# one-time setup
+setup:
+    #!/bin/bash
+    set -euxo pipefail
+    bash ../setup.sh --db arangodb   # engines/needs.tsv
+    just py
+
+# =============================
+# Build
+# =============================
+
+# Build ArangoDB from source (runs in tmux session).
+# Idempotent: if an 'arangobuild' session is already running, reuse it instead
+# of erroring with "duplicate session". Callers wait via
+# `just wait-for-session-end arangobuild`. This matters when the recipe is
+# invoked repeatedly (e.g. once per scale factor by a machine setup script):
+# a still-running build from an earlier call must not crash the next one.
+build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if tmux has-session -t arangobuild 2>/dev/null; then
+        echo "arangobuild session already running; reusing it."
+        exit 0
+    fi
+    tmux new-session -d -s arangobuild 'bash scripts/build.sh 2>&1 | tee build.log'
+
+# Install built binaries into runs/
+install:
+    bash scripts/install.sh
+
+# Apply source patches: just patch [-f patchfile]
+patch *args:
+    bash scripts/apply-patch.sh {{args}}
+
+# Create source patches
+create-patch *args:
+    bash scripts/create-patch.sh {{args}}
+
+reset-patches:
+    git -C ${ARANGO_SRCDIR} restore . && git -C ${ARANGO_SRCDIR} clean -fd
+
+# =============================
+# Run
+# =============================
+
+# Start ArangoDB server: just start [log_level] [rocksdb_cache_mb] [cache_mb]
+start log="info" rocksdb="" cache="":
+    bash scripts/start.sh "{{log}}" "{{rocksdb}}" "{{cache}}"
+
+# Graceful stop
+stop:
+    bash scripts/stop.sh
+
+# Force kill arangod
+kill:
+    bash scripts/kill.sh
+
+# Kill and wipe all data
+reset:
+    bash scripts/reset.sh
+
+status:
+    bash scripts/status.sh || true
+
+status-verbose:
+    #!/bin/bash
+    echo "=== Processes ==="
+    ps aux | grep arangod | grep -v grep || true
+    echo -e "\n=== Ports ==="
+    netstat -tlnp 2>/dev/null | grep -E ":${ARANGO_PORT}" || true
+    echo -e "\n=== Health ==="
+    curl -sf http://localhost:${ARANGO_PORT}/_api/version | python3 -m json.tool 2>/dev/null || echo "Not reachable"
+    echo -e "\n=== Disk Usage ==="
+    du -sh ${ARANGO_RUNSDIR}/data/ 2>/dev/null || true
+
+# =============================
+# DB-specific (ArangoDB)
+# =============================
+
+# Open arangosh interactive shell
+shell:
+    ${ARANGO_RUNSDIR}/bin/arangosh --configuration ${ARANGO_RUNSDIR}/arangosh.conf --server.endpoint tcp://127.0.0.1:${ARANGO_PORT} --server.authentication false --javascript.startup-directory ${ARANGO_SRCDIR}/js
+
+# =============================
+# Queries
+# =============================
+
+# Run a single query from string, e.g., `just q "FOR p IN Person LIMIT 5 RETURN p"`
+q query *args:
+    python3 ../../python/kvengines/arangodb/query_run.py -s "{{query}}" {{args}}
+
+# Run queries from a file
+qfile file *args:
+    python3 ../../python/kvengines/arangodb/query_run.py -f {{file}} {{args}}
+
+# Profile a query and draw its plan (DAG + bar chart + table), e.g.
+# `just plan-query queries/interactive-complex-1.aql --param-file data/ldbc/substitution_parameters-sf0.3/interactive_1_param.txt`
+plan-query file *args:
+    python3 -u ../../python/kvengines/arangodb/plan_query.py -f {{file}} {{args}}
+
+# Re-analyze a saved plan.json (no DB needed): `just plan-analyze logs/plan-query/interactive-complex-1/plan.json`
+plan-analyze file *args:
+    python3 -u ../../python/kvengines/arangodb/plan_query.py --from-saved {{file}} {{args}}
+
+# =============================
+# LDBC SNB Interactive
+# =============================
+
+# Run a single LDBC interactive-complex query: just ldbc-icq 1 1
+ldbc-icq q="1" param="1":
+    python3 -u ../../python/kvengines/arangodb/ldbc/run_ldbc.py --num "{{q}}" --param "{{param}}" -v
+
+# Run all LDBC interactive-complex queries
+ldbc-ic:
+    python3 -u ../../python/kvengines/arangodb/ldbc/run_ldbc.py --all --nparam 35 -c
+
+# Run all LDBC interactive-short queries
+ldbc-short:
+    python3 -u ../../python/kvengines/arangodb/ldbc/run_ldbc.py -qt short --all -c
+
+# Run a single LDBC interactive-short query
+ldbc-isq q="1" param="1":
+    python3 -u ../../python/kvengines/arangodb/ldbc/run_ldbc.py -qt short --num {{q}} --param {{param}} -v
+
+# =============================
+# Experiment
+# =============================
+
+# Run all IC queries with hooks (metrics collection)
+ldbc-ic-collect:
+    python3 -u ../../python/kvengines/arangodb/ldbc/run_ldbc.py --all --nparam 35 --hooks --save-results
+
+warmup:
+    just ldbc-ic > warmup.log 2>&1
+
+# =============================
+# Data
+# =============================
+
+# Symlink LDBC dataset from shared directory
+ldbc-download sf="0.3":
+    #!/bin/bash
+    set -euxo pipefail
+    mkdir -p data/ldbc/sf{{sf}}
+    # main data
+    [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter" ] || { echo "${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter not found"; exit 1; }
+    ln -sfn ${LDBC_SNB_DATA_DIR}/sf{{sf}}/CsvBasic-LongDateFormatter data/ldbc/sf{{sf}}/CsvBasic-LongDateFormatter
+    # substitution parameters
+    params=$(bash ../ldbc-params-dir.sh {{sf}})     # LDBC's download, else the tracked copy (sf0.3, sf1)
+    ln -sfn "$params" data/ldbc/substitution_parameters-sf{{sf}}
+    # update streams
+    [ -d "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" ] || { echo "${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams" not found; exit 1; }
+    ln -sfn ${LDBC_SNB_DATA_DIR}/sf{{sf}}/update_streams data/ldbc/sf{{sf}}/update_streams
+
+ldbc-load sf="0.3":
+    bash scripts/ldbc/load.sh --sf {{sf}}
+
+ldbc-backup sf="0.3":
+    bash scripts/ldbc/backup-data.sh {{sf}}
+
+# Generate LDBC loaded data and backup (build → install → load → sync → backup)
+ldbc-prepare-data sf='0.3':
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    just reset
+    # Build only when the arangod binary is missing (mirrors dgraph's
+    # `build-variant --skip-existing`). A machine setup script may call this
+    # recipe once per scale factor; recompiling the full source each time wastes
+    # ~7 min and two builds would race on a shared 'arangobuild' tmux session name.
+    # `just reset` wipes runs/ data but never the build/, so the binary persists.
+    if [[ ! -x "${ARANGO_SRCDIR}/build/bin/arangod" ]]; then
+        just build
+        just wait-for-session-end arangobuild || true
+    fi
+    just install
+    just start
+    just status
+    just ldbc-load {{sf}}
+    sleep 10
+    sync   # plain sync: flush to disk, no root needed
+    sleep 2
+    bash scripts/ldbc/backup-data.sh {{sf}}
+    ls -la backup/runs-sf{{sf}}
+    
+# =============================
+# Metrics
+# =============================
+
+# Snapshot metrics before an experiment
+before:
+    curl -s http://localhost:${ARANGO_PORT}/_admin/statistics | python3 -m json.tool > 0stats.log
+    curl -s http://localhost:${ARANGO_PORT}/_admin/metrics > 0metrics.log
+
+# Snapshot metrics after an experiment
+after:
+    curl -s http://localhost:${ARANGO_PORT}/_admin/statistics | python3 -m json.tool > 1stats.log
+    curl -s http://localhost:${ARANGO_PORT}/_admin/metrics > 1metrics.log
+
+stats:
+    curl -s http://localhost:${ARANGO_PORT}/_admin/statistics | python3 -m json.tool

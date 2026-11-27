@@ -1,0 +1,10 @@
+// microbench hop1p_knows: the distinct knows-neighbors of a person with id, firstName, lastName,
+// sorted by id (T1+T2).
+// Reads: the knows edge index (both sides), then each distinct friend's document.
+// Evaluator: queries/hop.py hop1p_knows -- read_neighbors + dedup + read_vertex_props(3 props),
+// one row per friend.
+// mb2 lineage: MB21-26 (MB22 = OUTBOUND with 4 props).
+FOR v IN 1..1 ANY CONCAT("Person/", @personId) knows
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    SORT TO_NUMBER(v._key)
+    RETURN {id: TO_NUMBER(v._key), firstName: v.firstName, lastName: v.lastName}

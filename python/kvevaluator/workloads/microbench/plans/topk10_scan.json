@@ -1,0 +1,398 @@
+{
+  "plan": "topk10_scan",
+  "question": "Find the 10 newest messages (posts or comments) by reading every message and sorting, with no date index.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {},
+  "plans": {
+    "hand+fused~155372": {
+      "steps": [
+        {
+          "name": "rp",
+          "op": "read_vertices_by_label",
+          "label": "Post",
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        },
+        {
+          "name": "rc",
+          "op": "read_vertices_by_label",
+          "label": "Comment",
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        },
+        {
+          "name": "rw",
+          "op": "concat",
+          "a": {
+            "ref": "rp"
+          },
+          "b": {
+            "ref": "rc"
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "rw"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand+fused~6a4a00": {
+      "steps": [
+        {
+          "name": "rp",
+          "op": "read_vertices_by_label",
+          "label": "Post",
+          "props": [
+            "id",
+            "creationDate"
+          ]
+        },
+        {
+          "name": "rc",
+          "op": "read_vertices_by_label",
+          "label": "Comment",
+          "props": [
+            "id",
+            "creationDate"
+          ]
+        },
+        {
+          "name": "rw",
+          "op": "concat",
+          "a": {
+            "ref": "rp"
+          },
+          "b": {
+            "ref": "rc"
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "rw"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "tv",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bd",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tv"
+          },
+          "props": [
+            "content"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "z",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "bd"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "z"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~2a7a7e": {
+      "steps": [
+        {
+          "name": "cp",
+          "op": "read_vertices_by_label",
+          "label": "Post"
+        },
+        {
+          "name": "rp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cp"
+          },
+          "props": [
+            "id",
+            "creationDate"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "cc",
+          "op": "read_vertices_by_label",
+          "label": "Comment"
+        },
+        {
+          "name": "rc",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cc"
+          },
+          "props": [
+            "id",
+            "creationDate"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "rw",
+          "op": "concat",
+          "a": {
+            "ref": "rp"
+          },
+          "b": {
+            "ref": "rc"
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "rw"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "tv",
+          "op": "pluck",
+          "rows": {
+            "ref": "top"
+          },
+          "field": "_vid"
+        },
+        {
+          "name": "bd",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "tv"
+          },
+          "props": [
+            "content"
+          ],
+          "label": [
+            "Post",
+            "Comment"
+          ]
+        },
+        {
+          "name": "z",
+          "op": "join",
+          "left": {
+            "ref": "top"
+          },
+          "right": {
+            "ref": "bd"
+          },
+          "left_on": "_vid",
+          "right_on": "_vid"
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "z"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~f131b2": {
+      "steps": [
+        {
+          "name": "cp",
+          "op": "read_vertices_by_label",
+          "label": "Post"
+        },
+        {
+          "name": "rp",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cp"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ],
+          "label": "Post"
+        },
+        {
+          "name": "cc",
+          "op": "read_vertices_by_label",
+          "label": "Comment"
+        },
+        {
+          "name": "rc",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "cc"
+          },
+          "props": [
+            "id",
+            "creationDate",
+            "content"
+          ],
+          "label": "Comment"
+        },
+        {
+          "name": "rw",
+          "op": "concat",
+          "a": {
+            "ref": "rp"
+          },
+          "b": {
+            "ref": "rc"
+          }
+        },
+        {
+          "name": "top",
+          "op": "top_k",
+          "rows": {
+            "ref": "rw"
+          },
+          "keys": [
+            [
+              "creationDate",
+              "desc"
+            ],
+            [
+              "id",
+              "asc"
+            ]
+          ],
+          "k": 10
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand+fused~155372": {
+      "sha": "155372a81877",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "hand+fused"
+      ]
+    },
+    "hand+fused~6a4a00": {
+      "sha": "6a4a00f35248",
+      "requires": [
+        "label_rows_one_run"
+      ],
+      "sources": [
+        "hand+fused"
+      ]
+    },
+    "hand~2a7a7e": {
+      "sha": "2a7a7e96e16b",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~f131b2": {
+      "sha": "f131b2032f7f",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

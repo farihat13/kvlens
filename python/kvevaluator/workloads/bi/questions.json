@@ -1,0 +1,19 @@
+{
+  "bi1": "Given a date, group all messages created before it by year, post or comment, and length bucket, with count, average and total length and share of all messages.",
+  "bi10": "Given a person, a country and a tag class, find the 100 top person-tag pairs among people three to four knows-steps away in that country who wrote a message tagged in that class, by message count.",
+  "bi11": "Given a country and a date range, count the triangles of three people living there who all know each other through friendships made within the range.",
+  "bi12": "Given a date, a length limit and a set of languages, count how many people wrote each number of qualifying messages, including people who wrote none.",
+  "bi13": "Given a country and a date, find the 100 'zombie' people there (few messages for their months of membership), ranked by the share of their likes that come from zombies.",
+  "bi14": "Given two countries, find for each city of the first the pair of people who know each other across the two countries with the highest score for replies and likes, and list the best 100.",
+  "bi16": "Given two tags with a date each, find the 20 people who wrote messages with each tag on that day, keeping those whose friends rarely did the same.",
+  "bi17": "Given a tag and a number of hours, find the 10 people whose tagged messages in one forum are linked, through replies by that forum's members, to later tagged messages in another forum, counted.",
+  "bi18": "Given a tag, find the 20 pairs of people interested in it who do not know each other, ranked by their number of mutual friends.",
+  "bi2": "Given a tag class and a date, compare each of its tags' message counts in two consecutive 100-day windows and list the 100 tags with the largest change.",
+  "bi3": "Given a tag class and a country, find the 20 forums moderated by people in that country with the most messages tagged in that class.",
+  "bi4": "Given a date, find the 100 largest forums created after it by members per country, then the 100 members with the most messages in those forums' threads.",
+  "bi5": "Given a tag, find the 100 people with the highest activity score on messages with that tag, from their messages, replies and likes received.",
+  "bi6": "Given a tag, find the 100 people whose tagged messages were liked by people who themselves received the most likes.",
+  "bi7": "Given a tag, find the 100 tags most often used on replies to messages with that tag, excluding replies that carry the tag themselves.",
+  "bi8": "Given a tag and a date range, find the 100 people with the highest score from their interest in the tag, their tagged messages and their friends' scores.",
+  "bi9": "Given a date range, find the 100 people who started the most threads, counting their posts and all messages in those threads within the range."
+}

@@ -1,0 +1,19 @@
+# hop1_knows -- a person's distinct friends, knows in both directions (T1), counted.
+# Reads: the anchor's knows and ~knows postings; `uid` is free.
+# Evaluator: queries/hop.py _hop1("knows", "both", "Person") -> dedup -> count row.
+#   Count-final, so one item per friend (uid(f, r) is the deduplicated union).
+# mb2 lineage: MB25-26 (both directions).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  var(func: eq(id, $personId)) @filter(type(person)) {
+    f as knows
+    r as ~knows
+  }
+  result(func: uid(f, r)) {
+    uid
+  }
+}

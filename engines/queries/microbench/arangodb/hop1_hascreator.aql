@@ -1,0 +1,10 @@
+// microbench hop1_hascreator: the distinct messages (Posts and Comments) a person created (T1,
+// heterogeneous in-edge).
+// Reads: the hasCreator _to edge index from the anchor; returns each message's _id only (Post
+// and Comment ids share one id space; _id carries the collection).
+// Evaluator: queries/hop.py _hop1("hasCreator", "in", "Person") -- read_neighbors + dedup,
+// count-final (the harness counts the returned ids).
+// mb2 lineage: MB31-32 (MB31 = the same traversal returning v._key).
+FOR m IN 1..1 INBOUND CONCAT("Person/", @personId) hasCreator
+    OPTIONS {order: "bfs", uniqueVertices: "global"}
+    RETURN m._id

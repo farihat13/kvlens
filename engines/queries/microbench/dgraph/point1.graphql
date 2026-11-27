@@ -1,0 +1,15 @@
+# point1 -- read 1 property of one known person (NS1).
+# Reads: firstName of the anchor person.
+# Evaluator: queries/point.py point1 -- read_vertex_props(anchor, PERSON_PROPS[:1]) -> 1 row.
+#   The anchor vid is given, so the evaluator pays only the prop reads (dgraph: 1 GET per prop).
+# mb2 lineage: MB1-2 (fqid-anchored, older schema).
+# Anchor: Dgraph has no external-key addressing, so the person is found through the `id` int
+#   index (eq(id, ...), 1 index read the evaluator does not pay: its anchor vid is given).
+#   `id` is shared by all 8 LDBC types (person 985 collides with a tag, a place and an
+#   organisation 985), so type(person) is what names THE person.
+# answer-path: result
+query q($personId: string) {
+  result(func: eq(id, $personId)) @filter(type(person)) {
+    firstName
+  }
+}

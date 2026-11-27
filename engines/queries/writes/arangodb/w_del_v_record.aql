@@ -1,0 +1,6 @@
+// w_del_v_record -- delete one person's record: the document and its two persistent-index entries (real RocksDB
+//   deletes). Its edges stay.
+// Evaluator: workloads/writes/microbench/queries.py w_del_v_record -- delete_vertex(me_vid), the record only.
+// mb2 lineage: MB87 (same statement; its key was inlined).
+// Anchor: the Person _key, a bound variable, as w_upd_plain.
+REMOVE @person IN Person

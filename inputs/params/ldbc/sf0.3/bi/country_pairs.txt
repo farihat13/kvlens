@@ -1,0 +1,6 @@
+country1|country2|friendships|stratum
+India|China|1237|max-correlated
+Germany|Yemen|25|p90
+Germany|Morocco|4|p50
+Mauritania|Zambia|1|p10
+India|Libya|1|min-anticorrelated

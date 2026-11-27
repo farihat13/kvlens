@@ -1,0 +1,9 @@
+// microbench entry_range: the persons created in the window [startDate, startDate + days) (NS5).
+// Reads: the Person.creationDate persistent index (range), then each match's _key.
+// Evaluator: queries/entry.py entry_range -- read_index_range, count-final (the harness counts
+// the returned keys). The window's upper end is exclusive, as in the evaluator.
+// mb2 lineage: MB7-8 (MB7 used an inclusive endDate param).
+FOR p IN Person
+    FILTER p.creationDate >= @startDate
+       AND p.creationDate < @startDate + @durationDays * 86400000
+    RETURN p._key

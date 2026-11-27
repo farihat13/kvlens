@@ -1,0 +1,49 @@
+{
+  "plan": "entrylabel_post",
+  "question": "Count all the posts in the graph by listing the vertices of the Post type.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {},
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "v",
+          "op": "read_vertices_by_label",
+          "label": "Post"
+        },
+        {
+          "name": "d",
+          "op": "dedup",
+          "items": {
+            "ref": "v"
+          }
+        },
+        {
+          "name": "n",
+          "op": "count",
+          "items": {
+            "ref": "d"
+          }
+        },
+        {
+          "name": "out",
+          "op": "as_row",
+          "value": {
+            "ref": "n"
+          },
+          "field": "count"
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "fc522d8450b9",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

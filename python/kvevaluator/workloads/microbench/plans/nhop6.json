@@ -1,0 +1,293 @@
+{
+  "plan": "nhop6",
+  "question": "Given a person, find the people exactly six knows-steps away, not counting anyone closer.",
+  "estimate_hints": {
+    "size_biased": [
+      "knows"
+    ]
+  },
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "person": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "anchor_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "person"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Person"
+            },
+            {
+              "param": "person"
+            }
+          ]
+        },
+        {
+          "param": "person"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "hand": {
+      "steps": [
+        {
+          "name": "a",
+          "op": "read_vertex_by_id",
+          "vid": {
+            "let": "anchor_vid"
+          },
+          "label": "Person"
+        },
+        {
+          "name": "s0",
+          "op": "dedup",
+          "items": {
+            "ref": "a"
+          }
+        },
+        {
+          "name": "f1r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "s0"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f1d",
+          "op": "dedup",
+          "items": {
+            "ref": "f1r"
+          }
+        },
+        {
+          "name": "f1",
+          "op": "exclude",
+          "items": {
+            "ref": "f1d"
+          },
+          "remove": {
+            "ref": "s0"
+          }
+        },
+        {
+          "name": "s1",
+          "op": "concat",
+          "a": {
+            "ref": "s0"
+          },
+          "b": {
+            "ref": "f1"
+          }
+        },
+        {
+          "name": "f2r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f1"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f2d",
+          "op": "dedup",
+          "items": {
+            "ref": "f2r"
+          }
+        },
+        {
+          "name": "f2",
+          "op": "exclude",
+          "items": {
+            "ref": "f2d"
+          },
+          "remove": {
+            "ref": "s1"
+          }
+        },
+        {
+          "name": "s2",
+          "op": "concat",
+          "a": {
+            "ref": "s1"
+          },
+          "b": {
+            "ref": "f2"
+          }
+        },
+        {
+          "name": "f3r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f2"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f3d",
+          "op": "dedup",
+          "items": {
+            "ref": "f3r"
+          }
+        },
+        {
+          "name": "f3",
+          "op": "exclude",
+          "items": {
+            "ref": "f3d"
+          },
+          "remove": {
+            "ref": "s2"
+          }
+        },
+        {
+          "name": "s3",
+          "op": "concat",
+          "a": {
+            "ref": "s2"
+          },
+          "b": {
+            "ref": "f3"
+          }
+        },
+        {
+          "name": "f4r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f3"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f4d",
+          "op": "dedup",
+          "items": {
+            "ref": "f4r"
+          }
+        },
+        {
+          "name": "f4",
+          "op": "exclude",
+          "items": {
+            "ref": "f4d"
+          },
+          "remove": {
+            "ref": "s3"
+          }
+        },
+        {
+          "name": "s4",
+          "op": "concat",
+          "a": {
+            "ref": "s3"
+          },
+          "b": {
+            "ref": "f4"
+          }
+        },
+        {
+          "name": "f5r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f4"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f5d",
+          "op": "dedup",
+          "items": {
+            "ref": "f5r"
+          }
+        },
+        {
+          "name": "f5",
+          "op": "exclude",
+          "items": {
+            "ref": "f5d"
+          },
+          "remove": {
+            "ref": "s4"
+          }
+        },
+        {
+          "name": "s5",
+          "op": "concat",
+          "a": {
+            "ref": "s4"
+          },
+          "b": {
+            "ref": "f5"
+          }
+        },
+        {
+          "name": "f6r",
+          "op": "read_neighbors",
+          "srcs": {
+            "ref": "f5"
+          },
+          "etype": "knows",
+          "dir": "both"
+        },
+        {
+          "name": "f6d",
+          "op": "dedup",
+          "items": {
+            "ref": "f6r"
+          }
+        },
+        {
+          "name": "f6",
+          "op": "exclude",
+          "items": {
+            "ref": "f6d"
+          },
+          "remove": {
+            "ref": "s5"
+          }
+        },
+        {
+          "name": "s6",
+          "op": "concat",
+          "a": {
+            "ref": "s5"
+          },
+          "b": {
+            "ref": "f6"
+          }
+        },
+        {
+          "name": "out",
+          "op": "dedup",
+          "items": {
+            "ref": "f6"
+          }
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand": {
+      "sha": "eea3874aa7fc",
+      "requires": [],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

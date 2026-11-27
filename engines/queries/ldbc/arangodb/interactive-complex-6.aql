@@ -1,0 +1,31 @@
+// IC6: Tag co-occurrence
+// Find tags that co-occur with given tagName on posts by 1-2 hop friends
+LET startPerson = CONCAT("Person/", @personId)
+
+// Get the target tag
+LET targetTag = FIRST(FOR t IN Tag FILTER t.name == @tagName RETURN t)
+
+// Get friends of friends (1-2 hops), excluding self
+LET friends = (
+    FOR f IN 1..2 ANY startPerson knows
+        FILTER f._id != startPerson
+        RETURN DISTINCT f._id
+)
+
+// Find posts by friends that have the target tag, then find co-occurring tags
+FOR f IN friends
+    FOR post IN 1..1 INBOUND DOCUMENT(f) hasCreator
+        FILTER IS_SAME_COLLECTION("Post", post)
+        FOR tag IN 1..1 OUTBOUND post hasTag
+            FILTER tag._id == targetTag._id
+            // This post has the target tag; now get other tags on same post
+            FOR otherTag IN 1..1 OUTBOUND post hasTag
+                FILTER otherTag._id != targetTag._id
+                COLLECT ot = otherTag WITH COUNT INTO postCount
+                // TO_STRING: some tag names are numeric (e.g., album "8701")
+                SORT postCount DESC, TO_STRING(ot.name) ASC
+                LIMIT 10
+                RETURN {
+                    tagName: TO_STRING(ot.name),
+                    postCount: postCount
+                }

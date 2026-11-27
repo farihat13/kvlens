@@ -1,0 +1,23 @@
+{
+ "file": "interactive_11_param.txt",
+ "query": "ic11",
+ "generated_by": "python data/gen_ic11_params.py --sf 0.1",
+ "script": "data/gen_ic11_params.py",
+ "source": "<data dir>/datasets/ldbc/sf0.1/CsvBasic-LongDateFormatter/dynamic",
+ "selection": "anchors = the hosted file's (same rows, same order); the hosted country (+ year) where the network has a job there, else the unused country with the most network jobs; a new year = their median workFrom + 1 -- see the script docstring",
+ "how": {
+  "new country": 12,
+  "hosted": 1,
+  "hosted country, new year": 2
+ },
+ "row_count": 15,
+ "hosted_rows_kept": 0,
+ "qualifying_jobs": {
+  "min": 1,
+  "median": 22,
+  "max": 129
+ },
+ "date": "2026-09-28",
+ "git_sha": "12de8e64178616422935488d489fd25738ec4832",
+ "note": "hosted interactive_11_param.txt (LDBC's own params for this graph): many params return empty (every standing param 1,7,...,31 at sf0.3); `how` counts the rows kept as hosted. <data dir>/datasets/ is gitignored, so this tracked copy is the source of truth."
+}

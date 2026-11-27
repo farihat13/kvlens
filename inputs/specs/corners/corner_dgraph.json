@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "direction": "declared",
+  "vertex_props": {
+    "group": "item",
+    "owners": "one",
+    "split": "never"
+  },
+  "adjacency": {
+    "group": "owner",
+    "owners": "one",
+    "split": "never",
+    "far_label": false
+  },
+  "index": {
+    "group": "owner",
+    "owners": "one",
+    "split": 65536,
+    "term": "day",
+    "scope": "type"
+  }
+}

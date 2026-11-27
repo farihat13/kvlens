@@ -1,0 +1,7 @@
+{
+ "_comment": "What each step of a LinkBench fetch takes (kvevaluator.datasets.linkbench.fetch plan): disk bytes as measured on the data dir; seconds as recorded by `just fetch-dataset` (tiny: data 15 s with the tool's first build (9 s of it), params 3 s; n1m: data 32 s, params 11 s, the tool already built). download_bytes: none recorded (the tool's clone and its Maven packages, once per machine).",
+ "scales": {
+  "tiny": {"date": "2026-11-19", "data": {"disk_bytes": 128014641, "seconds": 15}, "params": {"disk_bytes": 26342031, "seconds": 3}},
+  "n1m": {"date": "2026-11-19", "data": {"disk_bytes": 1024774517, "seconds": 32}, "params": {"disk_bytes": 26721755, "seconds": 11}}
+ }
+}

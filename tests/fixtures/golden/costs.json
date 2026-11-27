@@ -1,0 +1,117 @@
+{
+ "command": "kvcost compose --dataset ldbc=0.1 --layout Sp-Co --from <kvcost_capture> --out <dir>",
+ "costs_csv_sha256": "762396a81965dca7584ab2f548a8d63a95920a0d8cf55e6f71aeb813f786c947",
+ "input": {
+  "cells": [
+   "props_split_adj_split",
+   "props_condensed_adj_condensed"
+  ],
+  "file": "kvcost_capture.tar.gz",
+  "files": 24,
+  "sha256": "af20a69a6dbc7365a2cb80ca48dc3c5e6a4959af2c08d898407f042721353fc4"
+ },
+ "picks": {
+  "ic1": "default",
+  "ic10": "index_entries_by_docid_label_rows_one_run_type_index_type_index_single_posting_whole_row_read",
+  "ic11": "ic11",
+  "ic12": "default",
+  "ic2": "ic2",
+  "ic3": "sorted_range_index_whole_row_read",
+  "ic4": "default",
+  "ic5": "ic5",
+  "ic6": "default",
+  "ic7": "ic7",
+  "ic8": "default",
+  "ic9": "ic9",
+  "is1": "is1",
+  "is2": "default",
+  "is3": "is3",
+  "is4": "is4",
+  "is5": "is5",
+  "is6": "is6",
+  "is7": "adjacency_lists_reverse_adjacency"
+ },
+ "provenance": {
+  "binary_dirty": false,
+  "binary_git_sha": "1f7cedecd8f18c9574d8a310216ca34796253176",
+  "captured_utc": "2026-10-26T19:02:22Z",
+  "commit": "1f7cedecd8f18c9574d8a310216ca34796253176",
+  "python": "CPython 3.12.3, the packages at the versions uv.lock pins",
+  "source": "the commit above (tag artifact-freeze-20261026) of the repo this one was made from",
+  "tags": [
+   "artifact-freeze-20261026"
+  ]
+ },
+ "total": {
+  "D": "",
+  "G": "",
+  "N": "",
+  "P": "",
+  "S": "",
+  "bytes": "5980148661.999999",
+  "exact": "yes",
+  "get_key": "",
+  "get_miss_key": "",
+  "get_value": "",
+  "miss_key_bytes": "119437509.6",
+  "next_miss_key": "",
+  "queries": "27",
+  "read_bytes": "5042080697.599999",
+  "read_ops": "48983383.642",
+  "scan_key": "",
+  "scan_value": "",
+  "scope": "i01 (ldbc_mix)",
+  "seek_miss_key": "",
+  "weighting": "query frequencies",
+  "wops": "49894768.342",
+  "wops_bytes4k": "51354765.573934",
+  "write_bytes": "471770642.4",
+  "write_key": "",
+  "write_ops": "500285.0",
+  "write_rmw_bytes": "466297322.0",
+  "write_rmw_miss_key_bytes": "897522.4",
+  "write_rmw_ops": "411099.7",
+  "write_value": ""
+ },
+ "totals_csv_sha256": "e43d0f4489a53b9e731455728bac5027efc3cbd1a353c2a1f47acce4e83a6816",
+ "view": "kvcost/ldbc/Sp-Co/composed/wops_bytes4k",
+ "changes": [
+  {
+   "date": "2026-10-29",
+   "costs_csv_sha256_before": "d34e2a680a13419cce0390e8b5c3ef846de92934947ca7500de25875d92411f4",
+   "totals_csv_sha256_before": "c1cd8ccc831967da8dfe4a2b665b07ed344a290e98a9f6cb4770e4f67d4c0cb4",
+   "what": "costs.csv and totals.csv: the family name of the Interactive rows, ldbc -> interactive (19 rows in costs.csv, 1 in totals.csv); with it mapped back both files are byte-identical to the hashes before, so every count, total and LDBC pick is identical",
+   "why": "the LDBC Interactive workload's key is interactive (decided 2026-10-29): ldbc names the dataset and the kvcost suite, whose families are now interactive, microbench and writes"
+  },
+  {
+   "date": "2026-10-29",
+   "costs_csv_sha256_before": "ba84f2ffcab3b7fdc21833c88436356f2987b9bbb13c2e9b9f6d86c927278293",
+   "what": "costs.csv: one row's body name (microbench fof_posters_profile); its counts, every total and every LDBC pick are identical",
+   "why": "an exact tie is broken by body sha, not by display name (candidates.tie_order, decided 2026-10-29): fof_posters_profile's two person-run twin bodies cost exactly the same on this capture, and the lower sha (bba7b07ed62e, the type-index body: fof_posters_profile_from_person_run:label_rows_one_run_type_index in this capture's names) comes before the probe body (dfd725764405, :default)"
+  },
+  {
+   "date": "2026-10-29",
+   "costs_csv_sha256_before": "5a46eb66a25deef1741cb4504b2c59c0041316a15c939faaeb4690a233fe7ec3",
+   "what": "costs.csv: one row's body name (microbench hop1_posts_props: default -> type_index_single_posting); its counts are byte-identical, and every total and every LDBC pick are identical",
+   "why": "an exact 3-way tie is no longer anchored on the planner's row (captures carry no planner_pick since plan files lost their selector), so it is broken by body sha (candidates.tie_order): hop1_posts_props's three bodies cost exactly the same on this capture, and the lowest sha (37bd1672b9a9, type_index_single_posting) comes before c5e1d5ab84ba (default, the planner's row on Sp-Sp) and fc526d1ae370"
+  },
+  {
+   "date": "2026-10-29",
+   "costs_csv_sha256_before": "386c3a3a3cbb30a6f7e043f0a4f0028aa6f219e701857b01addf0ab01c7f4f30",
+   "what": "costs.csv: the 20 write rows' body (iu1-8 and the write primitives): canonical -> write; every count, total and LDBC pick is identical",
+   "why": "a write has no plan body; the view printed the writes CSV's `variant` column, which is kvbench's physical design (canonical), as the body (the body/variant terms, decided 2026-10-29)"
+  },
+  {
+   "date": "2026-11-02",
+   "costs_csv_sha256_before": "15dc32be1074edc4c20ee2c80bc10c4a150fe607cb6e6c5f628aa6091ecaa49f",
+   "what": "costs.csv: the pick_score column on 52 of the 63 read rows (the rows with miss-key bytes); every count, every body, every total and every LDBC pick are identical, and on every read row pick_score now equals wops_bytes4k",
+   "why": "the plan pick sums the 7 read lanes the reports count, miss keys included (criteria.PICK_BYTE_LANES, decided 2026-11-02): one name, one number"
+  },
+  {
+   "date": "2026-11-19",
+   "totals_csv_sha256_before": "3a0a8a7dc57c1229073a74dd7f2f63520b2bb3698d18995586e9f1694e0c7c3f",
+   "what": "totals.csv: the two LDBC Interactive workloads' scope rows are i01 (ldbc_mix) and i02 (ldbc_mix_reads), first among the workloads (id order); with them renamed w16 and w17 and put last, the file is the one before, byte for byte",
+   "why": "the workloads W16 and W17 are i01 and i02 (decided 2026-11-17)"
+  }
+ ]
+}

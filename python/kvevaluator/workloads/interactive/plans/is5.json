@@ -1,0 +1,98 @@
+{
+  "plan": "is5",
+  "question": "Given a message, find its author.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "message": {
+      "type": "id"
+    }
+  },
+  "let": {
+    "msg_vid": {
+      "if": [
+        {
+          "is_digit": {
+            "param": "message"
+          }
+        },
+        {
+          "vid": [
+            {
+              "lit": "Message"
+            },
+            {
+              "param": "message"
+            }
+          ]
+        },
+        {
+          "param": "message"
+        }
+      ]
+    }
+  },
+  "plans": {
+    "is5": {
+      "steps": [
+        {
+          "name": "author_vid",
+          "op": "read_neighbors",
+          "srcs": [
+            {
+              "let": "msg_vid"
+            }
+          ],
+          "etype": "hasCreator",
+          "dir": "out"
+        },
+        {
+          "name": "author_props",
+          "op": "read_vertex_props",
+          "vids": {
+            "ref": "author_vid"
+          },
+          "props": [
+            "id",
+            "firstName",
+            "lastName"
+          ],
+          "label": "Person"
+        },
+        {
+          "name": "author_named",
+          "op": "rename",
+          "rows": {
+            "ref": "author_props"
+          },
+          "names": {
+            "id": "personId",
+            "firstName": "personFirstName",
+            "lastName": "personLastName"
+          }
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "author_named"
+          },
+          "fields": [
+            "personId",
+            "personFirstName",
+            "personLastName"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "is5": {
+      "sha": "f4c241c263e1",
+      "requires": [],
+      "sources": [
+        "is5"
+      ]
+    }
+  }
+}

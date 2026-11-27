@@ -1,0 +1,11 @@
+# microbench closure -- the whole TagClass subtree under a TagClass, the root included:
+# follow IS_SUBCLASS_OF backwards (child -> parent edges, read from the parent side) until no
+# new class appears.
+# Evaluator: queries/nhop.py closure: read_closure(isSubclassOf, in) -> dedup. One row per
+# class, the vid only.
+# mb2 lineage: none.
+# Form: an unbounded variable-length MATCH (*0.. includes the root). Every IS_SUBCLASS_OF
+# endpoint is a TagClass, so the labels change no answer. GO would need a fixed step bound.
+MATCH (root:TagClass)<-[:IS_SUBCLASS_OF*0..]-(c:TagClass)
+WHERE id(root) == $tagClassId
+RETURN DISTINCT id(c) AS id

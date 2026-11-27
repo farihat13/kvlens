@@ -1,0 +1,103 @@
+{
+ "query": "job5a",
+ "aliases": {
+  "ct": "company_type",
+  "it": "info_type",
+  "mc": "movie_companies",
+  "mi": "movie_info",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mc",
+   "movie_id"
+  ],
+  [
+   "mc",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ct",
+   "id",
+   "mc",
+   "company_type_id"
+  ],
+  [
+   "it",
+   "id",
+   "mi",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "ct": [
+   [
+    "cmp",
+    "=",
+    "ct",
+    "kind",
+    "production companies"
+   ]
+  ],
+  "it": [],
+  "mc": [
+   [
+    "like",
+    "mc",
+    "note",
+    "%(theatrical)%",
+    false
+   ],
+   [
+    "like",
+    "mc",
+    "note",
+    "%(France)%",
+    false
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Sweden",
+     "Norway",
+     "Germany",
+     "Denmark",
+     "Swedish",
+     "Denish",
+     "Norwegian",
+     "German"
+    ]
+   ]
+  ],
+  "t": [
+   [
+    "cmp",
+    ">",
+    "t",
+    "production_year",
+    2005
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "typical_european_movie",
+   "t",
+   "title"
+  ]
+ ]
+}

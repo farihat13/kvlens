@@ -1,0 +1,129 @@
+{
+  "plan": "topk1",
+  "question": "Given a date, find the newest message (post or comment) created before it, with its content.",
+  "generated_by": "python/kvevaluator/plan_choice/generate.py",
+  "params": {
+    "maxDate": {
+      "type": "int"
+    }
+  },
+  "plans": {
+    "hand~36dce2": {
+      "steps": [
+        {
+          "name": "top",
+          "op": "read_top_k_by_index",
+          "vids": null,
+          "prop": "creationDate",
+          "k": 1,
+          "hi": {
+            "param": "maxDate"
+          },
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "props": [
+            "content"
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    },
+    "hand~42d8be": {
+      "steps": [
+        {
+          "name": "cp",
+          "op": "read_vertices_by_label",
+          "label": "Post"
+        },
+        {
+          "name": "cc",
+          "op": "read_vertices_by_label",
+          "label": "Comment"
+        },
+        {
+          "name": "cm",
+          "op": "concat",
+          "a": {
+            "ref": "cp"
+          },
+          "b": {
+            "ref": "cc"
+          }
+        },
+        {
+          "name": "top",
+          "op": "read_top_k_by_index",
+          "vids": {
+            "ref": "cm"
+          },
+          "prop": "creationDate",
+          "k": 1,
+          "hi": {
+            "param": "maxDate"
+          },
+          "labels": [
+            "Post",
+            "Comment"
+          ],
+          "props": [
+            "content"
+          ]
+        },
+        {
+          "name": "out",
+          "op": "project",
+          "rows": {
+            "ref": "top"
+          },
+          "fields": [
+            "id",
+            "creationDate",
+            "content"
+          ]
+        }
+      ],
+      "output": "out"
+    }
+  },
+  "bodies": {
+    "hand~36dce2": {
+      "sha": "36dce21671c6",
+      "requires": [
+        "per_type_index",
+        "property_index"
+      ],
+      "on": {
+        "per_type_index": [
+          "Comment",
+          "Post"
+        ]
+      },
+      "sources": [
+        "hand"
+      ]
+    },
+    "hand~42d8be": {
+      "sha": "42d8be8bbec0",
+      "requires": [
+        "property_index"
+      ],
+      "sources": [
+        "hand"
+      ]
+    }
+  }
+}

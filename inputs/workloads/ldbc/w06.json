@@ -1,0 +1,37 @@
+{
+ "id": "w06",
+ "name": "narrow_props",
+ "title": "Narrow: one property of many vertices",
+ "items": [
+  {"family": "microbench", "query": "hop1p1_knows", "frequency": 100, "params": [4, 5]}
+ ],
+ "expect": "Split props (only the column asked for)",
+ "why": "firstName of every friend of a high-degree person. Chunked properties pack the friends into shared chunks ({ch_ops} ops against {dg_ops}). Split reads only the firstName column ({dg_bytes}, against {cc_bytes} of whole Condensed rows and {ch_bytes} of chunks).",
+ "why_numbers": {
+  "ch_ops": [
+   "total",
+   "ops",
+   "props_chunked_adj_chunked"
+  ],
+  "dg_ops": [
+   "total",
+   "ops",
+   "props_split_adj_condensed"
+  ],
+  "dg_bytes": [
+   "total",
+   "bytes",
+   "props_split_adj_condensed"
+  ],
+  "cc_bytes": [
+   "total",
+   "bytes",
+   "props_condensed_adj_condensed"
+  ],
+  "ch_bytes": [
+   "total",
+   "bytes",
+   "props_chunked_adj_chunked"
+  ]
+ }
+}

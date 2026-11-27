@@ -1,0 +1,169 @@
+{
+ "query": "job18b",
+ "aliases": {
+  "ci": "cast_info",
+  "it1": "info_type",
+  "it2": "info_type",
+  "mi": "movie_info",
+  "mi_idx": "movie_info_idx",
+  "n": "name",
+  "t": "title"
+ },
+ "joins": [
+  [
+   "t",
+   "id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "t",
+   "id",
+   "ci",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi",
+   "movie_id"
+  ],
+  [
+   "ci",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "mi",
+   "movie_id",
+   "mi_idx",
+   "movie_id"
+  ],
+  [
+   "n",
+   "id",
+   "ci",
+   "person_id"
+  ],
+  [
+   "it1",
+   "id",
+   "mi",
+   "info_type_id"
+  ],
+  [
+   "it2",
+   "id",
+   "mi_idx",
+   "info_type_id"
+  ]
+ ],
+ "predicates": {
+  "ci": [
+   [
+    "in",
+    "ci",
+    "note",
+    [
+     "(writer)",
+     "(head writer)",
+     "(written by)",
+     "(story)",
+     "(story editor)"
+    ]
+   ]
+  ],
+  "it1": [
+   [
+    "cmp",
+    "=",
+    "it1",
+    "info",
+    "genres"
+   ]
+  ],
+  "it2": [
+   [
+    "cmp",
+    "=",
+    "it2",
+    "info",
+    "rating"
+   ]
+  ],
+  "mi": [
+   [
+    "in",
+    "mi",
+    "info",
+    [
+     "Horror",
+     "Thriller"
+    ]
+   ],
+   [
+    "null",
+    "mi",
+    "note",
+    true
+   ]
+  ],
+  "mi_idx": [
+   [
+    "cmp",
+    ">",
+    "mi_idx",
+    "info",
+    "8.0"
+   ]
+  ],
+  "n": [
+   [
+    "null",
+    "n",
+    "gender",
+    false
+   ],
+   [
+    "cmp",
+    "=",
+    "n",
+    "gender",
+    "f"
+   ]
+  ],
+  "t": [
+   [
+    "between",
+    "t",
+    "production_year",
+    2008,
+    2014
+   ]
+  ]
+ },
+ "outputs": [
+  [
+   "movie_budget",
+   "mi",
+   "info"
+  ],
+  [
+   "movie_votes",
+   "mi_idx",
+   "info"
+  ],
+  [
+   "movie_title",
+   "t",
+   "title"
+  ]
+ ]
+}

@@ -1,0 +1,243 @@
+# IMDb with the Join Order Benchmark, mapping `rows`. GENERATED from mapping.py by schema_text.py: edit the
+# mapping, not this file. Why each choice: README.md, "The mapping".
+
+# ---------------------------------------------------------------- vertices ----
+vertex Title prefix=title
+    title            str
+    imdb_index       str nullable
+    kind_id          int
+    production_year  int nullable
+    imdb_id          int nullable
+    phonetic_code    str nullable
+    season_nr        int nullable
+    episode_nr       int nullable
+    series_years     str nullable
+    md5sum           str nullable
+
+vertex Name prefix=name
+    name             str
+    imdb_index       str nullable
+    imdb_id          int nullable
+    gender           str nullable
+    name_pcode_cf    str nullable
+    name_pcode_nf    str nullable
+    surname_pcode    str nullable
+    md5sum           str nullable
+
+vertex Character prefix=char_name
+    name             str
+    imdb_index       str nullable
+    imdb_id          int nullable
+    name_pcode_nf    str nullable
+    surname_pcode    str nullable
+    md5sum           str nullable
+
+vertex Company prefix=company_name
+    name             str
+    country_code     str nullable
+    imdb_id          int nullable
+    name_pcode_nf    str nullable
+    name_pcode_sf    str nullable
+    md5sum           str nullable
+
+vertex Keyword prefix=keyword
+    keyword          str
+    phonetic_code    str nullable
+
+vertex MovieInfo prefix=movie_info
+    info             str
+    note             str nullable
+    info_type_id     int
+
+vertex MovieRating prefix=movie_info_idx
+    info             str
+    note             str nullable
+    info_type_id     int
+
+vertex PersonInfo prefix=person_info
+    info             str
+    note             str nullable
+    info_type_id     int
+
+vertex AkaName prefix=aka_name
+    name             str
+    imdb_index       str nullable
+    name_pcode_cf    str nullable
+    name_pcode_nf    str nullable
+    surname_pcode    str nullable
+    md5sum           str nullable
+
+vertex AkaTitle prefix=aka_title
+    title            str
+    imdb_index       str nullable
+    kind_id          int
+    production_year  int nullable
+    phonetic_code    str nullable
+    episode_of_id    int nullable
+    season_nr        int nullable
+    episode_nr       int nullable
+    note             str nullable
+    md5sum           str nullable
+
+vertex CompleteCast prefix=complete_cast
+    subject_id       int
+    status_id        int
+
+vertex MovieLink prefix=movie_link
+    link_type_id     int
+
+vertex KindType prefix=kind_type
+    kind             str
+
+vertex InfoType prefix=info_type
+    info             str
+
+vertex LinkType prefix=link_type
+    link             str
+
+vertex CompCastType prefix=comp_cast_type
+    kind             str
+
+# ------------------------------------------------------------------- edges ----
+edge cast_actor reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_actress reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_producer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_writer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_cinematographer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_composer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_costume_designer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_director reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_editor reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_miscellaneous_crew reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge cast_production_designer reverse
+    Name->Title
+    note             str nullable
+    nr_order         int nullable
+    character        int nullable
+
+edge company_distributor reverse
+    Title->Company
+    note             str nullable
+
+edge company_production reverse
+    Title->Company
+    note             str nullable
+
+edge has_keyword reverse
+    Title->Keyword
+
+edge episode_of reverse
+    Title->Title
+
+edge info_of reverse
+    MovieInfo->Title
+
+edge rating_of reverse
+    MovieRating->Title
+
+edge person_info_of reverse
+    PersonInfo->Name
+
+edge aka_name_of reverse
+    AkaName->Name
+
+edge aka_title_of reverse
+    AkaTitle->Title
+
+edge complete_cast_of reverse
+    CompleteCast->Title
+
+edge link_from reverse
+    MovieLink->Title
+
+edge link_to reverse
+    MovieLink->Title
+
+# One predicate per label on a store that names its data by predicate (Dgraph): `MovieInfo.info`, data keys
+# and index keys. The other formats key by label anyway.
+predicates per_label
+
+# ----------------------------------------------------------------- indexes ----
+index Title.title type_scoped
+index Title.kind_id type_scoped equality
+index Title.production_year type_scoped equality
+index Name.gender type_scoped
+index Character.name type_scoped
+index Company.name type_scoped
+index Company.country_code type_scoped
+index Keyword.keyword type_scoped
+index MovieInfo.info type_scoped
+index MovieInfo.info_type_id type_scoped equality
+index MovieRating.info_type_id type_scoped equality
+index PersonInfo.info_type_id type_scoped equality
+index PersonInfo.note type_scoped
+index CompleteCast.subject_id type_scoped equality
+index CompleteCast.status_id type_scoped equality
+index MovieLink.link_type_id type_scoped equality
+
+index Title
+index Name
+index Character
+index Company
+index Keyword
+index MovieInfo
+index MovieRating
+index PersonInfo
+index AkaName
+index AkaTitle
+index CompleteCast
+index MovieLink
+index KindType
+index InfoType
+index LinkType
+index CompCastType

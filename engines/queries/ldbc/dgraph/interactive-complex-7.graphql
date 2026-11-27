@@ -1,0 +1,68 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=7.08
+# Q7. Recent likers
+#
+# Given a start Person with ID $personId, find the most recent likes on any of start Person’s Messages. 
+# Find Persons that liked (likes edge) any of start Person’s Messages, the Messages they liked
+# most recently, the creation date of that like, and the latency in minutes (minutesLatency) between
+# creation of Messages and like. Additionally, for each Person found return a flag indicating (isNew)
+# whether the liker is a friend of start Person. In case that a Person liked multiple Messages at the
+# same time, return the Message with lowest identifier.Validation rule: Depending on whether the 
+# system-under-test supports leap seconds or uses UTC-SLS (UTC with Smoothed Leap Seconds), a difference 
+# of 1 minute can occur between theminutesLatency results of two correct implementations when the time 
+# interval includes June 30, 2012, when there was a leap second. Therefore, the minutesLatency value 
+# is validated using a tolerance of 1 minute.
+# 
+# NOTE: Due to Dgraph limitations with facet values, the following must be handled client-side:
+#   1. Sorting by (likesCreationDate DESC, friendId ASC) - Dgraph cannot sort outer query by facet values from inner traversals
+#   2. Computing minutesLatency = (likesCreationDate - messageCreationDate) / 60000 - Facet aliases cannot be used in math() within same block
+#   3. Applying LIMIT 20 after sorting
+#   The query currently returns up to 200 results for client-side processing.
+#
+# Sort    likes.creationDate(desc), friendId(asc)
+# Limit   20
+#
+# Params:
+#   $personId : int
+
+query Q7($personId: int) {
+  # Anchor person
+  P as var(func: eq(id, $personId)) @filter(type(person))
+
+  # All messages (posts or comments) authored by this person
+  var(func: uid(P)) {
+    M as ~hasCreator @filter(type(post) OR type(comment))
+  }
+
+  # Get all likers (deduplicated)
+  var(func: uid(M)) {
+    ~likes {
+      L as uid
+    }
+  }
+
+  # Set isNew: 0 for friends, 1 for non-friends
+  var(func: uid(L)) {
+    isFriend as count(knows) @filter(uid(P))
+    revFriend as count(~knows) @filter(uid(P))
+    totalFriend as math(isFriend + revFriend)
+    isNew as math(cond(totalFriend > 0, 0, 1))
+  }
+
+  # Final projection - get most recent like for each person
+  result(func: uid(L), first: 200) {
+    friendId: id
+    friendFirstName: firstName
+    friendLastName: lastName
+    isNew: val(isNew)
+    
+    # Get all likes to messages by P, ordered by like date desc
+    likes @facets(orderdesc: creationDate, likesCreationDate: creationDate) @filter(uid(M)) (first: 1) {
+      messageId: id
+      messageContent: content
+      messageImageFile: imageFile
+      messageCreationDate: creationDate
+    }
+
+    # minutesLatency: math((likesCreationDate) - val(messageCreationDate)) / 60000)
+  }
+}

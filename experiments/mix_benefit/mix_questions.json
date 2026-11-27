@@ -1,0 +1,229 @@
+{
+ "i01-front": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 per type: the complete front (the walk)",
+  "calls": [
+   {"workload": "i01", "flags": ["--front", "--settings", "Sp,Co,Ch64k"]}
+  ]
+ },
+ "i01-direction": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 per type and direction: the staircase at 75 limits",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--byte-limit", "file:experiments/mix_benefit/limits/i01_per_type_and_direction.json"]}
+  ]
+ },
+ "i01-any-size": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 per type with Chunked at 1-256 KB: the staircase",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--byte-limit", {"3": "file:experiments/mix_benefit/limits/i01_per_type_any_size.json", "default": "caps"}]}
+  ]
+ },
+ "i01-best": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01: the fewest wops and bytes (per type, per type and direction), the fewest wops_bytes4k (per type and direction)",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--cost-model", "wops"]},
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--cost-model", "bytes"]},
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "wops"]},
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "bytes"]},
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "i01-bill": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 per type: the fewest exact bill",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch64k", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "i01-any-size-best": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 any size: the fewest wops_bytes4k",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "i01-any-size-bill": {
+  "dataset": "ldbc",
+  "rows": "i01",
+  "what": "I01 any size: the fewest exact bill, and the bill's read/write front",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]},
+   {"workload": "i01", "flags": ["--front", "--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--cost-model", "bill_exact", "--byte-limit", "caps"]}
+  ]
+ },
+ "i01-larger": {
+  "dataset": "ldbc",
+  "larger": true,
+  "rows": "i01",
+  "what": "I01 any size at a larger LDBC scale: the fewest exact bill and wops_bytes4k",
+  "calls": [
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]},
+   {"workload": "i01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "b01-larger": {
+  "dataset": "ldbc",
+  "larger": true,
+  "rows": "b01-spco-share",
+  "what": "B01 at equal share at a larger LDBC scale, as b01-spco-share and b01-spco-share-bill",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]},
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "b01-larger-once": {
+  "dataset": "ldbc",
+  "larger": true,
+  "rows": "b01-once",
+  "what": "B01 once at a larger LDBC scale, as b01-once",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]},
+   {"workload": "inputs/workloads/ldbc/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "bi": {
+  "dataset": "ldbc",
+  "rows": "b01",
+  "what": "B01 per type and direction: the fewest wops_bytes4k, additive form",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/b01.json", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "wops_bytes4k", "--combine-queries", "additive"]}
+  ]
+ },
+ "job": {
+  "dataset": "imdb",
+  "rows": "j01",
+  "what": "J01 per type and direction: the fewest wops_bytes4k, additive form",
+  "calls": [
+   {"workload": "j01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "wops_bytes4k", "--combine-queries", "additive", "--max-nodes", "1000000"]}
+  ]
+ },
+ "linkbench": {
+  "dataset": "linkbench",
+  "rows": "l01",
+  "what": "L01 per type and direction: the fewest wops_bytes4k (read as captured)",
+  "calls": [
+   {"workload": "l01", "flags": ["--settings", "Sp,Co,Ch64k", "--by-direction", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "l01-any-size": {
+  "dataset": "linkbench",
+  "rows": "l01",
+  "what": "L01 any size: the fewest exact bill and wops_bytes4k",
+  "calls": [
+   {"workload": "l01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]},
+   {"workload": "l01", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "b01-spco-share": {
+  "dataset": "ldbc",
+  "rows": "b01-spco-share",
+  "what": "B01 at its equal-share frequencies, any size: the fewest wops_bytes4k (no cost cache)",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "b01-spco-share-bill": {
+  "dataset": "ldbc",
+  "rows": "b01-spco-share",
+  "what": "B01 at its equal-share frequencies, any size: the fewest exact bill",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "b01-once": {
+  "dataset": "ldbc",
+  "rows": "b01-once",
+  "what": "B01 with every query once, as b01-spco-share and b01-spco-share-bill",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]},
+   {"workload": "inputs/workloads/ldbc/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "j01-spco-share": {
+  "dataset": "imdb",
+  "rows": "j01-spco-share",
+  "what": "J01 at its equal-share frequencies, any size: the two-step mix of wops_bytes4k (not proven)",
+  "calls": [
+   {"workload": "inputs/workloads/imdb/equal-share/j01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k", "--search", "two-step"]}
+  ]
+ },
+ "j01-spco-share-bill": {
+  "dataset": "imdb",
+  "rows": "j01-spco-share",
+  "what": "J01 at its equal-share frequencies, any size: a local search for the exact bill",
+  "calls": [
+   {"workload": "inputs/workloads/imdb/equal-share/j01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact", "--search", "local"]}
+  ]
+ },
+ "j01-once": {
+  "dataset": "imdb",
+  "rows": "j01-once",
+  "what": "J01 with every query once, as j01-spco-share and j01-spco-share-bill",
+  "calls": [
+   {"workload": "inputs/workloads/imdb/j01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k", "--search", "two-step"]},
+   {"workload": "inputs/workloads/imdb/j01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact", "--search", "local"]}
+  ]
+ },
+ "i02-any-size": {
+  "dataset": "ldbc",
+  "rows": "i02",
+  "what": "I02 any size: the fewest wops_bytes4k and exact bill (the latency figure's measured and bill mixes)",
+  "calls": [
+   {"workload": "i02", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]},
+   {"workload": "i02", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "bill_exact"]}
+  ]
+ },
+ "i02-predicted": {
+  "dataset": "ldbc",
+  "rows": "i02-predicted",
+  "source": "predicted",
+  "what": "I02 any size on its predictions at the default statistics tier: the fewest wops_bytes4k",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/i02.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "b01-predicted": {
+  "dataset": "ldbc",
+  "rows": "b01-predicted",
+  "source": "predicted",
+  "what": "B01 at equal share on its predictions at the default statistics tier: the fewest wops_bytes4k",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k"]}
+  ]
+ },
+ "j01-predicted": {
+  "dataset": "imdb",
+  "rows": "j01-predicted",
+  "source": "predicted",
+  "what": "J01 at equal share on its predictions at the default statistics tier: the fewest wops_bytes4k (stops at 500,000 nodes, as the paper's)",
+  "calls": [
+   {"workload": "inputs/workloads/imdb/equal-share/j01.json", "flags": ["--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--combine-queries", "sum", "--cost-model", "wops_bytes4k", "--max-nodes", "500000"]}
+  ]
+ },
+ "bi-any-size": {
+  "dataset": "ldbc",
+  "rows": "b01",
+  "what": "B01 at equal share: the any-size staircase (caps) and the 3-setting front (the walk stops at 600 s)",
+  "calls": [
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--combine-queries", "sum", "--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--byte-limit", "caps"]},
+   {"workload": "inputs/workloads/ldbc/equal-share/b01.json", "flags": ["--front", "--combine-queries", "sum", "--settings", "Sp,Co,Ch64k", "--max-seconds", "600"]}
+  ]
+ },
+ "job-any-size": {
+  "dataset": "imdb",
+  "rows": "j01",
+  "what": "J01 at equal share: the any-size staircase without tables at 16 limits, 30,000 nodes each, 6 at once (not proven)",
+  "calls": [
+   {"workload": "inputs/workloads/imdb/equal-share/j01.json", "flags": ["--jobs", "6", "--max-nodes", "30000", "--combine-queries", "sum", "--settings", "Sp,Co,Ch1k,Ch4k,Ch16k,Ch64k,Ch256k", "--byte-limit", "file:experiments/mix_benefit/limits/j01_per_type_any_size.json"]}
+  ]
+ }
+}

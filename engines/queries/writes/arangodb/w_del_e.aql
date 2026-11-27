@@ -1,0 +1,8 @@
+// w_del_e -- delete one existing knows edge: found through the edge index on _from (filtered on _to), then the
+//   edge document, its edge-index entries and its knows.creationDate entry deleted (real RocksDB deletes).
+// Evaluator: workloads/writes/microbench/queries.py w_del_e -- delete_edge(knows, src_vid, dst_vid).
+// mb2 lineage: MB88 (same statement; its keys were inlined).
+// Anchor: the two Person _keys, bound variables, as w_upd_plain.
+FOR e IN knows
+  FILTER e._from == CONCAT("Person/", @src) AND e._to == CONCAT("Person/", @dst)
+  REMOVE e IN knows

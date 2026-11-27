@@ -1,0 +1,29 @@
+# https://ldbcouncil.org/ldbc_snb_docs/workload-interactive-v1.pdf#page=18
+# IS1. Profile of a person
+#
+# Given a start Person with ID $personId, retrieve their first name, last name, birthday, IP address,
+# browser, and city of residence.
+#
+# Params:
+#   $personId  : string     (e.g., "933")
+# Results:
+# 1 person.firstName String R
+# 2 person.lastName String R
+# 3 person.birthday Date R
+# 4 person.locationIP String R
+# 5 person.browserUsed String R
+# 6 city.id ID R
+# 7 person.gender String R
+# 8 person.creationDate DateTime R
+
+MATCH (n:Person)-[:IS_LOCATED_IN]->(pl:Place)
+WHERE id(n) == $personId
+RETURN
+    n.Person.firstName AS firstName,
+    n.Person.lastName AS lastName,
+    n.Person.birthday AS birthday,
+    n.Person.locationIP AS locationIP,
+    n.Person.browserUsed AS browserUsed,
+    id(pl) AS cityId,
+    n.Person.gender AS gender,
+    n.Person.creationDate AS creationDate

@@ -1,0 +1,464 @@
+{
+ "what": "dgneb's rows and work for each comparison test_meta.cc makes with dgneb as meta's reference at the All-Condensed corner (tests/fixtures/meta_corner_dgneb.json; inputs/specs/corners/corner_dgneb.json when this copy was written); written by dgneb through test_meta's writer mode at the commit below (the mode was removed with dgneb)",
+ "update_rule": "dgneb is not built: test_meta reads this file in place of a dgneb run. It is a regression copy, not an independent reference: a correct change to meta's counts at this corner is copied into the entry by hand from test_meta's FAIL lines (each names the field, dgneb's saved value and meta's), with the reason in the commit. The rows hold vids built from the schema's label tags: renumbering them changes the rows.",
+ "binary_git_sha": "2b03313b091a8477d97046094cd0359eb45f610b",
+ "binary_dirty": false,
+ "key_layout": "posting-v5",
+ "calls": {
+  "reads/vertex by id": {
+   "rows": [
+    "0000000000000001"
+   ],
+   "steps": [
+    {
+     "S": 0,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 0
+     }
+    }
+   ]
+  },
+  "reads/neighbors out": {
+   "rows": [
+    "0000000000000002",
+    "0000000000000003",
+    "0000000000000004"
+   ],
+   "steps": [
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 49
+     }
+    }
+   ]
+  },
+  "reads/neighbors in": {
+   "rows": [
+    "0000000000000001",
+    "0000000000000002"
+   ],
+   "steps": [
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 39
+     }
+    }
+   ]
+  },
+  "reads/neighbors+facet": {
+   "rows": [
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000002",
+     "creationDate": 200
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000003",
+     "creationDate": 300
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000004",
+     "creationDate": 400
+    }
+   ],
+   "steps": [
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 49
+     }
+    }
+   ]
+  },
+  "reads/vertex props": {
+   "rows": [
+    {
+     "_vid": "0000000000000001",
+     "firstName": "Bo",
+     "lastName": "L1",
+     "creationDate": 1000
+    },
+    {
+     "_vid": "0000000000000002",
+     "firstName": "Bo",
+     "lastName": "L2",
+     "creationDate": 2000
+    },
+    {
+     "_vid": "0000000000000003",
+     "firstName": "Bo",
+     "lastName": "L3",
+     "creationDate": 3000
+    }
+   ],
+   "steps": [
+    {
+     "S": 0,
+     "G": 3,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 93,
+      "scan_value": 0
+     }
+    }
+   ]
+  },
+  "reads/chase": {
+   "rows": [
+    "0000000000000005"
+   ],
+   "steps": [
+    {
+     "S": 3,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 97
+     }
+    }
+   ]
+  },
+  "reads/anchor props": {
+   "rows": [
+    {
+     "_vid": "0000000000000001",
+     "firstName": "Bo",
+     "lastName": "L1"
+    }
+   ],
+   "steps": [
+    {
+     "S": 0,
+     "G": 1,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 31,
+      "scan_value": 0
+     }
+    }
+   ]
+  },
+  "reads/edge exists": {
+   "rows": [
+    {
+     "x": "0000000000000002",
+     "exists": true
+    },
+    {
+     "x": "0000000000000005",
+     "exists": false
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 49
+     }
+    }
+   ]
+  },
+  "split/neighbors out": {
+   "rows": [
+    "0000000000000002",
+    "0000000000000003",
+    "0000000000000004",
+    "0000000000000004",
+    "0000000000000005"
+   ],
+   "steps": [
+    {
+     "S": 3,
+     "G": 0,
+     "N": 3,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 120
+     }
+    }
+   ]
+  },
+  "split/neighbors+facet": {
+   "rows": [
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000002",
+     "creationDate": 200
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000003",
+     "creationDate": 300
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000004",
+     "creationDate": 400
+    },
+    {
+     "src": "0000000000000002",
+     "dst": "0000000000000004",
+     "creationDate": 400
+    },
+    {
+     "src": "0000000000000004",
+     "dst": "0000000000000005",
+     "creationDate": 500
+    }
+   ],
+   "steps": [
+    {
+     "S": 3,
+     "G": 0,
+     "N": 3,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 120
+     }
+    }
+   ]
+  },
+  "split/chase": {
+   "rows": [
+    "0000000000000005"
+   ],
+   "steps": [
+    {
+     "S": 3,
+     "G": 0,
+     "N": 3,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 120
+     }
+    }
+   ]
+  },
+  "split/edge exists": {
+   "rows": [
+    {
+     "x": "0000000000000002",
+     "exists": true
+    },
+    {
+     "x": "0000000000000005",
+     "exists": false
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 0,
+     "N": 3,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 72
+     }
+    }
+   ]
+  },
+  "update/update_edge_prop, src side": {
+   "rows": [
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000002",
+     "creationDate": 200
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000003",
+     "creationDate": 777
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000004",
+     "creationDate": 400
+    },
+    {
+     "src": "0000000000000001",
+     "dst": "0000000000000032",
+     "creationDate": 5000
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 0,
+     "N": 0,
+     "P": 2,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 83
+     }
+    },
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 59
+     }
+    }
+   ]
+  },
+  "update/update_edge_prop, dst side": {
+   "rows": [
+    {
+     "src": "0000000000000003",
+     "dst": "0000000000000001",
+     "creationDate": 777
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 0,
+     "N": 0,
+     "P": 2,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 83
+     }
+    },
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 24
+     }
+    }
+   ]
+  },
+  "update/update_edge_prop, absent edge": {
+   "rows": [
+    {
+     "src": "0000000000000003",
+     "dst": "0000000000000005",
+     "creationDate": 500
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 24
+     }
+    },
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 24
+     }
+    }
+   ]
+  },
+  "update/multi update_prop": {
+   "rows": [
+    {
+     "_vid": "0000000000000002",
+     "firstName": "Zed",
+     "lastName": "Q",
+     "creationDate": 99999
+    }
+   ],
+   "steps": [
+    {
+     "S": 2,
+     "G": 1,
+     "N": 0,
+     "P": 3,
+     "D": 0,
+     "bytes": {
+      "get_value": 31,
+      "scan_value": 23
+     }
+    },
+    {
+     "S": 1,
+     "G": 0,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 0,
+      "scan_value": 13
+     }
+    },
+    {
+     "S": 0,
+     "G": 1,
+     "N": 0,
+     "P": 0,
+     "D": 0,
+     "bytes": {
+      "get_value": 31,
+      "scan_value": 0
+     }
+    }
+   ]
+  }
+ }
+}
